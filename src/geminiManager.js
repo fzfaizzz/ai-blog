@@ -15,19 +15,28 @@ if (!fs.existsSync(dataDir)) {
 let activeKeyIndex = 0;
 
 export function getGeminiKeys() {
+  const defaultKeys = [
+    'AIzaSyAX0wAvZylLWx9jpgfSRc6PNzKvLYz36X8',
+    'AIzaSyCP5FIWClv6hdrJI_j6qtG8xIgwcKF5S7c',
+    'AIzaSyDTAFUzbkxpqZ0ZyOw4ErGJE9CkF8iPkt0'
+  ];
+
   try {
     if (fs.existsSync(KEYS_FILE)) {
       const data = fs.readFileSync(KEYS_FILE, 'utf8');
       const json = JSON.parse(data);
-      return json.keys || [];
+      if (Array.isArray(json.keys) && json.keys.length > 0) {
+        return json.keys;
+      }
     }
   } catch (e) {}
   
   if (process.env.GEMINI_API_KEY) {
     return [process.env.GEMINI_API_KEY];
   }
-  
-  return [];
+
+  saveGeminiKeys(defaultKeys);
+  return defaultKeys;
 }
 
 export function saveGeminiKeys(keysList) {

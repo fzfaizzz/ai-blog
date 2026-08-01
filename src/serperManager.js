@@ -16,14 +16,19 @@ if (!fs.existsSync(dataDir)) {
 let activeKeyIndex = 0;
 
 export function getSerperKeys() {
+  const defaultKeys = ['0be094de036405af78a9d21e939bedb7b5c39783'];
   try {
     if (fs.existsSync(KEYS_FILE)) {
       const data = fs.readFileSync(KEYS_FILE, 'utf8');
       const json = JSON.parse(data);
-      return json.keys || [];
+      if (Array.isArray(json.keys) && json.keys.length > 0) {
+        return json.keys;
+      }
     }
   } catch (e) {}
-  return [];
+  
+  saveSerperKeys(defaultKeys);
+  return defaultKeys;
 }
 
 export function saveSerperKeys(keysList) {
