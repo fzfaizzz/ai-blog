@@ -142,8 +142,9 @@ app.get('/api/test-gemini', async (req, res) => {
 
   const results = [];
   const testModels = [
-    { name: 'gemini-1.5-flash', ver: 'v1' },
-    { name: 'gemini-2.0-flash', ver: 'v1beta' }
+    { name: 'gemini-2.5-flash', ver: 'v1beta' },
+    { name: 'gemini-2.0-flash', ver: 'v1beta' },
+    { name: 'gemini-3.5-flash-lite', ver: 'v1beta' }
   ];
 
   for (const key of keys) {
