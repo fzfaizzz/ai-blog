@@ -23,7 +23,17 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
   if (apiKey) keys.unshift(apiKey);
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
+  const models = [
+    { name: 'gemini-1.5-flash', apiVersion: 'v1' },
+    { name: 'gemini-2.0-flash', apiVersion: 'v1beta' },
+    { name: 'gemini-1.5-pro', apiVersion: 'v1' }
+  ];
+
+  if (keys.length === 0) {
+    throw new Error('❌ NO GEMINI API KEY CONFIGURED! Please paste your free Gemini API Key in the Admin Panel (Security & Admin Settings) or set GEMINI_API_KEY environment variable.');
+  }
+
+  let lastError = null;
 
   // Ultra-Resilient 5-Pass Retry Loop over Gemini AI Key Pool
   for (let pass = 1; pass <= 5; pass++) {
@@ -31,14 +41,15 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
       if (!k || k.length < 10) continue;
       for (const m of models) {
         try {
-          console.log(` 🧠 Calling Gemini AI [Pass ${pass}/5 | Key: ${k.substring(0, 8)}... | Model: ${m}] for "${topic.substring(0, 45)}..."`);
-          const apiResult = await callGeminiApiSingle(newsObj, imageSet, k, m);
+          console.log(` 🧠 Calling Gemini AI [Pass ${pass}/5 | Key: ${k.substring(0, 8)}... | Model: ${m.name}] for "${topic.substring(0, 45)}..."`);
+          const apiResult = await callGeminiApiSingle(newsObj, imageSet, k, m.name, m.apiVersion);
           if (apiResult && apiResult.contentHtml && apiResult.contentHtml.length > 500) {
             console.log(`   ✅ Gemini AI Success! Generated ${apiResult.contentHtml.length} chars of deep real story!`);
             return apiResult;
           }
         } catch (e) {
-          console.warn(` ⚠️ Gemini model ${m} with key ${k.substring(0, 6)} failed:`, e.message);
+          lastError = e;
+          console.warn(` ⚠️ Gemini model ${m.name} with key ${k.substring(0, 6)} failed:`, e.message);
         }
       }
     }
@@ -46,12 +57,11 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
     if (pass < 5) await new Promise(r => setTimeout(r, 1500));
   }
 
-  // Fallback to Rich Authentic News Report Generator based on real Serper context
-  console.log(' 📰 Generating Authentic Deep News Report based on Real Serper Wire Context...');
-  return generateAuthenticNewsArticle(topic, snippet, source, date, imageSet);
+  // 🚫 STRICT NO-TEMPLATE POLICY: Throw explicit error detailing exact failure
+  throw new Error(`❌ Gemini AI Error: ${lastError ? lastError.message : 'Unable to generate article. Check your Gemini API key in Admin Settings!'}`);
 }
 
-function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-1.5-flash') {
+function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-1.5-flash', apiVersion = 'v1') {
   return new Promise((resolve, reject) => {
     const topic = newsObj.title;
     const source = newsObj.source || 'Global News Wire';
@@ -79,7 +89,7 @@ CRITICAL EDITORIAL INSTRUCTIONS:
 
     const options = {
       hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+      path: `/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
