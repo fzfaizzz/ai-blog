@@ -42,9 +42,30 @@ const INITIAL_POSTS = [
   }
 ];
 
-if (!fs.existsSync(POSTS_FILE)) {
-  fs.writeFileSync(POSTS_FILE, JSON.stringify(INITIAL_POSTS, null, 2));
+const SEED_FILE = path.join(__dirname, 'seed_posts.json');
+
+function initializePostsFile() {
+  try {
+    if (!fs.existsSync(POSTS_FILE)) {
+      if (fs.existsSync(SEED_FILE)) {
+        fs.copyFileSync(SEED_FILE, POSTS_FILE);
+      } else {
+        fs.writeFileSync(POSTS_FILE, JSON.stringify(INITIAL_POSTS, null, 2));
+      }
+    } else {
+      const current = JSON.parse(fs.readFileSync(POSTS_FILE, 'utf8'));
+      if (!Array.isArray(current) || current.length <= 1) {
+        if (fs.existsSync(SEED_FILE)) {
+          fs.copyFileSync(SEED_FILE, POSTS_FILE);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error initializing posts file:', e);
+  }
 }
+
+initializePostsFile();
 
 const INITIAL_ANALYTICS = {
   countryViews: {
