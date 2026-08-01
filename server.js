@@ -75,6 +75,12 @@ app.get('/post/:slug', (req, res) => {
   res.send(html);
 });
 
+// Official Google AdSense ads.txt Route
+app.get('/ads.txt', (req, res) => {
+  res.header('Content-Type', 'text/plain');
+  res.send('google.com, pub-9492642167600744, DIRECT, f08c47fec0942fa0\n');
+});
+
 app.use(express.static('public', {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
