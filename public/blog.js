@@ -187,6 +187,17 @@ async function loadSingleArticle() {
 
 // Admin Control Panel Handlers
 function initAdminPanel() {
+  const loginModal = document.getElementById('adminLoginModal');
+  const loginForm = document.getElementById('adminLoginForm');
+  const passwordInput = document.getElementById('adminPasswordInput');
+  const loginError = document.getElementById('adminLoginError');
+  const logoutBtn = document.getElementById('adminLogoutBtn');
+
+  const changePassForm = document.getElementById('changePasswordForm');
+  const currentPassInput = document.getElementById('currentPassInput');
+  const newPassInput = document.getElementById('newPassInput');
+  const changePassStatus = document.getElementById('changePassStatus');
+
   const triggerBtn = document.getElementById('triggerAutoBlogBtn');
   const triggerStatus = document.getElementById('triggerStatus');
   const topicInput = document.getElementById('customTopicInput');
@@ -200,6 +211,110 @@ function initAdminPanel() {
   const topTopicsList = document.getElementById('topTopicsList');
   const countryTrafficList = document.getElementById('countryTrafficList');
 
+  // Check Admin Authentication Token
+  function checkAdminAuth() {
+    const token = sessionStorage.getItem('adminToken');
+    if (token) {
+      if (loginModal) loginModal.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      loadAdminDashboardData();
+    } else {
+      if (loginModal) loginModal.style.display = 'flex';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+    }
+  }
+
+  // Login Form Submission
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = passwordInput ? passwordInput.value.trim() : '';
+      if (!password) return;
+
+      if (loginError) loginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+
+        if (data.success && data.token) {
+          sessionStorage.setItem('adminToken', data.token);
+          if (passwordInput) passwordInput.value = '';
+          checkAdminAuth();
+        } else {
+          if (loginError) {
+            loginError.innerText = data.error || 'Incorrect password!';
+            loginError.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (loginError) {
+          loginError.innerText = 'Server connection error!';
+          loginError.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  // Logout Handler
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.removeItem('adminToken');
+      checkAdminAuth();
+    });
+  }
+
+  // Change Admin Password Handler
+  if (changePassForm) {
+    changePassForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const currentPassword = currentPassInput ? currentPassInput.value.trim() : '';
+      const newPassword = newPassInput ? newPassInput.value.trim() : '';
+
+      if (!currentPassword || !newPassword) return;
+
+      if (changePassStatus) changePassStatus.innerText = '⌛ Updating password...';
+
+      try {
+        const res = await fetch('/api/admin/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          if (changePassStatus) {
+            changePassStatus.style.color = '#059669';
+            changePassStatus.innerText = '✅ Password updated successfully!';
+          }
+          if (currentPassInput) currentPassInput.value = '';
+          if (newPassInput) newPassInput.value = '';
+        } else {
+          if (changePassStatus) {
+            changePassStatus.style.color = '#DC2626';
+            changePassStatus.innerText = `❌ ${data.error || 'Failed to update password'}`;
+          }
+        }
+      } catch (err) {
+        if (changePassStatus) {
+          changePassStatus.style.color = '#DC2626';
+          changePassStatus.innerText = '❌ Connection error!';
+        }
+      }
+    });
+  }
+
+  function loadAdminDashboardData() {
+    loadSerperKeysAndCredits();
+    loadRealAnalyticsData();
+  }
+
   function logMessage(msg) {
     if (logsPre) {
       const timestamp = new Date().toLocaleTimeString();
@@ -207,6 +322,9 @@ function initAdminPanel() {
       logsPre.scrollTop = logsPre.scrollHeight;
     }
   }
+
+  // Initial Auth Check
+  checkAdminAuth();
 
   // 1. Auto-Publisher Button Handler
   if (triggerBtn) {

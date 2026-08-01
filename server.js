@@ -23,7 +23,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 let appSettings = {
   adsenseId: 'ca-pub-9492642167600744',
   autoPilotEnabled: true,
-  cronIntervalHours: 1
+  cronIntervalMinutes: 5,
+  adminPassword: process.env.ADMIN_PASSWORD || 'admin123'
 };
 
 // Helper: Detect Country Name from Request IP / Geo Headers
@@ -187,6 +188,35 @@ app.get('/api/analytics', (req, res) => {
     success: true,
     ...analyticsData
   });
+});
+
+// 6. Admin Authentication Endpoints
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  const currentPassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
+  
+  if (password === currentPassword) {
+    const token = Buffer.from(`admin-auth-${Date.now()}`).toString('base64');
+    return res.json({ success: true, token, message: 'Admin login successful' });
+  }
+  
+  return res.status(401).json({ success: false, error: 'Incorrect Admin Password!' });
+});
+
+app.post('/api/admin/change-password', (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const adminPassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
+
+  if (currentPassword !== adminPassword) {
+    return res.status(401).json({ success: false, error: 'Current password is incorrect!' });
+  }
+
+  if (!newPassword || newPassword.trim().length < 4) {
+    return res.status(400).json({ success: false, error: 'New password must be at least 4 characters long!' });
+  }
+
+  appSettings.adminPassword = newPassword.trim();
+  res.json({ success: true, message: 'Admin password updated successfully!' });
 });
 
 // Start Server with Automatic Port Fallback & Start 24/7 Autopilot Scheduler
