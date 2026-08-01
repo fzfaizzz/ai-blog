@@ -111,6 +111,26 @@
       <div id="triggerStatus" style="font-weight: 600; color: #2563EB;">Ready. Click button above to auto-generate news story.</div>
     </div>
 
+    <!-- 🤖 Google Gemini AI 1,500-Word Story Writer Key Card -->
+    <div class="admin-card">
+      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        🤖 Google Gemini AI Key (For 1,500-Word Deep Stories)
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Paste your 100% Free Google Gemini API Key. This enables AI to expand breaking news into 1,500-word deep analytical stories (just like Economic Times & WSJ!).
+      </p>
+
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <input type="text" id="geminiApiKeyInput" placeholder="Paste Free Gemini API Key (e.g. AIzaSy...)" style="flex: 1; min-width: 280px; font-family: monospace; padding: 0.75rem 1rem; border: 1px solid var(--border-dark); border-radius: 6px; font-size: 0.85rem;" />
+        <button id="saveGeminiKeyBtn" class="btn btn-primary" style="background: #2563EB;">
+          💾 Save Gemini Key
+        </button>
+      </div>
+      <div id="geminiKeyStatus" style="font-size: 0.85rem; font-weight: 700; margin-top: 0.75rem; color: #059669;">
+        Checking Gemini API Key...
+      </div>
+    </div>
+
     <!-- 🔑 Dynamic Serper API Multi-Key Pool & Live Credit Meter -->
     <div class="admin-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">

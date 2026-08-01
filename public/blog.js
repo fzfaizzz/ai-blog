@@ -311,8 +311,61 @@ function initAdminPanel() {
   }
 
   function loadAdminDashboardData() {
+    loadGeminiKeyStatus();
     loadSerperKeysAndCredits();
     loadRealAnalyticsData();
+  }
+
+  // Gemini AI Key Handlers
+  const geminiInput = document.getElementById('geminiApiKeyInput');
+  const saveGeminiBtn = document.getElementById('saveGeminiKeyBtn');
+  const geminiStatus = document.getElementById('geminiKeyStatus');
+
+  async function loadGeminiKeyStatus() {
+    if (!geminiStatus) return;
+    try {
+      const res = await fetch('/api/gemini-key');
+      const data = await res.json();
+      if (data.success && data.hasKey) {
+        geminiStatus.innerHTML = `✅ Gemini AI Active (${data.maskedKey}) • <strong>Writing 1,500-Word Deep Stories</strong>`;
+        if (geminiInput) geminiInput.placeholder = `Active Key: ${data.maskedKey} (Paste new to update)`;
+      } else {
+        geminiStatus.innerHTML = `⚠️ No Gemini Key Configured. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #2563EB; font-weight: 700;">Get Free Key from Google AI Studio ➔</a>`;
+      }
+    } catch (e) {}
+  }
+
+  if (saveGeminiBtn) {
+    saveGeminiBtn.addEventListener('click', async () => {
+      const apiKey = geminiInput ? geminiInput.value.trim() : '';
+      if (!apiKey) return alert('Please paste your Gemini API key!');
+
+      saveGeminiBtn.disabled = true;
+      saveGeminiBtn.innerText = '⌛ Saving Key...';
+
+      try {
+        const res = await fetch('/api/gemini-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          logMessage('✅ Gemini AI API Key saved & activated for 1,500-word deep story writing!');
+          alert('Gemini AI API Key saved successfully!');
+          if (geminiInput) geminiInput.value = '';
+          loadGeminiKeyStatus();
+        } else {
+          alert(data.error || 'Failed to save Gemini key');
+        }
+      } catch (e) {
+        alert('Connection error saving key');
+      } finally {
+        saveGeminiBtn.disabled = false;
+        saveGeminiBtn.innerText = '💾 Save Gemini Key';
+      }
+    });
   }
 
   function logMessage(msg) {

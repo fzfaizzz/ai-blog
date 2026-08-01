@@ -181,6 +181,24 @@ app.post('/api/serper-keys', (req, res) => {
   res.json({ success: true, count: saved.length, keys: saved });
 });
 
+// 4b. Gemini AI Key Management API
+app.get('/api/gemini-key', (req, res) => {
+  const key = appSettings.geminiApiKey || process.env.GEMINI_API_KEY || '';
+  const maskedKey = key ? `${key.substring(0, 8)}...${key.substring(key.length - 4)}` : '';
+  res.json({ success: true, hasKey: Boolean(key), maskedKey });
+});
+
+app.post('/api/gemini-key', (req, res) => {
+  const { apiKey } = req.body;
+  if (!apiKey) return res.status(400).json({ success: false, error: 'No Gemini API Key provided' });
+
+  appSettings.geminiApiKey = apiKey.trim();
+  process.env.GEMINI_API_KEY = apiKey.trim();
+  console.log('✅ Gemini AI API Key updated in live engine settings.');
+
+  res.json({ success: true, message: 'Gemini AI API Key saved successfully!' });
+});
+
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
 app.get('/api/analytics', (req, res) => {
   const analyticsData = getRealAnalyticsData();
