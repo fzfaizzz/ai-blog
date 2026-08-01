@@ -10,6 +10,7 @@
   
   <!-- Google Discover Optimization Meta Tags (Official Google Requirement) -->
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="referrer" content="no-referrer">
   <meta property="og:locale" content="en_US">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="The Daily Chronicle">
@@ -39,6 +40,12 @@
         <div>
           <a href="index.html" class="brand-logo">THE DAILY <span>CHRONICLE</span></a>
           <div class="brand-tagline">Independent Reporting • Tech, Business & Global Affairs</div>
+        </div>
+
+        <!-- 🔍 Top Live Search Bar -->
+        <div style="position: relative; width: 100%; max-width: 360px; margin-top: 0.5rem;">
+          <input type="text" id="searchInput" placeholder="Search news, topics, or keywords..." style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.4rem; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 20px; color: var(--text-main); font-size: 0.875rem; outline: none; transition: border-color 0.2s;" />
+          <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; pointer-events: none;">🔍</span>
         </div>
       </div>
       
@@ -104,6 +111,11 @@
         <h3 id="reportingHeaderTitle" style="font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">LATEST REPORTING — ALL HEADLINES</h3>
         <div id="postsGrid" class="posts-grid">
           <div style="color: var(--text-subtle);">Loading articles...</div>
+        </div>
+
+        <!-- 📄 Bottom Pagination Bar -->
+        <div id="paginationContainer" style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <!-- Pagination buttons rendered by JS -->
         </div>
       </section>
 

@@ -25,23 +25,23 @@ export async function getTrendingTopics() {
     targetGl = 'in';
   }
 
-  // 1. Worldwide Global Viral Queries (Covers Anything Trending anywhere in the World!)
+  // 1. Worldwide Global High-Demand Queries (Topics readers actively search for & care about)
   const globalViralQueries = [
-    'world breaking news trending headline today',
-    'global viral news breaking story 2026',
-    'world news politics technology science entertainment today',
-    'trending topic viral event international breaking news'
+    'top world breaking news story today',
+    'major technology breakthroughs artificial intelligence 2026',
+    'global economy business stock markets wall street news',
+    'space exploration discovery NASA SpaceX breakthrough',
+    'trending viral international news story today'
   ];
 
-  // 2. High eCPM US/Tier-1 Commercial Queries
+  // 2. High eCPM & High User Demand Queries
   const highEcpmQueries = [
-    'AI technology breakthrough OpenAI NVIDIA Apple 2026',
-    'SpaceX NASA Starship Moon Mars Space exploration news',
-    'Elon Musk Jeff Bezos Mark Zuckerberg Billionaires wealth news',
-    'Hollywood Movies Box Office Marvel Netflix blockbuster release',
-    'US White House Politics President Election Congress Policy News',
-    'Global Stock Markets Wall Street Business Tech News',
-    'Tesla EV Autonomous AI Robotaxi Tech Innovation'
+    'AI tech news OpenAI NVIDIA Apple Microsoft 2026',
+    'SpaceX NASA Starship space launch discovery news',
+    'Global financial markets economy stock trends news',
+    'Hollywood blockbuster movie release box office news',
+    'US government national policy breakthrough news',
+    'Tesla EV autonomous AI technology innovation news'
   ];
 
   // 3. India News Queries

@@ -63,11 +63,14 @@ if (!fs.existsSync(ANALYTICS_FILE)) {
 
 /**
  * Gets all published blog posts.
+ * @param {boolean} [includeHidden=false] - Set true for Admin Panel to see hidden posts
  */
-export function getAllPosts() {
+export function getAllPosts(includeHidden = false) {
   try {
     const data = fs.readFileSync(POSTS_FILE, 'utf8');
-    return JSON.parse(data);
+    const posts = JSON.parse(data);
+    if (includeHidden) return posts;
+    return posts.filter(p => !p.hidden);
   } catch (e) {
     return INITIAL_POSTS;
   }
@@ -77,8 +80,39 @@ export function getAllPosts() {
  * Gets a single post by slug.
  */
 export function getPostBySlug(slug) {
-  const posts = getAllPosts();
+  const posts = getAllPosts(true);
   return posts.find(p => p.slug === slug) || null;
+}
+
+/**
+ * Toggles a post's hidden state (Hide / Show)
+ */
+export function togglePostVisibility(identifier) {
+  const posts = getAllPosts(true);
+  const post = posts.find(p => p.id == identifier || p.slug === identifier);
+  if (post) {
+    post.hidden = !post.hidden;
+    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+    console.log(`👁️ Post "${post.title}" visibility toggled: hidden = ${post.hidden}`);
+    return post;
+  }
+  return null;
+}
+
+/**
+ * Deletes a post permanently from database
+ */
+export function deletePost(identifier) {
+  let posts = getAllPosts(true);
+  const initialLength = posts.length;
+  posts = posts.filter(p => p.id != identifier && p.slug !== identifier);
+  
+  if (posts.length < initialLength) {
+    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+    console.log(`🗑️ Post deleted: ${identifier}`);
+    return true;
+  }
+  return false;
 }
 
 /**

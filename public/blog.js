@@ -7,40 +7,102 @@ const HUMAN_AUTHORS = [
   { name: 'Marcus Vance', role: 'Executive Editor', initials: 'MV' }
 ];
 
-// Load Homepage Grid Posts & Featured Magazine Hero with Category Filtering
-async function loadHomepagePosts(selectedCategory = 'ALL') {
+let currentCategory = 'ALL';
+let currentSearchQuery = '';
+let currentPage = 1;
+const POSTS_PER_PAGE = 6;
+let cachedPosts = [];
+
+// Load Homepage Grid Posts & Featured Hero with Live Search & Pagination
+async function loadHomepagePosts(category = null, page = null) {
   const postsGrid = document.getElementById('postsGrid');
   const featuredStory = document.getElementById('featuredStory');
   const trendingSidebarList = document.getElementById('trendingSidebarList');
   const headerTitle = document.getElementById('reportingHeaderTitle');
+  const paginationContainer = document.getElementById('paginationContainer');
 
   if (!postsGrid) return;
 
+  if (category !== null) {
+    currentCategory = category;
+    currentPage = 1; // Reset to Page 1 on category change
+    sessionStorage.setItem('homepage_page', 1);
+  }
+
+  // Restore page number from URL or Session Storage when returning via Browser Back button
+  if (page !== null) {
+    currentPage = page;
+  } else {
+    const urlParams = new URLSearchParams(window.location.search);
+    const savedPage = parseInt(urlParams.get('page')) || parseInt(sessionStorage.getItem('homepage_page')) || 1;
+    currentPage = savedPage;
+  }
+
+  // Persist current page in Session Storage & URL query string
+  sessionStorage.setItem('homepage_page', currentPage);
+  try {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('page', currentPage);
+    window.history.replaceState(null, '', newUrl.toString());
+  } catch (e) {}
+
+  // Update Header Title
   if (headerTitle) {
-    headerTitle.innerText = selectedCategory === 'ALL' 
-      ? 'LATEST REPORTING — ALL HEADLINES' 
-      : `LATEST REPORTING — ${selectedCategory.toUpperCase()}`;
+    if (currentSearchQuery) {
+      headerTitle.innerText = `SEARCH RESULTS FOR "${currentSearchQuery.toUpperCase()}"`;
+    } else {
+      headerTitle.innerText = currentCategory === 'ALL' 
+        ? 'LATEST REPORTING — ALL HEADLINES' 
+        : `LATEST REPORTING — ${currentCategory.toUpperCase()}`;
+    }
   }
 
   try {
-    const res = await fetch('/api/posts');
-    const data = await res.json();
+    if (cachedPosts.length === 0) {
+      const res = await fetch('/api/posts');
+      const data = await res.json();
+      if (data.success && data.posts) {
+        cachedPosts = data.posts;
+      }
+    }
 
-    if (data.success && data.posts.length > 0) {
-      const posts = selectedCategory === 'ALL' 
-        ? data.posts 
-        : data.posts.filter(p => (p.category || '').toLowerCase().includes(selectedCategory.toLowerCase()) || (p.title || '').toLowerCase().includes(selectedCategory.toLowerCase()));
+    if (cachedPosts.length > 0) {
+      // 1. Filter by Category
+      let filtered = currentCategory === 'ALL'
+        ? cachedPosts
+        : cachedPosts.filter(p => (p.category || '').toLowerCase().includes(currentCategory.toLowerCase()) || (p.title || '').toLowerCase().includes(currentCategory.toLowerCase()));
 
-      const displayPosts = posts.length > 0 ? posts : data.posts;
+      // 2. Filter by Search Query
+      if (currentSearchQuery.trim()) {
+        const q = currentSearchQuery.trim().toLowerCase();
+        filtered = filtered.filter(p => 
+          (p.title || '').toLowerCase().includes(q) || 
+          (p.metaDescription || '').toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q)
+        );
+      }
 
-      // 1. Featured Lead Magazine Story
-      if (featuredStory && displayPosts[0]) {
-        const lead = displayPosts[0];
+      if (filtered.length === 0) {
+        postsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 2.5rem; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
+          🔍 No articles found matching "<strong>${escapeHtml(currentSearchQuery || currentCategory)}</strong>".
+        </div>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+      }
+
+      // 3. Dynamic Featured Hero & Trending Sidebar (Updates dynamically on Search & Category Filters)
+      const heroSection = document.querySelector('.hero-layout');
+      if (heroSection) heroSection.style.display = 'grid'; // Ensure hero section is visible
+
+      if (featuredStory && filtered.length > 0) {
+        const lead = filtered[0];
         const author = HUMAN_AUTHORS[0];
+        const categoryTag = (currentCategory !== 'ALL') ? currentCategory : (lead.category || 'TOP STORY');
+        
         featuredStory.innerHTML = `
-          <span class="featured-badge">${lead.category || 'WORLD BREAKING'}</span>
+          <span class="featured-badge">${escapeHtml(categoryTag.toUpperCase())}</span>
           <a href="post.html?slug=${lead.slug}">
-            <img src="${lead.imageUrl}" alt="${escapeHtml(lead.title)}" />
+            <img src="${lead.imageUrl}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80'" />
           </a>
           <h2><a href="post.html?slug=${lead.slug}">${escapeHtml(lead.title)}</a></h2>
           <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
@@ -50,30 +112,36 @@ async function loadHomepagePosts(selectedCategory = 'ALL') {
         `;
       }
 
-      // 2. Trending Sidebar Items
-      if (trendingSidebarList && displayPosts.length > 1) {
+      if (trendingSidebarList) {
         trendingSidebarList.innerHTML = '';
-        displayPosts.slice(1, 4).forEach(item => {
+        const sideItems = filtered.length > 1 ? filtered.slice(1, 4) : filtered.slice(0, 3);
+        sideItems.forEach(item => {
           const div = document.createElement('div');
           div.className = 'trending-sidebar-item';
           div.innerHTML = `
-            <span style="font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); text-transform: uppercase;">${item.category || 'ANALYSIS'}</span>
+            <span style="font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
             <h4><a href="post.html?slug=${item.slug}">${escapeHtml(item.title)}</a></h4>
           `;
           trendingSidebarList.appendChild(div);
         });
       }
 
-      // 3. Main Reporting Grid
+      // 4. Calculate Pagination Slices
+      const totalPages = Math.ceil(filtered.length / POSTS_PER_PAGE);
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+      const paginatedPosts = filtered.slice(startIndex, startIndex + POSTS_PER_PAGE);
+
+      // 5. Render Main Grid
       postsGrid.innerHTML = '';
-      const gridPosts = displayPosts.length > 4 ? displayPosts.slice(1) : displayPosts;
-      gridPosts.forEach((post, index) => {
-        const author = HUMAN_AUTHORS[(index + 1) % HUMAN_AUTHORS.length];
+      paginatedPosts.forEach((post, index) => {
+        const author = HUMAN_AUTHORS[(index + startIndex) % HUMAN_AUTHORS.length];
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
           <a href="post.html?slug=${post.slug}">
-            <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="card-img" />
+            <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
           </a>
           <div class="card-body">
             <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
@@ -91,15 +159,67 @@ async function loadHomepagePosts(selectedCategory = 'ALL') {
         `;
         postsGrid.appendChild(card);
       });
+
+      // 6. Render Pagination Controls
+      renderPagination(totalPages);
     } else {
-      postsGrid.innerHTML = '<div style="color: var(--text-subtle);">No published articles found in this category.</div>';
+      postsGrid.innerHTML = '<div style="color: var(--text-subtle);">No published articles found.</div>';
     }
   } catch (e) {
     postsGrid.innerHTML = `<div style="color: var(--text-subtle);">Error loading articles: ${e.message}</div>`;
   }
 }
 
-// Bind Category Navigation Click Listeners
+// Render Pagination Buttons
+function renderPagination(totalPages) {
+  const container = document.getElementById('paginationContainer');
+  if (!container) return;
+
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = `
+    <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === 1 ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === 1 ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
+      ⬅️ Previous
+    </button>
+    <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; padding: 0 0.5rem;">
+      Page ${currentPage} of ${totalPages}
+    </span>
+    <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === totalPages ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === totalPages ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
+      Next ➡️
+    </button>
+  `;
+
+  container.innerHTML = html;
+
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+
+  if (prevBtn && currentPage > 1) {
+    prevBtn.addEventListener('click', () => {
+      loadHomepagePosts(null, currentPage - 1);
+      scrollToGridTop();
+    });
+  }
+
+  if (nextBtn && currentPage < totalPages) {
+    nextBtn.addEventListener('click', () => {
+      loadHomepagePosts(null, currentPage + 1);
+      scrollToGridTop();
+    });
+  }
+}
+
+function scrollToGridTop() {
+  const target = document.getElementById('reportingHeaderTitle');
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// Bind Category Navigation & Search Input Listeners
 function initCategoryFilter() {
   const categoryBtns = document.querySelectorAll('.category-btn');
   categoryBtns.forEach(btn => {
@@ -115,10 +235,24 @@ function initCategoryFilter() {
       btn.classList.add('active');
       btn.style.color = '#2563EB';
 
-      // Load Filtered Posts
-      loadHomepagePosts(targetCat);
+      // Reset Search & Load Category
+      currentSearchQuery = '';
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.value = '';
+
+      loadHomepagePosts(targetCat, 1);
     });
   });
+
+  // Bind Search Input Handler
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      currentSearchQuery = e.target.value;
+      currentPage = 1;
+      loadHomepagePosts(null, 1);
+    });
+  }
 }
 
 // Load Single Article Page
@@ -205,25 +339,29 @@ async function loadRecommendedArticles(currentSlug, category) {
       const otherPosts = data.posts.filter(p => p.slug !== currentSlug);
       if (otherPosts.length === 0) return;
 
-      // 1. Render Mid-Article Recommended Box (2 Posts)
+      // 1. Render Mid-Article Recommended Section (Clean Native Article Grid)
       if (midPlaceholder) {
         const midPosts = otherPosts.slice(0, 2);
         midPlaceholder.innerHTML = `
-          <div class="in-article-recommended" style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 4px solid #2563EB; border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2.25rem 0;">
-            <div style="font-size: 0.8rem; font-weight: 800; color: #2563EB; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
-              <span>📌</span> RECOMMENDED READS FOR YOU
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+          <div class="in-article-recommended" style="margin: 2.5rem 0; padding: 1.5rem 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;">
+            <h4 style="font-family: var(--font-heading); font-size: 1.05rem; font-weight: 800; color: #0F172A; margin: 0 0 1.25rem 0; text-transform: uppercase; letter-spacing: 0.04em;">
+              Related Stories
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">
               ${midPosts.map(p => `
-                <a href="post.html?slug=${p.slug}" style="text-decoration: none; color: inherit; display: flex; gap: 0.75rem; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.75rem; transition: transform 0.2s, box-shadow 0.2s;" onmouseenter="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow='none'">
-                  <img src="${p.imageUrl}" alt="${p.title}" style="width: 72px; height: 72px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #0F172A;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
-                  <div style="display: flex; flex-direction: column; justify-content: center;">
-                    <span style="font-size: 0.65rem; font-weight: 700; color: #64748B; text-transform: uppercase;">${p.category || 'NEWS'}</span>
-                    <h5 style="font-family: var(--font-heading); font-size: 0.9rem; line-height: 1.3; color: #0F172A; margin: 0.2rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                      ${p.title}
-                    </h5>
-                  </div>
-                </a>
+                <div class="article-card" style="display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
+                  <a href="post.html?slug=${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+                    <div style="width: 100%; height: 140px; overflow: hidden; background: #0F172A; position: relative;">
+                      <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
+                    </div>
+                    <div style="padding: 0.9rem; display: flex; flex-direction: column; flex-grow: 1;">
+                      <span style="font-size: 0.675rem; font-weight: 800; color: #2563EB; text-transform: uppercase; margin-bottom: 0.35rem;">${escapeHtml(p.category || 'NEWS')}</span>
+                      <h5 style="font-family: var(--font-heading); font-size: 0.925rem; font-weight: 700; line-height: 1.35; color: #0F172A; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${escapeHtml(p.title)}
+                      </h5>
+                    </div>
+                  </a>
+                </div>
               `).join('')}
             </div>
           </div>
@@ -296,9 +434,22 @@ function initAdminPanel() {
       loadAdminDashboardData();
     } else {
       if (loginModal) loginModal.style.display = 'flex';
-      if (logoutBtn) logoutBtn.style.display = 'none';
     }
   }
+
+  // Password Eye Toggle Show/Hide Handler
+  document.querySelectorAll('.toggle-pass-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (input) {
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        btn.innerText = isPass ? '🙈' : '👁️';
+      }
+    });
+  });
 
   // Login Form Submission
   if (loginForm) {
@@ -351,8 +502,15 @@ function initAdminPanel() {
       e.preventDefault();
       const currentPassword = currentPassInput ? currentPassInput.value.trim() : '';
       const newPassword = newPassInput ? newPassInput.value.trim() : '';
+      const targetPass = newPassword || currentPassword;
 
-      if (!currentPassword || !newPassword) return;
+      if (!targetPass || targetPass.length < 4) {
+        if (changePassStatus) {
+          changePassStatus.style.color = '#DC2626';
+          changePassStatus.innerText = '❌ Password must be at least 4 characters!';
+        }
+        return;
+      }
 
       if (changePassStatus) changePassStatus.innerText = '⌛ Updating password...';
 
@@ -360,14 +518,14 @@ function initAdminPanel() {
         const res = await fetch('/api/admin/change-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword, newPassword })
+          body: JSON.stringify({ currentPassword, newPassword: targetPass })
         });
         const data = await res.json();
 
         if (data.success) {
           if (changePassStatus) {
             changePassStatus.style.color = '#059669';
-            changePassStatus.innerText = '✅ Password updated successfully!';
+            changePassStatus.innerText = `✅ Password updated & saved to: "${data.newPassword}"`;
           }
           if (currentPassInput) currentPassInput.value = '';
           if (newPassInput) newPassInput.value = '';
@@ -389,7 +547,178 @@ function initAdminPanel() {
   function loadAdminDashboardData() {
     loadGeminiKeyStatus();
     loadSerperKeysAndCredits();
-    loadRealAnalyticsData();
+    loadAnalytics();
+    loadAdminArticlesList();
+  }
+
+  // Auto-refresh analytics and articles every 15 seconds while Admin is active
+  setInterval(() => {
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && adminPanel.style.display !== 'none') {
+      loadAnalytics();
+      loadAdminArticlesList();
+    }
+  }, 15000);
+
+  // Admin Articles Manager State & Functions
+  let adminAllPosts = [];
+  let adminSearchQuery = '';
+  let adminPerPage = 10;
+
+  async function loadAdminArticlesList() {
+    const container = document.getElementById('adminArticlesList');
+    const badge = document.getElementById('adminArticlesCountBadge');
+    if (!container) return;
+
+    try {
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/admin/posts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.posts)) {
+        adminAllPosts = data.posts;
+        if (badge) badge.innerText = `${adminAllPosts.length} Total Articles`;
+        renderAdminArticlesList();
+      }
+    } catch (e) {
+      if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626;">Error loading articles list</div>`;
+    }
+  }
+
+  function renderAdminArticlesList() {
+    const container = document.getElementById('adminArticlesList');
+    if (!container) return;
+
+    // Filter by Search Query
+    let filtered = adminAllPosts;
+    if (adminSearchQuery.trim()) {
+      const q = adminSearchQuery.trim().toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.slug || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Slice by Show Per Page Dropdown
+    let displayPosts = filtered;
+    if (adminPerPage !== 'all') {
+      const count = parseInt(adminPerPage) || 10;
+      displayPosts = filtered.slice(0, count);
+    }
+
+    if (displayPosts.length === 0) {
+      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No articles found matching search criteria.</div>`;
+      return;
+    }
+
+    container.innerHTML = displayPosts.map(p => `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid #F1F5F9; flex-wrap: wrap; gap: 0.75rem; background: ${p.hidden ? '#FFFBEB' : '#FFFFFF'};">
+        <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 260px;">
+          <img src="${p.imageUrl}" alt="${p.title}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0F172A;" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
+          <div>
+            <div style="font-weight: 700; font-size: 0.9rem; color: #0F172A; line-height: 1.3;">
+              <a href="post.html?slug=${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.2rem;">
+              📁 <strong>${p.category || 'News'}</strong> • 👁️ ${p.views || 0} views • 🗓️ ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <!-- Status Badge -->
+          <span style="font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 12px; background: ${p.hidden ? '#FEF3C7' : '#DCFCE7'}; color: ${p.hidden ? '#D97706' : '#15803D'};">
+            ${p.hidden ? '🙈 HIDDEN' : '🟢 PUBLIC'}
+          </span>
+
+          <!-- Hide/Unhide Button -->
+          <button class="admin-toggle-btn" data-id="${p.id}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: ${p.hidden ? '#059669' : '#D97706'}; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
+            ${p.hidden ? '👁️ Unhide' : '🙈 Hide'}
+          </button>
+
+          <!-- Delete Button -->
+          <button class="admin-delete-btn" data-id="${p.id}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #DC2626; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Bind Action Button Handlers
+    container.querySelectorAll('.admin-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        try {
+          const token = sessionStorage.getItem('adminToken') || '';
+          const res = await fetch('/api/admin/post/toggle-visibility', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            cachedPosts = []; // Clear homepage cache
+            loadAdminArticlesList();
+            loadHomepagePosts();
+          }
+        } catch (e) {
+          alert('Error toggling post visibility');
+        }
+      });
+    });
+
+    container.querySelectorAll('.admin-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const title = btn.getAttribute('data-title');
+        if (!confirm(`Are you sure you want to permanently delete:\n"${title}"?`)) return;
+
+        btn.disabled = true;
+        try {
+          const token = sessionStorage.getItem('adminToken') || '';
+          const res = await fetch('/api/admin/post/delete', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            logMessage(`🗑️ Article deleted: "${title}"`);
+            cachedPosts = []; // Clear homepage cache
+            loadAdminArticlesList();
+            loadHomepagePosts();
+          }
+        } catch (e) {
+          alert('Error deleting post');
+        }
+      });
+    });
+  }
+
+  // Bind Admin Search & Show Per Page Dropdown Listeners
+  const adminSearchInput = document.getElementById('adminArticleSearchInput');
+  if (adminSearchInput) {
+    adminSearchInput.addEventListener('input', (e) => {
+      adminSearchQuery = e.target.value;
+      renderAdminArticlesList();
+    });
+  }
+
+  const adminPerPageSelect = document.getElementById('adminArticlesPerPageSelect');
+  if (adminPerPageSelect) {
+    adminPerPageSelect.addEventListener('change', (e) => {
+      adminPerPage = e.target.value;
+      renderAdminArticlesList();
+    });
   }
 
   // Gemini AI Key Handlers
@@ -400,7 +729,10 @@ function initAdminPanel() {
   async function loadGeminiKeyStatus() {
     if (!geminiStatus) return;
     try {
-      const res = await fetch('/api/gemini-key');
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/gemini-key', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success && data.hasKey) {
         geminiStatus.innerHTML = `✅ Gemini AI Active (${data.maskedKey}) • <strong>Writing 1,500-Word Deep Stories</strong>`;
@@ -420,9 +752,13 @@ function initAdminPanel() {
       saveGeminiBtn.innerText = '⌛ Saving Key...';
 
       try {
+        const token = sessionStorage.getItem('adminToken') || '';
         const res = await fetch('/api/gemini-key', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ apiKey })
         });
         const data = await res.json();
@@ -466,9 +802,13 @@ function initAdminPanel() {
       logMessage(`Initiated story generation ${topic ? `for topic: "${topic}"` : 'from live global news'}...`);
 
       try {
+        const token = sessionStorage.getItem('adminToken') || '';
         const res = await fetch('/api/trigger-autoblog', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ topic })
         });
         const data = await res.json();
@@ -500,7 +840,10 @@ function initAdminPanel() {
     if (!keysContainer) return;
 
     try {
-      const res = await fetch('/api/serper-keys');
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/serper-keys', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
 
       keysContainer.innerHTML = '';
@@ -582,9 +925,13 @@ function initAdminPanel() {
       saveSerperKeysBtn.innerText = '⌛ Updating API Pool...';
 
       try {
+        const token = sessionStorage.getItem('adminToken') || '';
         const res = await fetch('/api/serper-keys', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ keys: keysList })
         });
         const data = await res.json();
@@ -607,10 +954,18 @@ function initAdminPanel() {
     if (!topTopicsList || !countryTrafficList) return;
 
     try {
-      const res = await fetch('/api/analytics');
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/analytics', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
 
       if (data.success) {
+        const statTotalViews = document.getElementById('statTotalViews');
+        const statTotalArticles = document.getElementById('statTotalArticles');
+        if (statTotalViews && data.totalMonthlyViews) statTotalViews.innerText = data.totalMonthlyViews;
+        if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length || '37';
+
         topTopicsList.innerHTML = '';
         data.topTopics.forEach(t => {
           const div = document.createElement('div');
@@ -618,7 +973,7 @@ function initAdminPanel() {
           div.innerHTML = `
             <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               <strong>${escapeHtml(t.title)}</strong>
-              <div style="font-size: 0.725rem; color: #64748B;">Category: ${t.category}</div>
+              <div style="font-size: 0.725rem; color: #64748B;">Category: ${escapeHtml(t.category)}</div>
             </div>
             <div style="text-align: right; min-width: 90px; font-weight: 700; color: #2563EB;">
               👁️ ${t.views.toLocaleString()}
@@ -633,7 +988,7 @@ function initAdminPanel() {
           div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;';
           div.innerHTML = `
             <div>
-              <strong>${c.country}</strong>
+              <strong>${escapeHtml(c.country)}</strong>
               <div style="font-size: 0.725rem; color: #64748B;">Page Views: ${c.pageViews}</div>
             </div>
             <div style="font-weight: 700; color: #059669; font-size: 0.95rem;">
@@ -664,6 +1019,15 @@ function hashString(str) {
 function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+window.togglePassVisibility = function(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    if (btnEl) btnEl.innerText = isPass ? '🙈' : '👁️';
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('postsGrid')) {

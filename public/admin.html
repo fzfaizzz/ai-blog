@@ -64,7 +64,10 @@
       <form id="adminLoginForm">
         <div style="margin-bottom: 1.25rem; text-align: left;">
           <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">ADMIN PASSWORD</label>
-          <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password (Default: admin123)" required style="width: 100%; padding: 0.8rem 1rem; border: 1px solid #94A3B8; border-radius: 6px; font-size: 0.95rem; outline: none;" />
+          <div style="position: relative;">
+            <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" required style="width: 100%; padding: 0.8rem 2.8rem 0.8rem 1rem; border: 1px solid #94A3B8; border-radius: 6px; font-size: 0.95rem; outline: none;" />
+            <button type="button" class="toggle-pass-btn" onclick="togglePassVisibility('adminPasswordInput', this)" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.15rem; padding: 0.2rem 0.4rem; color: #64748B; z-index: 10;" title="Show / Hide Password">👁️</button>
+          </div>
         </div>
 
         <div id="adminLoginError" style="font-size: 0.85rem; color: #DC2626; font-weight: 600; margin-bottom: 1rem; display: none;"></div>
@@ -73,10 +76,6 @@
           🔓 Unlock Staff Dashboard
         </button>
       </form>
-      
-      <div style="margin-top: 1.25rem; font-size: 0.775rem; color: #94A3B8; background: #F8FAFC; padding: 0.6rem; border-radius: 6px;">
-        🔑 Default Password: <strong style="color: #2563EB;">admin123</strong> (You can change it inside settings anytime)
-      </div>
     </div>
   </div>
 
@@ -92,6 +91,33 @@
   </header>
 
   <div class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 3rem;">
+    <!-- 📊 Live Staff Dashboard Overview Stats Banner -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">📚</div>
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Published Articles</div>
+          <div id="statTotalArticles" style="font-weight: 800; font-size: 1.4rem; color: #0F172A;">0</div>
+        </div>
+      </div>
+
+      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: #ECFDF5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">👁️</div>
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Combined Views</div>
+          <div id="statTotalViews" style="font-weight: 800; font-size: 1.4rem; color: #059669;">0</div>
+        </div>
+      </div>
+
+      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: #F5F3FF; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🤖</div>
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">24/7 Autopilot Mode</div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: #059669; display: flex; align-items: center; gap: 0.3rem;">🟢 ACTIVE</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 1-Click Trigger Card -->
     <div class="admin-card">
       <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -157,6 +183,45 @@
       </div>
     </div>
 
+    <!-- 📚 Published Articles Manager (Search, Hide/Unhide, Delete, Show Per Page) -->
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <h3 style="font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          📚 Published Articles Manager
+        </h3>
+        <span id="adminArticlesCountBadge" style="background: #E2E8F0; color: #0F172A; font-weight: 700; font-size: 0.8rem; padding: 0.25rem 0.65rem; border-radius: 12px;">
+          0 Total Articles
+        </span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Search articles, toggle visibility (Hide/Unhide from website), or permanently delete articles. Select how many articles to display using the dropdown below.
+      </p>
+
+      <!-- Search & Controls Bar -->
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div style="position: relative; flex: 1; min-width: 250px;">
+          <input type="text" id="adminArticleSearchInput" placeholder="🔍 Search articles by title, category, or slug..." style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.4rem; background: #F8FAFC; border: 1px solid var(--border-dark); border-radius: 6px; font-size: 0.85rem; color: var(--text-main); outline: none;" />
+          <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;">🔍</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="adminArticlesPerPageSelect" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Show Per Page:</label>
+          <select id="adminArticlesPerPageSelect" style="background: #F8FAFC; border: 1px solid var(--border-dark); padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: var(--text-main); outline: none; cursor: pointer;">
+            <option value="10" selected>Show 10</option>
+            <option value="25">Show 25</option>
+            <option value="50">Show 50</option>
+            <option value="100">Show 100</option>
+            <option value="all">Show All</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Articles List Container -->
+      <div id="adminArticlesList" style="max-height: 520px; overflow-y: auto; border: 1px solid var(--border-dark); border-radius: 6px; background: #FFF;">
+        <!-- Dynamic Articles Rows Injected Here -->
+      </div>
+    </div>
+
     <!-- 📊 Real-Time Analytics & Traffic Insights -->
     <div class="admin-card">
       <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -201,11 +266,18 @@
       <form id="changePasswordForm" style="max-width: 480px;">
         <div style="margin-bottom: 1rem;">
           <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">CURRENT PASSWORD</label>
-          <input type="password" id="currentPassInput" placeholder="Current password (Default: admin123)" required style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none;" />
+          <div style="position: relative;">
+            <input type="password" id="currentPassInput" placeholder="Enter current password" required style="width: 100%; padding: 0.65rem 2.6rem 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
+            <button type="button" class="toggle-pass-btn" onclick="togglePassVisibility('currentPassInput', this)" style="position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.2rem 0.4rem; color: #64748B; z-index: 10;" title="Show / Hide Password">👁️</button>
+          </div>
         </div>
+        
         <div style="margin-bottom: 1.25rem;">
           <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">NEW PASSWORD</label>
-          <input type="password" id="newPassInput" placeholder="Enter new password (min 4 characters)" required style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none;" />
+          <div style="position: relative;">
+            <input type="password" id="newPassInput" placeholder="Enter new password (min 4 characters)" required style="width: 100%; padding: 0.65rem 2.6rem 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
+            <button type="button" class="toggle-pass-btn" onclick="togglePassVisibility('newPassInput', this)" style="position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.2rem 0.4rem; color: #64748B; z-index: 10;" title="Show / Hide Password">👁️</button>
+          </div>
         </div>
         
         <button type="submit" id="changePassBtn" class="btn btn-primary" style="background: #1E293B;">

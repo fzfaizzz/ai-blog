@@ -19,49 +19,57 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
   const date = newsObj.date || 'Recently Published';
   const snippet = newsObj.snippet || '';
 
-  // Priority: explicit apiKey > active Key from Pool > process.env.GEMINI_API_KEY
-  let activeKey = apiKey || getActiveGeminiKey() || process.env.GEMINI_API_KEY;
+  const keys = getGeminiKeys();
+  if (apiKey) keys.unshift(apiKey);
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
 
-  if (activeKey) {
-    try {
-      console.log(` 🧠 Calling Gemini AI Story Engine with Key: ${activeKey.substring(0, 8)}...`);
-      const apiResult = await callGeminiApi(newsObj, imageSet, activeKey);
-      if (apiResult) return apiResult;
-    } catch (e) {
-      console.warn('⚠️ Gemini API call failed, trying key rotation:', e.message);
-      const nextKey = rotateGeminiKey();
-      if (nextKey) {
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+
+  // Zero-Template Policy: Retry up to 5 full passes on Gemini AI
+  for (let pass = 1; pass <= 5; pass++) {
+    for (const k of keys) {
+      for (const m of models) {
         try {
-          const retryResult = await callGeminiApi(newsObj, imageSet, nextKey);
-          if (retryResult) return retryResult;
-        } catch (e2) {}
+          console.log(` 🧠 Calling Gemini AI [Pass ${pass}/5 | Key: ${k.substring(0, 8)}... | Model: ${m}] for "${topic.substring(0, 45)}..."`);
+          const apiResult = await callGeminiApiSingle(newsObj, imageSet, k, m);
+          if (apiResult && apiResult.contentHtml && apiResult.contentHtml.length > 500) {
+            console.log(`   ✅ Gemini AI Success! Generated ${apiResult.contentHtml.length} chars of deep real story!`);
+            return apiResult;
+          }
+        } catch (e) {
+          console.warn(` ⚠️ Gemini model ${m} with key ${k.substring(0, 6)} failed:`, e.message);
+        }
       }
     }
+    // Wait 2.5 seconds before next pass if previous pass hit rate limits
+    if (pass < 5) await new Promise(r => setTimeout(r, 2500));
   }
 
-  console.log('ℹ️ Running Local Authentic Story Engine...');
-  return generateAuthenticNewsArticle(topic, snippet, source, date, imageSet);
+  // ZERO TEMPLATE FALLBACK: Throw explicit error instead of returning generic template text!
+  throw new Error('Gemini AI Generation Error: Unable to generate real story after 5 passes. Zero-Template policy enforced.');
 }
 
-function callGeminiApi(newsObj, imageSet, apiKey) {
+function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-2.5-flash') {
   return new Promise((resolve, reject) => {
     const topic = newsObj.title;
     const source = newsObj.source || 'Global News Wire';
     const date = newsObj.date || 'Today';
-    const snippet = newsObj.snippet || '';
+    const snippet = newsObj.fullStoryText || newsObj.snippet || '';
 
     const prompt = `You are a Senior Bureau Chief & Chief Editor at The Wall Street Journal and Economic Times.
-Write a comprehensive, highly engaging, 1,500-word deep-dive news story on: "${topic}".
+Write a crisp, highly engaging, high-CTR, 800 to 1,000-word standard news report covering the FULL STORY on: "${topic}".
 
 Primary Wire Source: ${source}
 Publication Time: ${date}
-Summary Context: ${snippet}
+Raw Story Context & Facts:
+${snippet}
 
 CRITICAL EDITORIAL INSTRUCTIONS:
-1. Write a complete, detailed news report that covers the FULL STORY in depth — explain what happened, key events, background history, policy/market implications, statements from key stakeholders, and strategic outlook.
-2. DO NOT write generic placeholder text or repeat the title sentence over and over. Treat this as a real front-page newspaper investigation.
-3. Structure the article with engaging HTML headings (<h2>, <h3>), rich narrative paragraphs (<p>), executive bullet points (<ul>, <li>), verified metric tables (<table>), expert quotes (<blockquote>), and an FAQ section.
-4. DO NOT include markdown code fences (\`\`\`html) or AI meta notes. Output ONLY raw HTML content starting directly with the story.`;
+1. HIGH-CTR VIRAL HEADLINE: Craft an attention-grabbing, irresistible front-page headline that drives high click-through rates (WSJ/ET style). It must be compelling, urgent, and hook readers instantly while remaining accurate to the facts.
+2. FOCUS ON HIGH USER VALUE: Deliver clear, actionable, verified news information. Explain what happened, why it matters, key background context, real quotes/statements, and future outlook.
+3. STANDARD LENGTH (~800-1,000 WORDS): Keep the article focused and easy to read — not overly long, and not short. Ensure every paragraph provides genuine story details and facts.
+4. Structure the article with engaging HTML headings (<h2>, <h3>), informative paragraphs (<p>), executive bullet points (<ul>, <li>), a quick verified data table (<table>), and a 2-question FAQ section.
+5. DO NOT include markdown code fences (\`\`\`html) or AI meta notes. Output ONLY raw HTML content starting directly with the story.`;
 
     const postData = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]
@@ -69,7 +77,7 @@ CRITICAL EDITORIAL INSTRUCTIONS:
 
     const options = {
       hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      path: `/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,6 +91,11 @@ CRITICAL EDITORIAL INSTRUCTIONS:
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
+          if (!json.candidates || json.candidates.length === 0 || !json.candidates[0].content) {
+            const errMsg = json.error ? json.error.message : 'No candidates returned';
+            return reject(new Error(errMsg));
+          }
+
           let text = json.candidates[0].content.parts[0].text;
 
           // Strip any markdown code fences if returned by AI
@@ -106,12 +119,12 @@ CRITICAL EDITORIAL INSTRUCTIONS:
             publishTime: date
           });
         } catch (e) {
-          resolve(null);
+          reject(e);
         }
       });
     });
 
-    req.on('error', (err) => resolve(null));
+    req.on('error', (err) => reject(err));
     req.write(postData);
     req.end();
   });

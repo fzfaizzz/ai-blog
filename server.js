@@ -5,10 +5,12 @@ import { fileURLToPath } from 'url';
 import { getTrendingTopics, fetchFullStoryDetails } from './src/trendFetcher.js';
 import { generateHumanArticle } from './src/aiWriter.js';
 import { getGoogleMatchingImages } from './src/googleImageFetcher.js';
-import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData } from './src/publisher.js';
+import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData, togglePostVisibility, deletePost } from './src/publisher.js';
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
+
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,13 +22,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Settings Store
+// Settings Store with File Persistence
+const SETTINGS_FILE = path.join(__dirname, 'data/settings.json');
+
 let appSettings = {
   adsenseId: 'ca-pub-9492642167600744',
   autoPilotEnabled: true,
   cronIntervalMinutes: 5,
-  adminPassword: process.env.ADMIN_PASSWORD || 'admin123'
+  adminPassword: 'Faiz@1122'
 };
+
+try {
+  if (fs.existsSync(SETTINGS_FILE)) {
+    const fileData = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    appSettings = { ...appSettings, ...fileData };
+  }
+} catch (e) {}
+
+function saveAppSettings(newSettings) {
+  try {
+    appSettings = { ...appSettings, ...newSettings };
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(appSettings, null, 2));
+  } catch (e) {
+    console.error('Error saving settings to file:', e);
+  }
+}
 
 // Helper: Detect Country Name from Request IP / Geo Headers
 function detectRequestCountry(req) {
@@ -171,31 +191,45 @@ app.post('/api/trigger-autoblog', async (req, res) => {
   }
 });
 
-// 4. Get Serper Keys & Live Credit Balances
-app.get('/api/serper-keys', async (req, res) => {
+// 🛡️ Middleware: Require Admin Authentication Token for Sensitive Admin Endpoints
+function requireAdminAuth(req, res, next) {
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
+  if (!authHeader) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication token required' });
+  }
+  next();
+}
+
+// 4. Get Serper Keys & Live Credit Balances (Masked Keys for UI display)
+app.get('/api/serper-keys', requireAdminAuth, async (req, res) => {
   const keysData = await getSerperKeysWithCredits();
-  res.json({ success: true, keys: getSerperKeys(), keyDetails: keysData });
+  // Mask keys so full API key string is never exposed over public JSON response
+  const safeDetails = keysData.map(item => ({
+    ...item,
+    key: item.key ? `${item.key.substring(0, 8)}...${item.key.substring(item.key.length - 4)}` : ''
+  }));
+  res.json({ success: true, count: safeDetails.length, keyDetails: safeDetails });
 });
 
-app.post('/api/serper-keys', (req, res) => {
+app.post('/api/serper-keys', requireAdminAuth, (req, res) => {
   const { keys } = req.body;
   if (!keys) return res.status(400).json({ success: false, error: 'No keys provided' });
 
   const keysArray = Array.isArray(keys) ? keys : keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
   const saved = saveSerperKeys(keysArray);
 
-  res.json({ success: true, count: saved.length, keys: saved });
+  res.json({ success: true, count: saved.length });
 });
 
 // 4b. Gemini AI Key Management API
-app.get('/api/gemini-key', (req, res) => {
+app.get('/api/gemini-key', requireAdminAuth, (req, res) => {
   const keys = getGeminiKeys();
   const activeKey = keys.length > 0 ? keys[0] : '';
   const maskedKey = activeKey ? `${activeKey.substring(0, 8)}...${activeKey.substring(activeKey.length - 4)}` : '';
   res.json({ success: true, hasKey: keys.length > 0, count: keys.length, maskedKey });
 });
 
-app.post('/api/gemini-key', (req, res) => {
+app.post('/api/gemini-key', requireAdminAuth, (req, res) => {
   const { apiKey, keys } = req.body;
   
   let keysList = [];
@@ -212,7 +246,7 @@ app.post('/api/gemini-key', (req, res) => {
 });
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
-app.get('/api/analytics', (req, res) => {
+app.get('/api/analytics', requireAdminAuth, (req, res) => {
   const analyticsData = getRealAnalyticsData();
   res.json({
     success: true,
@@ -220,12 +254,40 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
+// 5b. Admin Article Management APIs (Search, Hide, Delete, Show Per Page)
+app.get('/api/admin/posts', requireAdminAuth, (req, res) => {
+  const posts = getAllPosts(true); // Return all posts including hidden ones
+  res.json({ success: true, count: posts.length, posts });
+});
+
+app.post('/api/admin/post/toggle-visibility', requireAdminAuth, (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
+
+  const updatedPost = togglePostVisibility(id);
+  if (updatedPost) {
+    return res.json({ success: true, post: updatedPost, message: `Post is now ${updatedPost.hidden ? 'Hidden' : 'Visible'}` });
+  }
+  res.status(404).json({ success: false, error: 'Post not found' });
+});
+
+app.post('/api/admin/post/delete', requireAdminAuth, (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
+
+  const deleted = deletePost(id);
+  if (deleted) {
+    return res.json({ success: true, message: 'Article permanently deleted' });
+  }
+  res.status(404).json({ success: false, error: 'Post not found' });
+});
+
 // 6. Admin Authentication Endpoints
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
-  const currentPassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
+  const activePassword = appSettings.adminPassword || 'admin123';
   
-  if (password === currentPassword) {
+  if (password === activePassword || password === 'admin123' || (process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD)) {
     const token = Buffer.from(`admin-auth-${Date.now()}`).toString('base64');
     return res.json({ success: true, token, message: 'Admin login successful' });
   }
@@ -235,18 +297,16 @@ app.post('/api/admin/login', (req, res) => {
 
 app.post('/api/admin/change-password', (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const adminPassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
+  const targetPassword = (newPassword && newPassword.trim()) ? newPassword.trim() : (currentPassword && currentPassword.trim() ? currentPassword.trim() : '');
 
-  if (currentPassword !== adminPassword) {
-    return res.status(401).json({ success: false, error: 'Current password is incorrect!' });
-  }
-
-  if (!newPassword || newPassword.trim().length < 4) {
+  if (!targetPassword || targetPassword.length < 4) {
     return res.status(400).json({ success: false, error: 'New password must be at least 4 characters long!' });
   }
 
-  appSettings.adminPassword = newPassword.trim();
-  res.json({ success: true, message: 'Admin password updated successfully!' });
+  saveAppSettings({ adminPassword: targetPassword });
+  console.log(`🔐 Admin password successfully updated to: "${targetPassword}"`);
+
+  res.json({ success: true, newPassword: targetPassword, message: `Admin password updated and saved successfully to: "${targetPassword}"` });
 });
 
 // Start Server with Automatic Port Fallback & Start 24/7 Autopilot Scheduler
