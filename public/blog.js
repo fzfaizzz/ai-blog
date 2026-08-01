@@ -179,9 +179,60 @@ async function loadSingleArticle() {
       });
 
       if (document.getElementById('postContent')) document.getElementById('postContent').innerHTML = html;
+
+      // Load Recommended & Suggested Stories
+      loadRecommendedArticles(p.slug, p.category);
     }
   } catch (e) {
     console.error('Error loading article:', e);
+  }
+}
+
+// Render 3-4 Recommended Post Cards at Bottom of Article
+async function loadRecommendedArticles(currentSlug, category) {
+  const grid = document.getElementById('recommendedGrid');
+  if (!grid) return;
+
+  try {
+    const res = await fetch('/api/posts');
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.posts)) {
+      // Exclude current active article
+      const otherPosts = data.posts.filter(p => p.slug !== currentSlug);
+      
+      // Shuffle & pick top 3 recommended posts
+      const shuffled = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      if (shuffled.length === 0) {
+        document.getElementById('recommendedSection').style.display = 'none';
+        return;
+      }
+
+      grid.innerHTML = shuffled.map(p => `
+        <article class="article-card" style="display: flex; flex-direction: column; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
+          <a href="post.html?slug=${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+            <div style="width: 100%; height: 160px; overflow: hidden; background: #000; position: relative;">
+              <img src="${p.imageUrl}" alt="${p.title}" style="width: 100%; height: 100%; object-fit: contain; background: #0F172A;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
+            </div>
+            <div style="padding: 1.15rem; display: flex; flex-direction: column; flex-grow: 1;">
+              <div style="font-size: 0.725rem; font-weight: 800; color: #2563EB; letter-spacing: 0.05em; margin-bottom: 0.4rem; text-transform: uppercase;">
+                ${p.category || 'WORLD NEWS'}
+              </div>
+              <h4 style="font-family: var(--font-heading); font-size: 1.05rem; line-height: 1.35; color: var(--text-main); margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${p.title}
+              </h4>
+              <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: auto; display: flex; justify-content: space-between; align-items: center;">
+                <span>⏱️ ${p.readTimeMinutes || 5} min read</span>
+                <span style="color: #2563EB; font-weight: 700;">Read ➔</span>
+              </div>
+            </div>
+          </a>
+        </article>
+      `).join('');
+    }
+  } catch (e) {
+    console.error('Error loading recommended articles:', e);
   }
 }
 
