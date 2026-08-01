@@ -16,19 +16,22 @@ if (!fs.existsSync(dataDir)) {
 let activeKeyIndex = 0;
 
 export function getSerperKeys() {
-  const defaultKeys = ['0be094de036405af78a9d21e939bedb7b5c39783'];
+  const envKeys = process.env.SERPER_API_KEY 
+    ? process.env.SERPER_API_KEY.split(/[\n,]+/).map(k => k.trim()).filter(Boolean) 
+    : [];
+
+  let fileKeys = [];
   try {
     if (fs.existsSync(KEYS_FILE)) {
       const data = fs.readFileSync(KEYS_FILE, 'utf8');
       const json = JSON.parse(data);
-      if (Array.isArray(json.keys) && json.keys.length > 0) {
-        return json.keys;
+      if (Array.isArray(json.keys)) {
+        fileKeys = json.keys.map(k => k.trim()).filter(Boolean);
       }
     }
   } catch (e) {}
-  
-  saveSerperKeys(defaultKeys);
-  return defaultKeys;
+
+  return [...new Set([...fileKeys, ...envKeys])];
 }
 
 export function saveSerperKeys(keysList) {
