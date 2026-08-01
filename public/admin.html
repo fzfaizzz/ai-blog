@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Control Panel — The Daily Chronicle</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+  <style>
+    .key-row {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      background: #F8FAFC;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+    }
+    .key-input {
+      flex: 1;
+      font-family: monospace;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      background: #FFF;
+    }
+    .key-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge-active { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+    .badge-ready { background: #E0F2FE; color: #075985; border: 1px solid #7DD3FC; }
+    .badge-exhausted { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    .metric-card {
+      background: #F8FAFC;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo" style="font-size: 1.5rem;">THE DAILY <span>CHRONICLE</span> STAFF</a>
+      <ul class="nav-links">
+        <li><a href="index.html">🌐 View Live Website</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <div class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 3rem;">
+    <!-- 1-Click Trigger Card -->
+    <div class="admin-card">
+      <h2 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        ⚡ 1-Click Global Auto-Publisher Engine
+      </h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        Scans worldwide live breaking news, fetches real HD photos via Serper Google Images API, writes human editorial stories, and auto-publishes to the live magazine!
+      </p>
+
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <input type="text" id="customTopicInput" placeholder="Enter custom news topic (Optional - leave blank for auto-trend)" style="flex: 1; min-width: 250px; background: #F8FAFC; border: 1px solid var(--border-dark); padding: 0.8rem 1rem; border-radius: 6px; color: var(--text-main); outline: none;" />
+        <button id="triggerAutoBlogBtn" class="btn btn-primary">
+          🚀 Auto-Generate & Publish Story Now
+        </button>
+      </div>
+
+      <div id="triggerStatus" style="font-weight: 600; color: #2563EB;">Ready. Click button above to auto-generate news story.</div>
+    </div>
+
+    <!-- 🔑 Dynamic Serper API Multi-Key Pool & Live Credit Meter -->
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="font-family: var(--font-heading); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          🔑 Serper API Keys & Live Credit Tracker
+        </h3>
+        <button id="addKeyBtn" class="btn" style="background: #2563EB; color: #FFF; font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+          ➕ Add Another Serper Key
+        </button>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Manage your Serper API Key Pool. When Key #1 runs out of 2,500 free credits, the engine automatically switches to Key #2, Key #3, and so on!
+      </p>
+
+      <div id="serperKeysContainer">
+        <!-- Dynamic Key Rows Injected Here -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <button id="saveSerperKeysBtn" class="btn btn-primary" style="background: #059669;">
+          💾 Save & Update All API Keys
+        </button>
+        <span id="serperKeysStatus" style="font-size: 0.85rem; font-weight: 700; color: #059669;">Checking API Credits...</span>
+      </div>
+    </div>
+
+    <!-- 📊 Real-Time Analytics & Traffic Insights -->
+    <div class="admin-card">
+      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        📊 Real-Time Traffic Analytics & Audience Insights
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Monitor real-time audience engagement, top performing news topics, and global traffic distribution by country.
+      </p>
+
+      <div class="analytics-grid">
+        <!-- Top Performing News Topics -->
+        <div class="metric-card">
+          <h4 style="font-family: var(--font-heading); font-size: 0.95rem; margin-bottom: 1rem; color: #1E293B; border-bottom: 2px solid #2563EB; padding-bottom: 0.4rem;">
+            🔥 Top Performing News Topics
+          </h4>
+          <div id="topTopicsList" style="font-size: 0.85rem;">
+            Loading top stories analytics...
+          </div>
+        </div>
+
+        <!-- Geographic Audience Traffic by Country -->
+        <div class="metric-card">
+          <h4 style="font-family: var(--font-heading); font-size: 0.95rem; margin-bottom: 1rem; color: #1E293B; border-bottom: 2px solid #059669; padding-bottom: 0.4rem;">
+            🌍 Traffic Breakdown by Country
+          </h4>
+          <div id="countryTrafficList" style="font-size: 0.85rem;">
+            Loading country geographic insights...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Console Logs -->
+    <div class="admin-card">
+      <h3 style="font-family: var(--font-heading); margin-bottom: 1rem;">📜 Editorial Execution Log</h3>
+      <pre id="adminLogs" style="background: #0F172A; border: 1px solid var(--border-light); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.85rem; color: #38BDF8; max-height: 250px; overflow-y: auto;">
+[Editorial Engine Ready]: Publisher engine online. Serper credit monitoring active.
+      </pre>
+    </div>
+  </div>
+
+  <script src="blog.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdminPanel();
+    });
+  </script>
+</body>
+</html>

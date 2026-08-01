@@ -1,0 +1,16 @@
+{
+  "name": "ai-blogging-system",
+  "version": "1.0.0",
+  "description": "24/7 Automated Human-Style AI Blogging System & AdSense Web Platform",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-cron": "^4.6.0",
+    "rss-parser": "^3.13.0"
+  }
+}
