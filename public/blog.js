@@ -823,7 +823,8 @@ function initAdminPanel() {
           loadSerperKeysAndCredits();
         } else {
           logMessage(`❌ Error: ${data.error || 'Failed to auto-generate'}`);
-          if (triggerStatus) triggerStatus.innerText = '❌ Error generating article.';
+          if (triggerStatus) triggerStatus.innerText = `❌ ${data.error || 'Error generating article.'}`;
+          alert(`❌ Gemini AI Error:\n\n${data.error || 'Unknown error'}\n\nFix: Go to Admin Panel → Gemini AI Key → Save a fresh key from aistudio.google.com/app/apikey`);
         }
       } catch (e) {
         logMessage(`❌ Connection Error: ${e.message}`);

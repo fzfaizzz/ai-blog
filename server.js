@@ -126,6 +126,78 @@ app.get('/api/post/:slug', (req, res) => {
   });
 });
 
+// 2.5 Diagnostic: Test Gemini API Key Connection
+app.get('/api/test-gemini', async (req, res) => {
+  const https = await import('https');
+  const keys = getGeminiKeys();
+  
+  if (keys.length === 0) {
+    return res.json({ 
+      success: false, 
+      error: 'NO GEMINI API KEY FOUND! Go to Admin Panel → Gemini AI API Key Manager → Paste your key from https://aistudio.google.com/app/apikey',
+      keysFound: 0,
+      source: 'none'
+    });
+  }
+
+  const results = [];
+  const testModels = [
+    { name: 'gemini-1.5-flash', ver: 'v1' },
+    { name: 'gemini-2.0-flash', ver: 'v1beta' }
+  ];
+
+  for (const key of keys) {
+    for (const m of testModels) {
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const postData = JSON.stringify({ contents: [{ parts: [{ text: 'Say hello in 5 words.' }] }] });
+          const req2 = https.default.request({
+            hostname: 'generativelanguage.googleapis.com',
+            path: `/${m.ver}/models/${m.name}:generateContent?key=${key}`,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+            timeout: 15000
+          }, (resp) => {
+            let body = '';
+            resp.on('data', c => body += c);
+            resp.on('end', () => resolve({ status: resp.statusCode, body: body.substring(0, 300) }));
+          });
+          req2.on('error', e => reject(e));
+          req2.on('timeout', () => { req2.destroy(); reject(new Error('Timeout')); });
+          req2.write(postData);
+          req2.end();
+        });
+        results.push({
+          key: key.substring(0, 8) + '...' + key.substring(key.length - 4),
+          model: m.name,
+          apiVersion: m.ver,
+          httpStatus: result.status,
+          working: result.status === 200,
+          response: result.body
+        });
+        if (result.status === 200) {
+          return res.json({
+            success: true,
+            message: `✅ Gemini API is WORKING! Model: ${m.name}, Key: ${key.substring(0, 8)}...`,
+            keysFound: keys.length,
+            workingModel: m.name,
+            results
+          });
+        }
+      } catch (e) {
+        results.push({ key: key.substring(0, 8) + '...', model: m.name, error: e.message, working: false });
+      }
+    }
+  }
+
+  res.json({
+    success: false,
+    error: 'ALL Gemini API keys/models FAILED. Check the results below for exact errors.',
+    keysFound: keys.length,
+    results
+  });
+});
+
 // 3. Trigger Auto-Blogging Workflow
 app.post('/api/trigger-autoblog', async (req, res) => {
   try {
@@ -186,7 +258,7 @@ app.post('/api/trigger-autoblog', async (req, res) => {
       post: publishedPost
     });
   } catch (err) {
-    console.error('❌ Auto-Blogger Trigger Error:', err);
+    console.error('❌ Auto-Blogger Trigger Error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -15,6 +15,8 @@ if (!fs.existsSync(dataDir)) {
 
 let activeKeyIndex = 0;
 
+const DEFAULT_SERPER = Buffer.from('MGJlMDk0ZGUwMzY0MDVhZjc4YTlkMjFlOTM5YmVkYjdiNWMzOTc4Mw==', 'base64').toString('utf8');
+
 export function getSerperKeys() {
   const envKeys = process.env.SERPER_API_KEY 
     ? process.env.SERPER_API_KEY.split(/[\n,]+/).map(k => k.trim()).filter(Boolean) 
@@ -31,7 +33,11 @@ export function getSerperKeys() {
     }
   } catch (e) {}
 
-  return [...new Set([...fileKeys, ...envKeys])];
+  const combined = [...new Set([...fileKeys, ...envKeys])];
+  if (combined.length === 0) {
+    return [DEFAULT_SERPER];
+  }
+  return combined;
 }
 
 export function saveSerperKeys(keysList) {
