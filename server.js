@@ -11,7 +11,12 @@ import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/s
 import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
 
 import fs from 'fs';
+import compression from 'compression';
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,7 +25,64 @@ let PORT = process.env.PORT || 6060;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(compression());
+
+// SSR Meta Injection for Social Crawlers & SEO
+app.get('/post/:slug', (req, res) => {
+  const post = getPostBySlug(req.params.slug);
+  if (!post) return res.status(404).sendFile(path.join(__dirname, 'public/index.html'));
+  
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
+  
+  const ogTags = `
+    <title>${escapeHtml(post.title)} — The Daily Chronicle</title>
+    <meta name="description" content="${escapeHtml(post.metaDescription)}">
+    <link rel="canonical" href="${baseUrl}/post/${post.slug}">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="${escapeHtml(post.title)}">
+    <meta property="og:description" content="${escapeHtml(post.metaDescription)}">
+    <meta property="og:url" content="${baseUrl}/post/${post.slug}">
+    <meta property="og:image" content="${post.imageUrl}">
+    <meta property="og:site_name" content="The Daily Chronicle">
+    <meta property="og:locale" content="en_US">
+    <meta property="article:published_time" content="${post.publishedAt}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${escapeHtml(post.title)}">
+    <meta name="twitter:description" content="${escapeHtml(post.metaDescription)}">
+    <meta name="twitter:image" content="${post.imageUrl}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "${escapeHtml(post.title)}",
+      "image": ["${post.imageUrl}"],
+      "datePublished": "${post.publishedAt}",
+      "dateModified": "${post.publishedAt}",
+      "author": {"@type": "Organization", "name": "The Daily Chronicle"},
+      "publisher": {"@type": "Organization", "name": "The Daily Chronicle"},
+      "description": "${escapeHtml(post.metaDescription)}",
+      "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
+    }
+    </script>
+  `;
+  
+  // Replace the existing <title> and closing </head> with injected meta
+  html = html.replace(/<title[^>]*>.*?<\/title>/i, '');
+  html = html.replace(/<meta[^>]*name="description"[^>]*>/i, '');
+  html = html.replace('</head>', `${ogTags}\n</head>`);
+  
+  res.send(html);
+});
+
+app.use(express.static('public', {
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // Settings Store with File Persistence
 const SETTINGS_FILE = path.join(__dirname, 'data/settings.json');
@@ -69,23 +131,35 @@ function detectRequestCountry(req) {
   return defaultCountries[Math.floor(Math.random() * defaultCountries.length)];
 }
 
+function escapeXml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // Dynamic XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const host = req.headers.host || 'localhost:6060';
-  const protocol = req.headers['x-forwarded-proto'] || 'http';
-  const baseUrl = `${protocol}://${host}`;
+  const baseUrl = process.env.BASE_URL || 'https://ai-bloger.up.railway.app';
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
   xml += `  <url>\n    <loc>${baseUrl}/index.html</loc>\n    <priority>1.0</priority>\n    <changefreq>daily</changefreq>\n  </url>\n`;
 
   posts.forEach(post => {
     xml += `  <url>\n`;
-    xml += `    <loc>${baseUrl}/post.html?slug=${post.slug}</loc>\n`;
+    xml += `    <loc>${baseUrl}/post/${post.slug}</loc>\n`;
     xml += `    <lastmod>${new Date(post.publishedAt).toISOString().split('T')[0]}</lastmod>\n`;
     xml += `    <priority>0.8</priority>\n`;
     xml += `    <changefreq>weekly</changefreq>\n`;
+    if (post.imageUrl) {
+      xml += `    <image:image><image:loc>${post.imageUrl}</image:loc><image:title>${escapeXml(post.title)}</image:title></image:image>\n`;
+    }
+    xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${post.publishedAt}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
     xml += `  </url>\n`;
   });
 

@@ -101,10 +101,10 @@ async function loadHomepagePosts(category = null, page = null) {
         
         featuredStory.innerHTML = `
           <span class="featured-badge">${escapeHtml(categoryTag.toUpperCase())}</span>
-          <a href="post.html?slug=${lead.slug}">
+          <a href="/post/${lead.slug}">
             <img src="${lead.imageUrl}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80'" />
           </a>
-          <h2><a href="post.html?slug=${lead.slug}">${escapeHtml(lead.title)}</a></h2>
+          <h2><a href="/post/${lead.slug}">${escapeHtml(lead.title)}</a></h2>
           <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
           <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
             By <strong>${author.name}</strong> • ${new Date(lead.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -120,7 +120,7 @@ async function loadHomepagePosts(category = null, page = null) {
           div.className = 'trending-sidebar-item';
           div.innerHTML = `
             <span style="font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
-            <h4><a href="post.html?slug=${item.slug}">${escapeHtml(item.title)}</a></h4>
+            <h4><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h4>
           `;
           trendingSidebarList.appendChild(div);
         });
@@ -140,13 +140,13 @@ async function loadHomepagePosts(category = null, page = null) {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-          <a href="post.html?slug=${post.slug}">
+          <a href="/post/${post.slug}">
             <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
           </a>
           <div class="card-body">
             <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
             <h3 class="card-title">
-              <a href="post.html?slug=${post.slug}">${escapeHtml(post.title)}</a>
+              <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
             </h3>
             <p class="card-desc">${escapeHtml(post.metaDescription)}</p>
             <div class="card-author-meta">
@@ -255,10 +255,39 @@ function initCategoryFilter() {
   }
 }
 
+function setMetaTag(property, content) {
+  let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    if (property.startsWith('og:') || property.startsWith('article:')) {
+      el.setAttribute('property', property);
+    } else {
+      el.setAttribute('name', property);
+    }
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function setCanonicalTag(url) {
+  let link = document.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.setAttribute('rel', 'canonical');
+    document.head.appendChild(link);
+  }
+  link.setAttribute('href', url);
+}
+
 // Load Single Article Page
 async function loadSingleArticle() {
   const params = new URLSearchParams(window.location.search);
-  const slug = params.get('slug');
+  // Support both /post/slug and post.html?slug=slug
+  let slug = params.get('slug');
+  if (!slug) {
+    const pathMatch = window.location.pathname.match(/\/post\/(.+)/);
+    if (pathMatch) slug = pathMatch[1];
+  }
   if (!slug) return;
 
   try {
@@ -271,6 +300,21 @@ async function loadSingleArticle() {
 
       if (document.getElementById('pageTitle')) document.getElementById('pageTitle').innerText = `${p.title} — The Daily Chronicle`;
       if (document.getElementById('metaDesc')) document.getElementById('metaDesc').content = p.metaDescription;
+
+      // Dynamic SEO Meta Tags for Social Sharing
+      const postUrl = `${window.location.origin}/post/${p.slug}`;
+      setMetaTag('og:type', 'article');
+      setMetaTag('og:title', p.title + ' — The Daily Chronicle');
+      setMetaTag('og:description', p.metaDescription);
+      setMetaTag('og:url', postUrl);
+      setMetaTag('og:image', p.imageUrl);
+      setMetaTag('og:site_name', 'The Daily Chronicle');
+      setMetaTag('article:published_time', p.publishedAt);
+      setMetaTag('twitter:card', 'summary_large_image');
+      setMetaTag('twitter:title', p.title + ' — The Daily Chronicle');
+      setMetaTag('twitter:description', p.metaDescription);
+      setMetaTag('twitter:image', p.imageUrl);
+      setCanonicalTag(postUrl);
       if (document.getElementById('postTitle')) document.getElementById('postTitle').innerText = p.title;
       if (document.getElementById('postLeadDesc')) document.getElementById('postLeadDesc').innerText = p.metaDescription;
       if (document.getElementById('postFeaturedImg')) document.getElementById('postFeaturedImg').src = p.imageUrl;
@@ -350,7 +394,7 @@ async function loadRecommendedArticles(currentSlug, category) {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">
               ${midPosts.map(p => `
                 <div class="article-card" style="display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
-                  <a href="post.html?slug=${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+                  <a href="/post/${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
                     <div style="width: 100%; height: 140px; overflow: hidden; background: #0F172A; position: relative;">
                       <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
                     </div>
@@ -373,7 +417,7 @@ async function loadRecommendedArticles(currentSlug, category) {
         const bottomPosts = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
         bottomGrid.innerHTML = bottomPosts.map(p => `
           <article class="article-card" style="display: flex; flex-direction: column; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
-            <a href="post.html?slug=${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+            <a href="/post/${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
               <div style="width: 100%; height: 160px; overflow: hidden; background: #000; position: relative;">
                 <img src="${p.imageUrl}" alt="${p.title}" style="width: 100%; height: 100%; object-fit: contain; background: #0F172A;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
               </div>
@@ -619,7 +663,7 @@ function initAdminPanel() {
           <img src="${p.imageUrl}" alt="${p.title}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0F172A;" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
           <div>
             <div style="font-weight: 700; font-size: 0.9rem; color: #0F172A; line-height: 1.3;">
-              <a href="post.html?slug=${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
+              <a href="/post/${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
             </div>
             <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.2rem;">
               📁 <strong>${p.category || 'News'}</strong> • 👁️ ${p.views || 0} views • 🗓️ ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -817,7 +861,7 @@ function initAdminPanel() {
           const p = data.post;
           logMessage(`✅ Successfully Published: "${p.title}"`);
           if (triggerStatus) {
-            triggerStatus.innerHTML = `✅ Published! <a href="post.html?slug=${p.slug}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">View Published Story ➔</a>`;
+            triggerStatus.innerHTML = `✅ Published! <a href="/post/${p.slug}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">View Published Story ➔</a>`;
           }
           if (topicInput) topicInput.value = '';
           loadSerperKeysAndCredits();

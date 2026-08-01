@@ -115,6 +115,7 @@ header {
 
 /* Hero Image: Original Proportional Ratio without cropping/stretching */
 .featured-story img {
+  aspect-ratio: 16 / 9;
   width: 100%;
   height: auto;
   max-height: 420px;
@@ -226,7 +227,7 @@ header {
   border-radius: 8px;
   padding: 0.75rem 0.5rem;
   border: 1px dashed var(--border-dark);
-  min-height: 90px;
+  min-height: 250px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -259,6 +260,7 @@ header {
 
 /* Grid Card Image: Maintain natural aspect ratio without distortion */
 .card-img {
+  aspect-ratio: 16 / 9;
   width: 100%;
   height: 200px;
   object-fit: cover;
@@ -390,6 +392,7 @@ header {
 }
 
 .featured-img {
+  aspect-ratio: 16 / 9;
   width: 100%;
   height: auto;
   max-height: 480px;
@@ -627,3 +630,15 @@ footer {
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
 }
+
+/* SEO Performance: Prevent Cumulative Layout Shift */
+img {
+  content-visibility: auto;
+}
+
+.article-hero-img {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  object-fit: cover;
+}
+

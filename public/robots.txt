@@ -1,4 +1,15 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /data/
 
-Sitemap: http://localhost:6060/sitemap.xml
+User-agent: Googlebot
+Allow: /
+Disallow: /admin.html
+Disallow: /api/
+
+User-agent: Googlebot-News
+Allow: /
+
+Sitemap: https://ai-bloger.up.railway.app/sitemap.xml
