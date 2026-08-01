@@ -144,7 +144,7 @@ function escapeXml(str) {
 // Dynamic XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const baseUrl = process.env.BASE_URL || 'https://ai-bloger.up.railway.app';
+  const baseUrl = process.env.BASE_URL || 'https://thedailychronicle.up.railway.app';
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
