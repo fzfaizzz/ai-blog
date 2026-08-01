@@ -72,14 +72,24 @@ export async function getTrendingTopics() {
 
     if (serperData && serperData.news && serperData.news.length > 0) {
       console.log(`   ✅ Fetched ${serperData.news.length} Worldwide Live Google News Stories!`);
-      return serperData.news.map(item => ({
-        title: item.title,
-        category: mode === 'india' ? 'India News & Trends' : getCategoryFromTitle(item.title),
-        snippet: item.snippet || `Global breaking coverage provided by ${item.source || 'leading news agency'}.`,
-        source: item.source || 'Global News Wire',
-        date: item.date || 'Just now',
-        link: item.link || '#'
-      }));
+
+      const cleanStories = serperData.news
+        .map(item => {
+          const cleanedTitle = cleanTitleString(item.title);
+          return {
+            title: cleanedTitle,
+            category: mode === 'india' ? 'India News & Trends' : getCategoryFromTitle(cleanedTitle),
+            snippet: item.snippet || `Global breaking coverage provided by ${item.source || 'leading news agency'}.`,
+            source: item.source || 'Global News Wire',
+            date: item.date || 'Just now',
+            link: item.link || '#'
+          };
+        })
+        .filter(item => isValidNewsTitle(item.title));
+
+      if (cleanStories.length > 0) {
+        return cleanStories;
+      }
     }
   } catch (e) {
     console.warn('⚠️ Serper API fallback:', e.message);
@@ -87,6 +97,43 @@ export async function getTrendingTopics() {
 
   // Step 2: Fallback to Google News US Tier-1 RSS Feeds
   return getUsTier1RssNewsFallback();
+}
+
+/**
+ * Sanitizes and cleans raw news headline string
+ */
+function cleanTitleString(rawTitle) {
+  if (!rawTitle) return '';
+  let t = rawTitle.trim();
+
+  // Strip publisher trailing suffixes like "- Times of India", "- Reuters"
+  t = t.replace(/\s*[-|–—]\s*[A-Za-z0-9\s.]+$/, '');
+
+  // Strip trailing truncation artifacts like "... and t", " and...", "..."
+  t = t.replace(/\s*(?:\.\.\.|…|\b(?:and|with|to|in|of)\s+[a-z]{1,2})\s*$/i, '');
+
+  // Strip trailing dates like "July 31, 2026:" at start
+  t = t.replace(/^(?:School Assembly News Headlines|Top News Headlines|Live Updates|Breaking News|\w+ \d{1,2}, \d{4}):\s*/i, '');
+
+  return t.trim();
+}
+
+/**
+ * Filters out low-quality roundup / assembly news titles
+ */
+function isValidNewsTitle(title) {
+  if (!title || title.length < 25) return false;
+  const lower = title.toLowerCase();
+
+  // Reject generic roundup / assembly / briefing headlines
+  if (lower.includes('school assembly') || lower.includes('top headlines today') || lower.includes('news roundup') || lower.includes('top 10 news')) {
+    return false;
+  }
+
+  // Reject titles ending abruptly with single letter or incomplete word
+  if (/\b[a-z]{1}\s*$/i.test(title)) return false;
+
+  return true;
 }
 
 function getCategoryFromTitle(title) {

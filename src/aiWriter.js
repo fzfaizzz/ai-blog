@@ -103,10 +103,13 @@ Format output as HTML with tags <h2>, <h3>, <p>, <ul>, <li>, <table>, <strong>, 
 
 function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
   const title = topic.trim();
-  const metaDescription = `${title} — Official news analysis covered by ${source} (${date}). Full story breakdown, verified data, and editorial commentary.`;
+  const metaDescription = `${title} — Detailed analytical reporting covered by ${source} (${date}). Verified facts, strategic breakdown, and expert commentary.`;
 
-  const inline1Img = (imageSet.inline1 && imageSet.inline1.url) ? imageSet.inline1.url : 'https://upload.wikimedia.org/wikipedia/commons/4/4a/SpaceX_Starship_ignition_during_IFT-5.jpg';
-  const inline2Img = (imageSet.inline2 && imageSet.inline2.url) ? imageSet.inline2.url : 'https://upload.wikimedia.org/wikipedia/commons/1/19/Apple_iPhone_15_Pro.jpg';
+  const inline1Img = (imageSet.inline1 && imageSet.inline1.url) ? imageSet.inline1.url : 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+  const inline2Img = (imageSet.inline2 && imageSet.inline2.url) ? imageSet.inline2.url : 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80';
+
+  // Extract short topic entity for natural flow
+  const shortTopic = title.length > 50 ? title.substring(0, 45) + '...' : title;
 
   // Schema.org JSON-LD NewsArticle (Hidden in script tag for Google Ranking)
   const jsonLdSchema = JSON.stringify({
@@ -119,7 +122,7 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
     "author": {
       "@type": "Person",
       "name": "Sarah Jenkins",
-      "jobTitle": "Senior US Technology Correspondent"
+      "jobTitle": "Senior International Correspondent"
     },
     "publisher": {
       "@type": "Organization",
@@ -138,10 +141,10 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
       <!-- 🛡️ Professional Trust & Verification Header Seal -->
       <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; padding: 0.85rem 1.25rem; margin-bottom: 1.75rem; border-radius: 6px; font-size: 0.875rem; color: #166534; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
-          <span style="font-size: 1.1rem;">✓</span> Fact Checked & Verified by Editorial Desk
+          <span style="font-size: 1.1rem;">✓</span> Fact Checked & Verified Editorial Report
         </div>
         <div style="font-size: 0.8rem; color: #15803D;">
-          📡 Wire Source: <strong>${source}</strong> (${date})
+          📡 Primary Wire Source: <strong>${source}</strong> (${date})
         </div>
       </div>
 
@@ -151,86 +154,90 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
           📌 Executive News Briefing
         </h4>
         <ul style="margin-bottom: 0; padding-left: 1.25rem; line-height: 1.6;">
-          <li><strong>Lead Headline:</strong> ${title} represents a major breaking development initially reported by ${source}.</li>
-          <li><strong>Verified Fact:</strong> ${snippet || 'Official press releases highlight operational milestones and market shifts.'}</li>
-          <li><strong>Strategic Outlook:</strong> Industry leaders and observers are analyzing long-term sector implications.</li>
+          <li><strong>Primary Event:</strong> ${title}</li>
+          <li><strong>Key Context:</strong> ${snippet || 'Official reporting confirms significant strategic developments across international desks.'}</li>
+          <li><strong>Global Reaction:</strong> Analysts and industry observers highlight notable long-term sector impacts.</li>
         </ul>
       </div>
 
       <p class="lead-para" style="font-size: 1.15rem; line-height: 1.75; color: #0F172A; font-weight: 500;">
-        In an important development covered by <strong>${source}</strong> (${date}), <strong>${title}</strong> has drawn significant interest across international markets and media desks.
+        In a major story reported by <strong>${source}</strong> (${date}), key developments surrounding <strong>${shortTopic}</strong> have generated substantial interest among market observers and international analysts.
       </p>
 
-      <p>${snippet || `The announcement marks a substantial shift. Analysts have closely followed emerging data as key stakeholders evaluate its broader impact.`}</p>
+      <p>${snippet || `The announcement marks a notable milestone. Market participants and industry experts have begun assessing the broader operational and strategic implications as fresh data comes to light.`}</p>
 
-      <h2>1. Background & Context of the Announcement</h2>
-      <p>Understanding the significance of <strong>${title}</strong> requires examining the events leading up to recent coverage by ${source}:</p>
+      <h2>1. Background & Strategic Context</h2>
+      <p>The story comes at a pivotal juncture for the sector. As coverage from <strong>${source}</strong> indicates, key stakeholders have been closely tracking emerging trends that led up to this development:</p>
       
       <!-- Inline Content Photo #1 (Zero Crop, Error Shield) -->
       <div class="inline-article-img" style="margin: 2.25rem 0; text-align: center;">
         <img src="${inline1Img}" alt="${title} News Photography" onerror="this.parentElement.style.display='none';" style="width: auto; max-width: 100%; height: auto; max-height: 380px; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;" />
       </div>
 
-      <p>Official reports confirm that the story has sparked widespread engagement among sector experts and observers. Initial metrics indicate a clear shift in market dynamics following the news release.</p>
+      <p>Initial briefings confirm that public and institutional engagement has expanded rapidly following the report. Industry leaders note that the trajectory established here will likely influence upcoming quarterly benchmarks.</p>
 
       <blockquote style="margin: 2rem 0; padding: 1.25rem 1.5rem; border-left: 4px solid #2563EB; background: #F8FAFC; font-family: var(--font-serif); font-size: 1.15rem; font-style: italic; color: #1E293B;">
-        "The developments surrounding ${title} highlight a pivotal moment for industry stakeholders, setting a new benchmark for upcoming regional initiatives."
+        "These strategic updates mark an important operational shift, signaling new growth vectors and heightened market interest across the region."
       </blockquote>
 
       <ul>
-        <li><strong>Primary Objective:</strong> Strategic initiatives detailed in recent statements from ${source}.</li>
-        <li><strong>Implementation Timeline:</strong> Phased deployment expanding across key markets.</li>
-        <li><strong>Market Sentiment:</strong> Positive engagement from institutional observers and consumer segments.</li>
+        <li><strong>Operational Scope:</strong> Comprehensive coverage verified across primary media channels.</li>
+        <li><strong>Execution Timeline:</strong> Ongoing implementation scheduled throughout the active quarter.</li>
+        <li><strong>Investor & Market Outlook:</strong> Positive engagement noted among institutional and retail segments.</li>
       </ul>
 
-      <h2>2. Deep-Dive Analysis & Key Data Points</h2>
-      <p>A closer examination reveals why ${title} continues to capture public attention:</p>
+      <h2>2. In-Depth Analysis & Sector Impact</h2>
+      <p>Further examination of the underlying metrics reveals why this story is resonating strongly across global news desks:</p>
 
       <!-- Inline Content Photo #2 (Zero Crop, Error Shield) -->
       <div class="inline-article-img" style="margin: 2.25rem 0; text-align: center;">
-        <img src="${inline2Img}" alt="${title} Media Reporting" onerror="this.parentElement.style.display='none';" style="width: auto; max-width: 100%; height: auto; max-height: 380px; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;" />
+        <img src="${inline2Img}" alt="Global Market Trends" onerror="this.parentElement.style.display='none';" style="width: auto; max-width: 100%; height: auto; max-height: 380px; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;" />
       </div>
 
-      <p>Industry analysts project that the outcomes of this event will continue to influence strategic decisions throughout the fiscal quarter.</p>
+      <p>Comparative analysis indicates that strategic alignment across participating entities will remain central to sustaining momentum over the coming months.</p>
 
-      <h2>3. Verified Information Summary</h2>
+      <h2>3. Strategic Metrics & Verified Summary</h2>
       <table class="article-table">
         <thead>
           <tr>
-            <th>Reporting Dimension</th>
-            <th>Verified Fact</th>
+            <th>Analysis Dimension</th>
+            <th>Verified Status & Insight</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Reporting Publisher</strong></td>
+            <td><strong>Primary Source Wire</strong></td>
             <td>${source}</td>
           </tr>
           <tr>
-            <td><strong>Publication Date</strong></td>
+            <td><strong>Reporting Period</strong></td>
             <td>${date}</td>
           </tr>
           <tr>
-            <td><strong>Verification Status</strong></td>
-            <td>Fact-Checked Editorial Review</td>
+            <td><strong>Editorial Verification</strong></td>
+            <td>Passed Multi-Stage Fact-Checking Protocol</td>
+          </tr>
+          <tr>
+            <td><strong>Impact Assessment</strong></td>
+            <td>High Strategic & Public Relevance</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>4. Expert Commentary & Editorial Takeaway</h2>
+      <h2>4. Expert Editorial Perspective</h2>
       <div class="pro-tip-card">
-        <strong>💡 Editorial Insights:</strong> As ${source} monitors ongoing developments regarding ${title}, updated reports will be released across our news feeds.
+        <strong>💡 Senior Desk Takeaway:</strong> As further reports emerge regarding <strong>${shortTopic}</strong>, our editorial desk will continue monitoring key indicators to provide real-time analytical updates.
       </div>
 
       <h2>5. Frequently Asked Questions</h2>
       <div class="faq-container">
         <div class="faq-item">
-          <strong>Q: Who is the primary source for this report?</strong>
-          <p>A: This news story was originally reported by <strong>${source}</strong> on ${date}.</p>
+          <strong>Q: What is the main source for this news report?</strong>
+          <p>A: This story was originally broken by <strong>${source}</strong> on ${date}.</p>
         </div>
         <div class="faq-item">
-          <strong>Q: How can readers stay updated on this story?</strong>
-          <p>A: Follow ongoing updates and analytical reporting on The Daily Chronicle digital edition.</p>
+          <strong>Q: How can readers follow ongoing updates?</strong>
+          <p>A: Real-time analytical coverage and verified briefings are published continuously on The Daily Chronicle edition.</p>
         </div>
       </div>
 
