@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { getTrendingTopics } from './trendFetcher.js';
+import { getTrendingTopics, fetchFullStoryDetails } from './trendFetcher.js';
 import { generateHumanArticle } from './aiWriter.js';
 import { getGoogleMatchingImages } from './googleImageFetcher.js';
 import { getAllPosts, publishPost } from './publisher.js';
@@ -35,11 +35,15 @@ export function startAutopilotCron(intervalMinutes = 5) {
       const targetItem = freshTopics[0];
       console.log(`1. Autopilot picked trending topic: "${targetItem.title}"`);
 
+      // Fetch Full Story Context & Details
+      const fullContext = await fetchFullStoryDetails(targetItem.title, targetItem.source);
+      if (fullContext) targetItem.fullStoryText = fullContext;
+
       // Fetch Real HD Photos
       const images = await getGoogleMatchingImages(targetItem.title);
       
-      // Write Human Article
-      const article = await generateHumanArticle(targetItem.title, images);
+      // Write Human Article with Full Context
+      const article = await generateHumanArticle(targetItem, images);
 
       // Auto Publish
       const post = publishPost({

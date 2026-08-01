@@ -100,6 +100,35 @@ export async function getTrendingTopics() {
 }
 
 /**
+ * Fetches comprehensive full-story background facts & excerpts via Serper Web Search
+ */
+export async function fetchFullStoryDetails(title, source = '') {
+  try {
+    console.log(` 🔎 Fetching Full Story Context & Background Facts for: "${title}"...`);
+    const searchData = await callSerperWithFailover('/search', {
+      q: `"${title}" ${source} news details breakdown facts`,
+      gl: 'us',
+      hl: 'en',
+      num: 5
+    });
+
+    if (searchData && searchData.organic && searchData.organic.length > 0) {
+      const fullContextParagraphs = searchData.organic
+        .map(item => item.snippet)
+        .filter(Boolean)
+        .join('\n\n');
+
+      console.log(`   ✅ Extracted ${fullContextParagraphs.length} characters of Raw Story Context!`);
+      return fullContextParagraphs;
+    }
+  } catch (e) {
+    console.warn('⚠️ Full story fetch fallback:', e.message);
+  }
+
+  return '';
+}
+
+/**
  * Sanitizes and cleans raw news headline string
  */
 function cleanTitleString(rawTitle) {

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getTrendingTopics } from './src/trendFetcher.js';
+import { getTrendingTopics, fetchFullStoryDetails } from './src/trendFetcher.js';
 import { generateHumanArticle } from './src/aiWriter.js';
 import { getGoogleMatchingImages } from './src/googleImageFetcher.js';
 import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData } from './src/publisher.js';
@@ -133,12 +133,17 @@ app.post('/api/trigger-autoblog', async (req, res) => {
     console.log(`   ✓ Publisher Source: ${selectedItem.source || 'Global News Wire'}`);
     console.log(`   ✓ Publication Date: ${selectedItem.date || 'Today'}`);
 
-    // Step 2: Fetch 3 Exact Matching Real World Photos from Serper Images API
-    console.log('2. Searching Serper Google Images API for exact real-world photos...');
+    // Step 2: Fetch Raw Story Context & Details
+    console.log('2. Fetching full raw story context & background facts...');
+    const fullContext = await fetchFullStoryDetails(selectedItem.title, selectedItem.source);
+    if (fullContext) selectedItem.fullStoryText = fullContext;
+
+    // Step 3: Fetch 3 Exact Matching Real World Photos from Serper Images API
+    console.log('3. Searching Serper Google Images API for exact real-world photos...');
     const images = await getGoogleMatchingImages(selectedItem.title);
 
-    // Step 3: Write Article with Real Publisher Attribution & Snippet Data
-    console.log('3. Writing authentic news article with Real Source Attribution...');
+    // Step 4: Write Article with Real Publisher Attribution & Raw Context
+    console.log('4. Writing authentic news article with Real Source Attribution...');
     const article = await generateHumanArticle(selectedItem, images);
 
     // Step 4: Auto-Publish to Live Blog
