@@ -1,3 +1,7 @@
 node_modules/
-.DS_Store
-*.log
+.env
+data/gemini_keys.json
+data/serper_keys.json
+data/settings.json
+data/posts.json
+data/analytics.json

@@ -15,28 +15,21 @@ if (!fs.existsSync(dataDir)) {
 let activeKeyIndex = 0;
 
 export function getGeminiKeys() {
-  const defaultKeys = [
-    'AIzaSyAX0wAvZylLWx9jpgfSRc6PNzKvLYz36X8',
-    'AIzaSyCP5FIWClv6hdrJI_j6qtG8xIgwcKF5S7c',
-    'AIzaSyDTAFUzbkxpqZ0ZyOw4ErGJE9CkF8iPkt0'
-  ];
+  const envKeys = process.env.GEMINI_API_KEY 
+    ? process.env.GEMINI_API_KEY.split(/[\n,]+/).map(k => k.trim()).filter(Boolean) 
+    : [];
 
   try {
     if (fs.existsSync(KEYS_FILE)) {
       const data = fs.readFileSync(KEYS_FILE, 'utf8');
       const json = JSON.parse(data);
       if (Array.isArray(json.keys) && json.keys.length > 0) {
-        return json.keys;
+        return [...new Set([...json.keys, ...envKeys])];
       }
     }
   } catch (e) {}
-  
-  if (process.env.GEMINI_API_KEY) {
-    return [process.env.GEMINI_API_KEY];
-  }
 
-  saveGeminiKeys(defaultKeys);
-  return defaultKeys;
+  return envKeys;
 }
 
 export function saveGeminiKeys(keysList) {
