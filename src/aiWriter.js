@@ -1,4 +1,5 @@
 import https from 'https';
+import { getActiveGeminiKey, rotateGeminiKey, getGeminiKeys } from './geminiManager.js';
 
 /**
  * Real News AI Article Generator Engine for The Daily Chronicle.
@@ -12,24 +13,33 @@ import https from 'https';
  * @param {string} [apiKey] - Optional Gemini API Key
  * @returns {Promise<{ title: string, contentHtml: string, metaDescription: string, readTimeMinutes: number, source: string, publishTime: string }>}
  */
-export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = process.env.GEMINI_API_KEY) {
+export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null) {
   const topic = typeof newsObj === 'string' ? newsObj : newsObj.title;
   const source = newsObj.source || 'Global News Wire';
   const date = newsObj.date || 'Recently Published';
   const snippet = newsObj.snippet || '';
 
-  // Use provided key or global process env
-  const activeKey = apiKey || process.env.GEMINI_API_KEY;
+  // Priority: explicit apiKey > active Key from Pool > process.env.GEMINI_API_KEY
+  let activeKey = apiKey || getActiveGeminiKey() || process.env.GEMINI_API_KEY;
 
   if (activeKey) {
     try {
+      console.log(` 🧠 Calling Gemini AI Story Engine with Key: ${activeKey.substring(0, 8)}...`);
       const apiResult = await callGeminiApi(newsObj, imageSet, activeKey);
       if (apiResult) return apiResult;
     } catch (e) {
-      console.warn('⚠️ Gemini API call failed, switching to local Real Story Engine:', e.message);
+      console.warn('⚠️ Gemini API call failed, trying key rotation:', e.message);
+      const nextKey = rotateGeminiKey();
+      if (nextKey) {
+        try {
+          const retryResult = await callGeminiApi(newsObj, imageSet, nextKey);
+          if (retryResult) return retryResult;
+        } catch (e2) {}
+      }
     }
   }
 
+  console.log('ℹ️ Running Local Authentic Story Engine...');
   return generateAuthenticNewsArticle(topic, snippet, source, date, imageSet);
 }
 

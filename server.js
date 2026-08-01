@@ -8,6 +8,7 @@ import { getGoogleMatchingImages } from './src/googleImageFetcher.js';
 import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData } from './src/publisher.js';
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
+import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -183,20 +184,26 @@ app.post('/api/serper-keys', (req, res) => {
 
 // 4b. Gemini AI Key Management API
 app.get('/api/gemini-key', (req, res) => {
-  const key = appSettings.geminiApiKey || process.env.GEMINI_API_KEY || '';
-  const maskedKey = key ? `${key.substring(0, 8)}...${key.substring(key.length - 4)}` : '';
-  res.json({ success: true, hasKey: Boolean(key), maskedKey });
+  const keys = getGeminiKeys();
+  const activeKey = keys.length > 0 ? keys[0] : '';
+  const maskedKey = activeKey ? `${activeKey.substring(0, 8)}...${activeKey.substring(activeKey.length - 4)}` : '';
+  res.json({ success: true, hasKey: keys.length > 0, count: keys.length, maskedKey });
 });
 
 app.post('/api/gemini-key', (req, res) => {
-  const { apiKey } = req.body;
-  if (!apiKey) return res.status(400).json({ success: false, error: 'No Gemini API Key provided' });
+  const { apiKey, keys } = req.body;
+  
+  let keysList = [];
+  if (keys) {
+    keysList = Array.isArray(keys) ? keys : keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
+  } else if (apiKey) {
+    keysList = [apiKey.trim()];
+  }
 
-  appSettings.geminiApiKey = apiKey.trim();
-  process.env.GEMINI_API_KEY = apiKey.trim();
-  console.log('✅ Gemini AI API Key updated in live engine settings.');
+  if (keysList.length === 0) return res.status(400).json({ success: false, error: 'No Gemini API Keys provided' });
 
-  res.json({ success: true, message: 'Gemini AI API Key saved successfully!' });
+  const saved = saveGeminiKeys(keysList);
+  res.json({ success: true, count: saved.length, message: `${saved.length} Gemini AI API Key(s) saved to pool!` });
 });
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
