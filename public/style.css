@@ -649,42 +649,100 @@ img {
 }
 
 /* ==========================================================================
-   📱 ULTRA-RESPONSIVE & MOBILE AD OPTIMIZATION (All Devices & Tablets)
+   📱 ULTRA-RESPONSIVE, LAPTOP, DESKTOP & MOBILE AD OPTIMIZATION
    ========================================================================== */
 
-/* 1. Category Nav Touch Scrollbar */
+/* 1. Base Category Nav */
 .category-nav {
   display: flex;
-  gap: 0.5rem;
+  gap: 1.25rem;
+  padding: 0.75rem 0;
+  list-style: none;
   overflow-x: auto;
   white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 0.5rem 0;
 }
 
-.category-nav::-webkit-scrollbar {
-  display: none;
-}
-
-/* 2. Responsive Ad Containers (Fit 100% width on Mobile without CLS or Horizontal Scroll) */
-.adsense-container, .sidebar-ad {
+/* 2. Responsive Ad Containers (Fit 100% width without CLS or Horizontal Scroll) */
+.adsense-container {
   width: 100%;
   max-width: 100%;
   overflow: hidden;
-  margin: 1.25rem auto;
+  margin: 1.5rem auto;
   text-align: center;
   border-radius: 8px;
   background: var(--bg-secondary);
+  border: 1px dashed var(--border-dark);
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 3. Mobile Screens (Phones < 768px) */
+/* 3. Page Layout Wrapper (Centered Article Area on Laptop/Desktop) */
+.page-layout-wrapper {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  align-items: flex-start;
+  padding-top: 1.5rem;
+}
+
+.main-content-area {
+  flex: 1;
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.sidebar-ad {
+  width: 160px;
+  position: sticky;
+  top: 120px;
+  flex-shrink: 0;
+}
+
+/* 4. Desktop / Laptop Grid (> 1024px) */
+@media (min-width: 1024px) {
+  .posts-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 2rem;
+  }
+}
+
+/* 5. Laptop & Tablet Screen Adjustment (< 1280px) */
+@media (max-width: 1280px) {
+  .sidebar-ad {
+    display: none !important; /* Hide narrow side ads on laptops so article is perfectly centered */
+  }
+}
+
+@media (max-width: 1023px) and (min-width: 769px) {
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem;
+  }
+}
+
+/* 6. Mobile Screens (Phones < 768px) */
 @media (max-width: 768px) {
-  /* 🚫 Hide Search Input Bar on Mobile Phones as requested */
+  /* 🚫 Hide Search Bar on Mobile Phones as requested */
   .header-search-bar, 
   #searchInput, 
   #headerSearchWrapper {
     display: none !important;
+  }
+
+  /* Category Nav Mobile Touch Scroll */
+  .category-nav {
+    gap: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.5rem 0;
+  }
+
+  .category-nav::-webkit-scrollbar {
+    display: none;
   }
 
   /* Center Brand Header on Mobile */
@@ -696,8 +754,8 @@ img {
     padding: 0.75rem 0;
   }
 
-  .brand-logo {
-    font-size: 1.8rem;
+  .brand-logo, .brand-logo a {
+    font-size: 1.8rem !important;
   }
 
   /* Container Padding */
@@ -705,9 +763,12 @@ img {
     padding: 0 1rem;
   }
 
-  /* Main Layout Grid -> Single Column */
-  .main-content, 
-  .page-layout-wrapper {
+  /* Grid to Single Column on Mobile */
+  .hero-magazine {
+    grid-template-columns: 1fr !important;
+  }
+
+  .posts-grid {
     grid-template-columns: 1fr !important;
     gap: 1.5rem;
   }
@@ -718,7 +779,7 @@ img {
 
   /* Article Page Mobile Typography & UX */
   .article-title {
-    font-size: 1.75rem !important;
+    font-size: 1.65rem !important;
     line-height: 1.25;
   }
 
