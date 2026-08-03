@@ -78,16 +78,36 @@ export async function sendPostToTwitter(post) {
   const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
   const postUrl = `${domain}/post/${post.slug}`;
 
-  // Category-based Viral Hashtags Selector
-  const categoryHashtags = {
-    'AI': '#AINews #ArtificialIntelligence #TechBreakthrough #NextGenTimes',
-    'Technology': '#TechNews #Innovation #TechTrends #NextGenTimes',
-    'Business': '#StockMarket #GlobalBusiness #Economy #NextGenTimes',
-    'Space & Cosmos': '#SpaceX #NASA #SpaceNews #NextGenTimes',
-    'World Breaking News': '#BreakingNews #WorldNews #GlobalNews #NextGenTimes'
-  };
+  // Dynamic High-Traffic Viral Hashtags Selector
+  const keywordTags = [];
+  const lowerTitle = (post.title + ' ' + (post.metaDescription || '')).toLowerCase();
 
-  const hashtags = categoryHashtags[post.category] || '#BreakingNews #TechNews #NextGenTimes';
+  if (lowerTitle.includes('ai') || lowerTitle.includes('gpt') || lowerTitle.includes('claude') || lowerTitle.includes('deepseek') || lowerTitle.includes('openai')) {
+    keywordTags.push('#AINews', '#ArtificialIntelligence', '#DeepSeek', '#OpenAI');
+  }
+  if (lowerTitle.includes('spacex') || lowerTitle.includes('musk') || lowerTitle.includes('nasa') || lowerTitle.includes('space') || lowerTitle.includes('rocket')) {
+    keywordTags.push('#SpaceX', '#ElonMusk', '#SpaceNews', '#NASA');
+  }
+  if (lowerTitle.includes('stock') || lowerTitle.includes('market') || lowerTitle.includes('bank') || lowerTitle.includes('economy') || lowerTitle.includes('wall street')) {
+    keywordTags.push('#StockMarket', '#Markets', '#Economy', '#Finance');
+  }
+  if (lowerTitle.includes('crypto') || lowerTitle.includes('btc') || lowerTitle.includes('bitcoin')) {
+    keywordTags.push('#Crypto', '#Bitcoin', '#Web3');
+  }
+  if (lowerTitle.includes('tech') || lowerTitle.includes('apple') || lowerTitle.includes('google') || lowerTitle.includes('nvidia') || lowerTitle.includes('chip')) {
+    keywordTags.push('#TechNews', '#Innovation', '#NVIDIA', '#Tech');
+  }
+  if (lowerTitle.includes('trump') || lowerTitle.includes('china') || lowerTitle.includes('us') || lowerTitle.includes('war') || lowerTitle.includes('russia')) {
+    keywordTags.push('#BreakingNews', '#WorldNews', '#GlobalAffairs');
+  }
+
+  // Fallback viral tags
+  if (keywordTags.length === 0) {
+    keywordTags.push('#BreakingNews', '#Trending', '#WorldNews', '#TechNews');
+  }
+
+  keywordTags.push('#NextGenTimes', '#Viral');
+  const hashtags = [...new Set(keywordTags)].slice(0, 5).join(' ');
   const shortDesc = post.metaDescription ? post.metaDescription.substring(0, 95) + '...' : '';
 
   const tweetText = `🚨 BREAKING: ${post.title}\n\n${shortDesc}\n\n📖 Read full story 👇\n${postUrl}\n\n${hashtags}`;
