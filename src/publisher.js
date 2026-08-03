@@ -195,6 +195,7 @@ export function getRealAnalyticsData() {
 }
 
 import { sendPostToTelegram } from './telegramManager.js';
+import { sendPostToTwitter } from './twitterManager.js';
 
 /**
  * Publishes a new article to the blog.
@@ -226,8 +227,9 @@ export function publishPost(postData) {
 
   console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
-  // Asynchronously broadcast to Telegram Channel if enabled
+  // Asynchronously broadcast to Telegram & Twitter/X if enabled
   sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));
+  sendPostToTwitter(newPost).catch(e => console.error('Twitter broadcast background error:', e));
 
   return newPost;
 }

@@ -9,6 +9,7 @@ import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyti
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
+import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -331,6 +332,26 @@ app.post('/api/test-telegram-post', async (req, res) => {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
   const result = await sendPostToTelegram(posts[0]);
+  res.json(result);
+});
+
+// Twitter / X Auto-Poster API Endpoints
+app.get('/api/twitter-config', (req, res) => {
+  res.json({ success: true, config: getTwitterConfig() });
+});
+
+app.post('/api/save-twitter-config', (req, res) => {
+  const { apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled } = req.body;
+  const saved = saveTwitterConfig({ apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled });
+  res.json({ success: saved });
+});
+
+app.post('/api/test-twitter-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+  const result = await sendPostToTwitter(posts[0]);
   res.json(result);
 });
 

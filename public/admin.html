@@ -293,6 +293,57 @@
       </form>
     </div>
 
+    <!-- 🐥 Twitter / X Auto-Poster Bot Configuration -->
+    <div class="admin-card">
+      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        🐥 Twitter / X Auto-Poster Bot
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Automatically tweet fresh breaking news headlines, hashtags, and direct article links to your Twitter/X account (@NextGenTimes)!
+      </p>
+
+      <form id="twitterConfigForm" style="max-width: 620px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TWITTER API KEY (CONSUMER KEY)</label>
+            <input type="text" id="twitterApiKeyInput" placeholder="API Key" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TWITTER API SECRET (CONSUMER SECRET)</label>
+            <input type="password" id="twitterApiSecretInput" placeholder="API Secret" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">ACCESS TOKEN</label>
+            <input type="text" id="twitterAccessTokenInput" placeholder="Access Token" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">ACCESS TOKEN SECRET</label>
+            <input type="password" id="twitterAccessSecretInput" placeholder="Access Token Secret" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="twitterAutoPostToggle" style="width: 18px; height: 18px; cursor: pointer;" />
+          <label for="twitterAutoPostToggle" style="font-size: 0.9rem; font-weight: 700; color: #0F172A; cursor: pointer;">
+            Enable Automatic Auto-Tweeting to Twitter / X
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+          <button type="submit" id="saveTwitterConfigBtn" class="btn btn-primary" style="background: #1D9BF0;">
+            💾 Save Twitter Settings
+          </button>
+          <button type="button" id="testTwitterPostBtn" class="btn" style="background: #059669; color: #FFF; font-weight: 600;">
+            🧪 Send Test Tweet to X
+          </button>
+          <span id="twitterStatus" style="font-size: 0.85rem; font-weight: 700;"></span>
+        </div>
+      </form>
+    </div>
+
     <!-- 🔐 Security & Admin Password Settings -->
     <div class="admin-card">
       <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">

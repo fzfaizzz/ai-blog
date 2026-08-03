@@ -1097,6 +1097,102 @@ function initAdminPanel() {
 
   loadTelegramConfig();
 
+  // Twitter / X Auto-Poster Admin Handlers
+  const twitterConfigForm = document.getElementById('twitterConfigForm');
+  const twitterApiKeyInput = document.getElementById('twitterApiKeyInput');
+  const twitterApiSecretInput = document.getElementById('twitterApiSecretInput');
+  const twitterAccessTokenInput = document.getElementById('twitterAccessTokenInput');
+  const twitterAccessSecretInput = document.getElementById('twitterAccessSecretInput');
+  const twitterAutoPostToggle = document.getElementById('twitterAutoPostToggle');
+  const testTwitterPostBtn = document.getElementById('testTwitterPostBtn');
+  const twitterStatus = document.getElementById('twitterStatus');
+
+  async function loadTwitterConfig() {
+    if (!twitterApiKeyInput) return;
+    try {
+      const res = await fetch('/api/twitter-config');
+      const data = await res.json();
+      if (data.success && data.config) {
+        twitterApiKeyInput.value = data.config.apiKey || '';
+        twitterApiSecretInput.value = data.config.apiSecret || '';
+        twitterAccessTokenInput.value = data.config.accessToken || '';
+        twitterAccessSecretInput.value = data.config.accessSecret || '';
+        twitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+      }
+    } catch (e) {
+      console.error('Error loading Twitter config:', e);
+    }
+  }
+
+  if (twitterConfigForm) {
+    twitterConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (twitterStatus) twitterStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-twitter-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            apiKey: twitterApiKeyInput.value.trim(),
+            apiSecret: twitterApiSecretInput.value.trim(),
+            accessToken: twitterAccessTokenInput.value.trim(),
+            accessSecret: twitterAccessSecretInput.value.trim(),
+            autoPostEnabled: twitterAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#059669';
+            twitterStatus.innerText = '✓ Twitter Settings Saved!';
+          }
+          logMessage('✓ Twitter Auto-Poster settings saved!');
+        } else {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#DC2626';
+            twitterStatus.innerText = '❌ Failed to save Twitter settings.';
+          }
+        }
+      } catch (err) {
+        if (twitterStatus) {
+          twitterStatus.style.color = '#DC2626';
+          twitterStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testTwitterPostBtn) {
+    testTwitterPostBtn.addEventListener('click', async () => {
+      if (twitterStatus) twitterStatus.innerText = '⌛ Sending test tweet to X...';
+      try {
+        const res = await fetch('/api/test-twitter-post', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#059669';
+            twitterStatus.innerText = '✓ Test Tweet Sent to Twitter/X!';
+          }
+          alert(`✓ Test Tweet successfully posted to X!\n${data.message}`);
+          logMessage('✓ Test Tweet sent to X!');
+        } else {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#DC2626';
+            twitterStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Twitter Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (twitterStatus) {
+          twitterStatus.style.color = '#DC2626';
+          twitterStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  loadTwitterConfig();
+
   async function loadAnalytics() {
     if (!topTopicsList || !countryTrafficList) return;
 
