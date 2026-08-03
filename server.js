@@ -175,7 +175,7 @@ app.get('/sitemap.xml', (req, res) => {
   res.send(xml);
 });
 
-// Dedicated Google News XML Sitemap for Google News Publisher Center
+// Dedicated Google News XML Sitemap for Google News Publisher Center (Only recent news < 48 hours)
 app.get('/news-sitemap.xml', (req, res) => {
   const posts = getAllPosts();
   const host = req.get('host');
@@ -187,16 +187,21 @@ app.get('/news-sitemap.xml', (req, res) => {
 
   const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
 
-  posts.forEach(post => {
-    const postDate = new Date(post.publishedAt || Date.now());
-    const isoDate = isNaN(postDate.getTime()) ? new Date().toISOString() : postDate.toISOString();
+  // Filter & sort only recent news published within 48 hours (max 15 stories for Google News)
+  const recentNews = posts.filter(post => {
+    if (!post.publishedAt) return false;
+    const pDate = new Date(post.publishedAt).getTime();
+    return !isNaN(pDate) && pDate >= twoDaysAgo;
+  }).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 15);
 
-    if (postDate.getTime() >= twoDaysAgo) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
-      xml += `    <news:news><news:publication><news:name>Next Gen Times</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
-      xml += `  </url>\n`;
-    }
+  recentNews.forEach(post => {
+    const postDate = new Date(post.publishedAt);
+    const isoDate = postDate.toISOString();
+
+    xml += `  <url>\n`;
+    xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
+    xml += `    <news:news><news:publication><news:name>Next Gen Times</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+    xml += `  </url>\n`;
   });
 
   xml += `</urlset>`;
