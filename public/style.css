@@ -676,17 +676,26 @@ img {
 
 .sponsored-column {
   flex: 1;
+  min-width: 0;
+  width: 100%;
   padding: 1.25rem 1rem;
   min-height: 250px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch; /* Enforces 100% width on AdSense ins tags so availableWidth > 0 */
   justify-content: center;
   border-right: 1px solid var(--border-light);
 }
 
 .sponsored-column:last-child {
   border-right: none;
+}
+
+.sponsored-column .adsbygoogle,
+.adsense-container .adsbygoogle {
+  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
 }
 
 .adsense-container {
