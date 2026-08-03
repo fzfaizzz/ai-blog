@@ -642,3 +642,115 @@ img {
   object-fit: cover;
 }
 
+/* ==========================================================================
+   📱 ULTRA-RESPONSIVE & MOBILE AD OPTIMIZATION (All Devices & Tablets)
+   ========================================================================== */
+
+/* 1. Category Nav Touch Scrollbar */
+.category-nav {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0.5rem 0;
+}
+
+.category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* 2. Responsive Ad Containers (Fit 100% width on Mobile without CLS or Horizontal Scroll) */
+.adsense-container, .sidebar-ad {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 1.25rem auto;
+  text-align: center;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+/* 3. Mobile Screens (Phones < 768px) */
+@media (max-width: 768px) {
+  /* 🚫 Hide Search Input Bar on Mobile Phones as requested */
+  .header-search-bar, 
+  #searchInput, 
+  #headerSearchWrapper {
+    display: none !important;
+  }
+
+  /* Center Brand Header on Mobile */
+  .brand-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+  }
+
+  .brand-logo {
+    font-size: 1.8rem;
+  }
+
+  /* Container Padding */
+  .container {
+    padding: 0 1rem;
+  }
+
+  /* Main Layout Grid -> Single Column */
+  .main-content, 
+  .page-layout-wrapper {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+
+  .sidebar {
+    margin-top: 1.5rem;
+  }
+
+  /* Article Page Mobile Typography & UX */
+  .article-title {
+    font-size: 1.75rem !important;
+    line-height: 1.25;
+  }
+
+  .article-body {
+    font-size: 1.05rem !important;
+    line-height: 1.75 !important;
+  }
+
+  .article-body p {
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Hero & Article Image Proportions */
+  .featured-img {
+    max-height: 280px !important;
+  }
+
+  .inline-article-img img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px;
+  }
+
+  /* Category Buttons Tap Target */
+  .category-btn {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  /* Footer Mobile Layout */
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .footer-links {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
