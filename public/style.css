@@ -662,7 +662,32 @@ img {
   white-space: nowrap;
 }
 
-/* 2. Responsive Ad Containers (Fit 100% width without CLS or Horizontal Scroll) */
+/* 2. Responsive 3-Column Native Sponsored Stories Grid */
+.sponsored-grid-wrapper {
+  margin: 2rem 0;
+  width: 100%;
+}
+
+.sponsored-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.sponsored-card {
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-dark);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease;
+}
+
 .adsense-container {
   width: 100%;
   max-width: 100%;
@@ -718,7 +743,8 @@ img {
 }
 
 @media (max-width: 1023px) and (min-width: 769px) {
-  .posts-grid {
+  .posts-grid,
+  .sponsored-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 1.5rem;
   }
@@ -731,6 +757,12 @@ img {
   #searchInput, 
   #headerSearchWrapper {
     display: none !important;
+  }
+
+  /* Sponsored Grid 1 Column on Mobile */
+  .sponsored-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem;
   }
 
   /* Category Nav Mobile Touch Scroll */
@@ -815,39 +847,9 @@ img {
     text-align: center;
   }
 
-/* 7. Sponsored Stories Native 3-Card Grid (Matches Article Grid) */
-.sponsored-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.sponsored-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 0.75rem;
-  box-shadow: var(--shadow-sm);
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-@media (max-width: 1023px) and (min-width: 769px) {
-  .sponsored-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .sponsored-grid {
-    grid-template-columns: 1fr !important;
-    gap: 1.5rem;
+  .footer-links {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
