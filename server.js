@@ -145,7 +145,9 @@ function escapeXml(str) {
 // Dynamic Ultra-Clean XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const baseUrl = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
@@ -176,7 +178,9 @@ app.get('/sitemap.xml', (req, res) => {
 // Dedicated Google News XML Sitemap for Google News Publisher Center
 app.get('/news-sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const baseUrl = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
@@ -190,7 +194,7 @@ app.get('/news-sitemap.xml', (req, res) => {
     if (postDate.getTime() >= twoDaysAgo) {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
-      xml += `    <news:news><news:publication><news:name>NEXGEN TIMES</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+      xml += `    <news:news><news:publication><news:name>Next Gen Times</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
       xml += `  </url>\n`;
     }
   });
