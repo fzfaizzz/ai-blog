@@ -714,37 +714,41 @@ img {
   justify-content: center;
 }
 
-/* 3. Article Page 3-Column Sticky Side Ads Layout */
+/* 3. Article Page 3-Column Full-Margin Sticky Side Ads Layout */
 .article-page-wrapper {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: flex-start;
-  gap: 2rem;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1360px;
-  margin: 0 auto;
+  max-width: 100%;
+  padding: 0 1.5rem;
 }
 
 .sticky-side-ad {
-  width: 160px;
-  min-width: 160px;
+  flex: 1;
+  max-width: 300px;
+  min-width: 200px;
+  width: 100%;
   position: sticky;
-  top: 100px;
+  top: 90px;
   align-self: flex-start;
   flex-shrink: 0;
   text-align: center;
   background: var(--bg-secondary);
   border: 1px dashed var(--border-dark);
-  border-radius: 8px;
-  padding: 0.5rem 0.25rem;
+  border-radius: 10px;
+  padding: 0.75rem 0.5rem;
   min-height: 600px;
+  box-shadow: var(--shadow-sm);
 }
 
 .main-article-center {
-  flex: 1;
+  flex: 2;
   width: 100%;
-  max-width: 840px;
+  max-width: 860px;
   min-width: 0;
+  margin: 0 auto;
 }
 
 @media (max-width: 1200px) {
