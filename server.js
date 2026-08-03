@@ -10,6 +10,7 @@ import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
 import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
+import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -352,6 +353,26 @@ app.post('/api/test-twitter-post', async (req, res) => {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
   const result = await sendPostToTwitter(posts[0]);
+  res.json(result);
+});
+
+// Custom Cookie Twitter Session Bot API Endpoints (0 API Fees)
+app.get('/api/custom-twitter-config', (req, res) => {
+  res.json({ success: true, config: getCustomTwitterConfig() });
+});
+
+app.post('/api/save-custom-twitter-config', (req, res) => {
+  const { authToken, csrfToken, autoPostEnabled } = req.body;
+  const saved = saveCustomTwitterConfig({ authToken, csrfToken, autoPostEnabled });
+  res.json({ success: saved });
+});
+
+app.post('/api/test-custom-twitter-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+  const result = await sendTweetViaCookieSession(posts[0]);
   res.json(result);
 });
 

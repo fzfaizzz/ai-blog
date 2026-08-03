@@ -196,6 +196,7 @@ export function getRealAnalyticsData() {
 
 import { sendPostToTelegram } from './telegramManager.js';
 import { sendPostToTwitter } from './twitterManager.js';
+import { sendTweetViaCookieSession } from './customTwitterBot.js';
 
 /**
  * Publishes a new article to the blog.
@@ -227,9 +228,10 @@ export function publishPost(postData) {
 
   console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
-  // Asynchronously broadcast to Telegram & Twitter/X if enabled
+  // Asynchronously broadcast to Telegram, Twitter API & Custom Cookie Twitter Bot if enabled
   sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));
-  sendPostToTwitter(newPost).catch(e => console.error('Twitter broadcast background error:', e));
+  sendPostToTwitter(newPost).catch(e => console.error('Twitter API broadcast background error:', e));
+  sendTweetViaCookieSession(newPost).catch(e => console.error('Custom Twitter Cookie Bot error:', e));
 
   return newPost;
 }

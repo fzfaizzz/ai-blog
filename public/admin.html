@@ -344,6 +344,46 @@
       </form>
     </div>
 
+    <!-- 🤖 Custom Direct Cookie Twitter Bot (0 API Fees & Unlimited) -->
+    <div class="admin-card" style="border: 2px solid #3B82F6;">
+      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #1D4ED8;">
+        🤖 Direct Custom Cookie Twitter Bot (100% FREE & Unlimited)
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+        Direct Railway Server Bot — Bypass Twitter API fees! Simply enter your Twitter Web Session Cookies (<code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">auth_token</code> & <code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">ct0</code>) from Chrome DevTools.
+      </p>
+
+      <form id="customTwitterConfigForm" style="max-width: 620px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">AUTH_TOKEN COOKIE</label>
+            <input type="password" id="customAuthTokenInput" placeholder="Paste auth_token cookie" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">CT0 (CSRF TOKEN) COOKIE</label>
+            <input type="password" id="customCsrfTokenInput" placeholder="Paste ct0 cookie" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="customTwitterAutoPostToggle" style="width: 18px; height: 18px; cursor: pointer;" />
+          <label for="customTwitterAutoPostToggle" style="font-size: 0.9rem; font-weight: 700; color: #0F172A; cursor: pointer;">
+            Enable Direct Custom Cookie Server Bot for Twitter / X
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+          <button type="submit" id="saveCustomTwitterConfigBtn" class="btn btn-primary" style="background: #2563EB;">
+            💾 Save Custom Bot Cookies
+          </button>
+          <button type="button" id="testCustomTwitterPostBtn" class="btn" style="background: #059669; color: #FFF; font-weight: 600;">
+            🧪 Send Test Custom Tweet
+          </button>
+          <span id="customTwitterStatus" style="font-size: 0.85rem; font-weight: 700;"></span>
+        </div>
+      </form>
+    </div>
+
     <!-- 🔐 Security & Admin Password Settings -->
     <div class="admin-card">
       <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
