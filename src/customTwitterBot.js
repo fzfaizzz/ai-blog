@@ -93,7 +93,10 @@ export async function sendTweetViaCookieSession(post) {
       body: bodyParams.toString()
     });
 
-    let resData = await response.json();
+    let rawText = await response.text();
+    let resData = {};
+    try { resData = JSON.parse(rawText); } catch(e) {}
+
     if (response.ok && (resData.id_str || resData.id)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
       return { success: true, message: `Tweet posted successfully! (ID: ${resData.id_str || resData.id})` };
@@ -134,14 +137,17 @@ export async function sendTweetViaCookieSession(post) {
       body: JSON.stringify(payload)
     });
 
-    resData = await response.json();
+    rawText = await response.text();
+    resData = {};
+    try { resData = JSON.parse(rawText); } catch(e) {}
+
     if (response.ok && (resData.data?.create_tweet || resData.data?.tweet_result)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
       return { success: true, message: 'Tweet posted successfully via Custom Server Bot!' };
     } else {
-      console.error('Custom Twitter Bot error:', resData);
-      const errMsg = resData.errors?.[0]?.message || resData.message || (Array.isArray(resData.errors) ? resData.errors[0]?.code : null) || 'Twitter session expired or invalid cookies';
-      return { success: false, message: `Session Error: ${errMsg}` };
+      console.error('Custom Twitter Bot error:', rawText);
+      const errMsg = resData.errors?.[0]?.message || resData.message || (rawText ? rawText.substring(0, 120) : 'Invalid response');
+      return { success: false, message: `Response Error: ${errMsg}` };
     }
   } catch (e) {
     console.error('Error in Custom Twitter Bot:', e);
