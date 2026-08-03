@@ -74,9 +74,33 @@ export async function sendTweetViaCookieSession(post) {
   const tweetText = `🚨 BREAKING: ${post.title}\n\n${shortDesc}\n\n📖 Read full story 👇\n${postUrl}\n\n${hashtags}`;
 
   try {
-    // GraphQL CreateTweet Endpoint
+    // 1. Try Twitter Web v1.1 Status Update Endpoint (Most reliable with auth_token & ct0 cookies)
+    const v1Endpoint = 'https://api.x.com/1.1/statuses/update.json';
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('status', tweetText);
+
+    let response = await fetch(v1Endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${TWITTER_WEB_BEARER_TOKEN}`,
+        'x-csrf-token': config.csrfToken,
+        'x-twitter-auth-type': 'OAuth2Session',
+        'x-twitter-active-user': 'yes',
+        'Cookie': `auth_token=${config.authToken}; ct0=${config.csrfToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      },
+      body: bodyParams.toString()
+    });
+
+    let resData = await response.json();
+    if (response.ok && (resData.id_str || resData.id)) {
+      console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
+      return { success: true, message: `Tweet posted successfully! (ID: ${resData.id_str || resData.id})` };
+    }
+
+    // 2. Fallback: GraphQL CreateTweet Endpoint
     const endpoint = 'https://x.com/i/api/graphql/5V8HGKFYZSimWqTxsnFRbg/CreateTweet';
-    
     const payload = {
       variables: {
         tweet_text: tweetText,
@@ -96,7 +120,7 @@ export async function sendTweetViaCookieSession(post) {
       }
     };
 
-    const response = await fetch(endpoint, {
+    response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${TWITTER_WEB_BEARER_TOKEN}`,
@@ -110,13 +134,14 @@ export async function sendTweetViaCookieSession(post) {
       body: JSON.stringify(payload)
     });
 
-    const resData = await response.json();
+    resData = await response.json();
     if (response.ok && (resData.data?.create_tweet || resData.data?.tweet_result)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
       return { success: true, message: 'Tweet posted successfully via Custom Server Bot!' };
     } else {
       console.error('Custom Twitter Bot error:', resData);
-      return { success: false, message: resData.errors?.[0]?.message || 'Twitter session response invalid' };
+      const errMsg = resData.errors?.[0]?.message || resData.message || (Array.isArray(resData.errors) ? resData.errors[0]?.code : null) || 'Twitter session expired or invalid cookies';
+      return { success: false, message: `Session Error: ${errMsg}` };
     }
   } catch (e) {
     console.error('Error in Custom Twitter Bot:', e);
