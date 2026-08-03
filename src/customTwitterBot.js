@@ -74,8 +74,8 @@ export async function sendTweetViaCookieSession(post) {
   const tweetText = `🚨 BREAKING: ${post.title}\n\n${shortDesc}\n\n📖 Read full story 👇\n${postUrl}\n\n${hashtags}`;
 
   try {
-    // 1. Try Twitter Web v1.1 Status Update Endpoint (Most reliable with auth_token & ct0 cookies)
-    const v1Endpoint = 'https://api.x.com/1.1/statuses/update.json';
+    // 1. Primary: Twitter Web Internal v1.1 Status Update Endpoint
+    const v1Endpoint = 'https://x.com/i/api/1.1/statuses/update.json';
     const bodyParams = new URLSearchParams();
     bodyParams.append('status', tweetText);
 
@@ -95,6 +95,30 @@ export async function sendTweetViaCookieSession(post) {
 
     let rawText = await response.text();
     let resData = {};
+    try { resData = JSON.parse(rawText); } catch(e) {}
+
+    if (response.ok && (resData.id_str || resData.id)) {
+      console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
+      return { success: true, message: `Tweet posted successfully! (ID: ${resData.id_str || resData.id})` };
+    }
+
+    // 2. Secondary: API.Twitter.com v1.1 Status Update Endpoint
+    const v1ApiEndpoint = 'https://api.twitter.com/1.1/statuses/update.json';
+    response = await fetch(v1ApiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${TWITTER_WEB_BEARER_TOKEN}`,
+        'x-csrf-token': config.csrfToken,
+        'x-twitter-auth-type': 'OAuth2Session',
+        'x-twitter-active-user': 'yes',
+        'Cookie': `auth_token=${config.authToken}; ct0=${config.csrfToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      },
+      body: bodyParams.toString()
+    });
+
+    rawText = await response.text();
     try { resData = JSON.parse(rawText); } catch(e) {}
 
     if (response.ok && (resData.id_str || resData.id)) {
