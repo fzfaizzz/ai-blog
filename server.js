@@ -147,16 +147,14 @@ function escapeXml(str) {
     .replace(/'/g, '&apos;');
 }
 
-// Dynamic XML Sitemap for Google Search Console & Fast Indexing
+// Dynamic Ultra-Clean XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
   const posts = getAllPosts();
   const baseUrl = process.env.BASE_URL || 'https://thedailychronicle.up.railway.app';
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
+  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
   xml += `  <url>\n    <loc>${baseUrl}/index.html</loc>\n    <priority>1.0</priority>\n    <changefreq>daily</changefreq>\n  </url>\n`;
-
-  const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
 
   posts.forEach(post => {
     const postDate = new Date(post.publishedAt || Date.now());
@@ -168,14 +166,38 @@ app.get('/sitemap.xml', (req, res) => {
     xml += `    <lastmod>${dateOnly}</lastmod>\n`;
     xml += `    <priority>0.8</priority>\n`;
     xml += `    <changefreq>weekly</changefreq>\n`;
-    if (post.imageUrl) {
-      xml += `    <image:image><image:loc>${escapeXml(post.imageUrl)}</image:loc><image:title>${escapeXml(post.title)}</image:title></image:image>\n`;
-    }
-    // Google News sitemap standard: Only include news tags for stories from last 48 hours
-    if (postDate.getTime() >= twoDaysAgo) {
-      xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+    if (post.imageUrl && post.imageUrl.startsWith('http')) {
+      xml += `    <image:image><image:loc>${escapeXml(post.imageUrl)}</image:loc></image:image>\n`;
     }
     xml += `  </url>\n`;
+  });
+
+  xml += `</urlset>`;
+
+  res.header('Content-Type', 'application/xml');
+  res.send(xml);
+});
+
+// Dedicated Google News XML Sitemap for Google News Publisher Center
+app.get('/news-sitemap.xml', (req, res) => {
+  const posts = getAllPosts();
+  const baseUrl = process.env.BASE_URL || 'https://thedailychronicle.up.railway.app';
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
+
+  const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
+
+  posts.forEach(post => {
+    const postDate = new Date(post.publishedAt || Date.now());
+    const isoDate = isNaN(postDate.getTime()) ? new Date().toISOString() : postDate.toISOString();
+
+    if (postDate.getTime() >= twoDaysAgo) {
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
+      xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+      xml += `  </url>\n`;
+    }
   });
 
   xml += `</urlset>`;
