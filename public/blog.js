@@ -1007,6 +1007,96 @@ function initAdminPanel() {
     });
   }
 
+  // Telegram Auto-Poster Admin Handlers
+  const telegramConfigForm = document.getElementById('telegramConfigForm');
+  const telegramBotTokenInput = document.getElementById('telegramBotTokenInput');
+  const telegramChannelIdInput = document.getElementById('telegramChannelIdInput');
+  const telegramAutoPostToggle = document.getElementById('telegramAutoPostToggle');
+  const testTelegramPostBtn = document.getElementById('testTelegramPostBtn');
+  const telegramStatus = document.getElementById('telegramStatus');
+
+  async function loadTelegramConfig() {
+    if (!telegramBotTokenInput) return;
+    try {
+      const res = await fetch('/api/telegram-config');
+      const data = await res.json();
+      if (data.success && data.config) {
+        telegramBotTokenInput.value = data.config.botToken || '';
+        telegramChannelIdInput.value = data.config.channelId || '';
+        telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
+      }
+    } catch (e) {
+      console.error('Error loading Telegram config:', e);
+    }
+  }
+
+  if (telegramConfigForm) {
+    telegramConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (telegramStatus) telegramStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-telegram-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            botToken: telegramBotTokenInput.value.trim(),
+            channelId: telegramChannelIdInput.value.trim(),
+            autoPostEnabled: telegramAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#059669';
+            telegramStatus.innerText = '✓ Telegram Settings Saved!';
+          }
+          logMessage('✓ Telegram Auto-Poster settings saved!');
+        } else {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#DC2626';
+            telegramStatus.innerText = '❌ Failed to save Telegram settings.';
+          }
+        }
+      } catch (err) {
+        if (telegramStatus) {
+          telegramStatus.style.color = '#DC2626';
+          telegramStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testTelegramPostBtn) {
+    testTelegramPostBtn.addEventListener('click', async () => {
+      if (telegramStatus) telegramStatus.innerText = '⌛ Sending test post...';
+      try {
+        const res = await fetch('/api/test-telegram-post', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#059669';
+            telegramStatus.innerText = '✓ Test Post Sent to Telegram Channel!';
+          }
+          alert('✓ Test post successfully sent to Telegram Channel!');
+          logMessage('✓ Test post sent to Telegram Channel!');
+        } else {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#DC2626';
+            telegramStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Telegram Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (telegramStatus) {
+          telegramStatus.style.color = '#DC2626';
+          telegramStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  loadTelegramConfig();
+
   async function loadAnalytics() {
     if (!topTopicsList || !countryTrafficList) return;
 

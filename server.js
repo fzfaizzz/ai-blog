@@ -8,7 +8,7 @@ import { getGoogleMatchingImages } from './src/googleImageFetcher.js';
 import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData, togglePostVisibility, deletePost } from './src/publisher.js';
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
-import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
+import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -312,6 +312,26 @@ app.get('/api/test-gemini', async (req, res) => {
     keysFound: keys.length,
     results
   });
+});
+
+// Telegram Auto-Poster API Endpoints
+app.get('/api/telegram-config', (req, res) => {
+  res.json({ success: true, config: getTelegramConfig() });
+});
+
+app.post('/api/save-telegram-config', (req, res) => {
+  const { botToken, channelId, autoPostEnabled } = req.body;
+  const saved = saveTelegramConfig({ botToken, channelId, autoPostEnabled });
+  res.json({ success: saved });
+});
+
+app.post('/api/test-telegram-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+  const result = await sendPostToTelegram(posts[0]);
+  res.json(result);
 });
 
 // 3. Trigger Auto-Blogging Workflow

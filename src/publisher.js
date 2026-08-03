@@ -194,6 +194,8 @@ export function getRealAnalyticsData() {
   };
 }
 
+import { sendPostToTelegram } from './telegramManager.js';
+
 /**
  * Publishes a new article to the blog.
  */
@@ -223,5 +225,9 @@ export function publishPost(postData) {
   fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
 
   console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
+
+  // Asynchronously broadcast to Telegram Channel if enabled
+  sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));
+
   return newPost;
 }
