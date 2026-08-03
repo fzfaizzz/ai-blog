@@ -1216,40 +1216,49 @@ function initAdminPanel() {
     }
   }
 
-  if (customTwitterConfigForm) {
-    customTwitterConfigForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Saving...';
-      try {
-        const res = await fetch('/api/save-custom-twitter-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            authToken: customAuthTokenInput.value.trim(),
-            csrfToken: customCsrfTokenInput.value.trim(),
-            autoPostEnabled: customTwitterAutoPostToggle.checked
-          })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (customTwitterStatus) {
-            customTwitterStatus.style.color = '#059669';
-            customTwitterStatus.innerText = '✓ Custom Twitter Bot Cookies Saved!';
-          }
-          logMessage('✓ Custom Twitter Bot cookies saved!');
-        } else {
-          if (customTwitterStatus) {
-            customTwitterStatus.style.color = '#DC2626';
-            customTwitterStatus.innerText = '❌ Failed to save Custom Bot cookies.';
-          }
+  const saveCustomTwitterConfigBtn = document.getElementById('saveCustomTwitterConfigBtn');
+
+  async function handleSaveCustomTwitterConfig(e) {
+    if (e) e.preventDefault();
+    if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Saving...';
+    try {
+      const res = await fetch('/api/save-custom-twitter-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authToken: customAuthTokenInput.value.trim(),
+          csrfToken: customCsrfTokenInput.value.trim(),
+          autoPostEnabled: customTwitterAutoPostToggle.checked
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (customTwitterStatus) {
+          customTwitterStatus.style.color = '#059669';
+          customTwitterStatus.innerText = '✓ Custom Twitter Bot Cookies Saved!';
         }
-      } catch (err) {
+        alert('✓ Custom Twitter Bot Cookies Saved Successfully!');
+        logMessage('✓ Custom Twitter Bot cookies saved!');
+      } else {
         if (customTwitterStatus) {
           customTwitterStatus.style.color = '#DC2626';
-          customTwitterStatus.innerText = `❌ Error: ${err.message}`;
+          customTwitterStatus.innerText = '❌ Failed to save Custom Bot cookies.';
         }
       }
-    });
+    } catch (err) {
+      if (customTwitterStatus) {
+        customTwitterStatus.style.color = '#DC2626';
+        customTwitterStatus.innerText = `❌ Error: ${err.message}`;
+      }
+    }
+  }
+
+  if (saveCustomTwitterConfigBtn) {
+    saveCustomTwitterConfigBtn.addEventListener('click', handleSaveCustomTwitterConfig);
+  }
+
+  if (customTwitterConfigForm) {
+    customTwitterConfigForm.addEventListener('submit', handleSaveCustomTwitterConfig);
   }
 
   if (testCustomTwitterPostBtn) {
