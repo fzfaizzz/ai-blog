@@ -77,7 +77,20 @@ export async function sendPostToTwitter(post) {
 
   const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
   const postUrl = `${domain}/post/${post.slug}`;
-  const tweetText = `🚨 BREAKING: ${post.title}\n\nRead full story 👇\n${postUrl}\n\n#NextGenTimes #BreakingNews #TechNews`;
+
+  // Category-based Viral Hashtags Selector
+  const categoryHashtags = {
+    'AI': '#AINews #ArtificialIntelligence #TechBreakthrough #NextGenTimes',
+    'Technology': '#TechNews #Innovation #TechTrends #NextGenTimes',
+    'Business': '#StockMarket #GlobalBusiness #Economy #NextGenTimes',
+    'Space & Cosmos': '#SpaceX #NASA #SpaceNews #NextGenTimes',
+    'World Breaking News': '#BreakingNews #WorldNews #GlobalNews #NextGenTimes'
+  };
+
+  const hashtags = categoryHashtags[post.category] || '#BreakingNews #TechNews #NextGenTimes';
+  const shortDesc = post.metaDescription ? post.metaDescription.substring(0, 95) + '...' : '';
+
+  const tweetText = `🚨 BREAKING: ${post.title}\n\n${shortDesc}\n\n📖 Read full story 👇\n${postUrl}\n\n${hashtags}`;
 
   try {
     const url = 'https://api.twitter.com/2/tweets';
