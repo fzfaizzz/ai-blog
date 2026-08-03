@@ -714,27 +714,43 @@ img {
   justify-content: center;
 }
 
-/* 3. Page Layout Wrapper (Centered Article Area on Laptop/Desktop) */
-.page-layout-wrapper {
+/* 3. Article Page 3-Column Sticky Side Ads Layout */
+.article-page-wrapper {
   display: flex;
   justify-content: center;
-  gap: 2rem;
   align-items: flex-start;
-  padding-top: 1.5rem;
-}
-
-.main-content-area {
-  flex: 1;
+  gap: 2rem;
   width: 100%;
-  max-width: 840px;
+  max-width: 1360px;
   margin: 0 auto;
 }
 
-.sidebar-ad {
+.sticky-side-ad {
   width: 160px;
+  min-width: 160px;
   position: sticky;
-  top: 120px;
+  top: 100px;
+  align-self: flex-start;
   flex-shrink: 0;
+  text-align: center;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-dark);
+  border-radius: 8px;
+  padding: 0.5rem 0.25rem;
+  min-height: 600px;
+}
+
+.main-article-center {
+  flex: 1;
+  width: 100%;
+  max-width: 840px;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .sticky-side-ad {
+    display: none !important;
+  }
 }
 
 /* 4. Desktop / Laptop Grid (> 1024px) */

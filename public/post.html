@@ -26,10 +26,24 @@
     </div>
   </header>
 
-  <!-- Main Container -->
-  <div class="container" style="padding-top: 1.5rem;">
-    <!-- Main Article Area -->
-    <main class="main-content-area" style="max-width: 840px; margin: 0 auto;">
+  <!-- 📰 Article Page 3-Column Layout with Sticky Side Ads -->
+  <div class="article-page-wrapper container">
+    <!-- Left Sticky Margin Display Ad (Desktop > 1200px) -->
+    <aside class="sticky-side-ad side-ad-left">
+      <div class="ad-label">ADVERTISEMENT</div>
+      <ins class="adsbygoogle"
+           style="display:block; width:160px; height:600px;"
+           data-ad-client="ca-pub-9492642167600744"
+           data-ad-slot="9115821119"
+           data-ad-format="vertical"
+           data-full-width-responsive="false"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
+
+    <!-- Main Center Article Area -->
+    <main class="main-article-center">
       <!-- Article Header -->
       <div class="article-header" style="margin-bottom: 1.5rem;">
         <span id="postCategoryPill" class="article-category-pill">TECHNOLOGY</span>
@@ -51,32 +65,21 @@
         </div>
       </div>
 
-      <!-- Featured Story Cover Photo (Clean - Top Ad Removed for Better UX) -->
+      <!-- Hero Featured Image -->
       <div class="featured-img-container" style="margin-bottom: 2rem;">
         <img id="postFeaturedImg" src="" alt="Featured News Visual" class="featured-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80'" />
       </div>
 
-      <!-- Article Content (In-depth Factual News & Executive Summary) -->
+      <!-- Article Body Content -->
       <article id="postContent" class="human-article">
-        Loading article text...
+        <p>Loading article content...</p>
       </article>
 
-      <!-- Editorial Author Signoff Box -->
-      <div style="background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; padding: 1.5rem; margin: 2.5rem 0; display: flex; gap: 1rem; align-items: center;">
-        <div id="authorSignoffInitials" class="author-avatar" style="width: 48px; height: 48px; font-size: 1rem; flex-shrink: 0;">SJ</div>
-        <div>
-          <strong id="signoffAuthorTitle">Written by Sarah Jenkins</strong>
-          <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">Senior Technology Correspondent at The Daily Chronicle. Covering digital innovation, global tech trends, and software ecosystems.</p>
-        </div>
-      </div>
-
-      <!-- 📌 Recommended & Suggested Stories Section -->
-      <section id="recommendedSection" style="margin: 3rem 0; padding-top: 2rem; border-top: 2px solid var(--border-light);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-          <h3 style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-            📌 Recommended Stories & Trending Coverage
-          </h3>
-          <a href="index.html" style="font-size: 0.875rem; color: #2563EB; font-weight: 700; text-decoration: none;">View All News ➔</a>
+      <!-- Dynamic Recommended Read Next Articles Grid -->
+      <section style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-light);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">RECOMMENDED FOR YOU</h3>
+          <span style="font-size: 0.8rem; color: var(--accent-red); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">TRENDING STORIES</span>
         </div>
         <div id="recommendedGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">
           <!-- Recommended cards dynamically populated by JavaScript -->
@@ -120,6 +123,20 @@
         </div>
       </div>
     </main>
+
+    <!-- Right Sticky Margin Display Ad (Desktop > 1200px) -->
+    <aside class="sticky-side-ad side-ad-right">
+      <div class="ad-label">ADVERTISEMENT</div>
+      <ins class="adsbygoogle"
+           style="display:block; width:160px; height:600px;"
+           data-ad-client="ca-pub-9492642167600744"
+           data-ad-slot="9115821119"
+           data-ad-format="vertical"
+           data-full-width-responsive="false"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
   </div>
 
   <!-- Footer -->
