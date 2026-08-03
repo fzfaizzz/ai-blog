@@ -126,12 +126,24 @@ async function loadHomepagePosts(category = null, page = null) {
         });
       }
 
-      // 4. Calculate Pagination Slices
-      const totalPages = Math.ceil(filtered.length / POSTS_PER_PAGE);
+function getPostsPerPage() {
+  const width = window.innerWidth;
+  if (width < 768) {
+    return 6;  // Phone: 6 articles (1 col x 6 rows)
+  } else if (width <= 1024) {
+    return 9;  // Tablet: 9 articles (2 col x 4.5 rows)
+  } else {
+    return 12; // PC / Laptop: 12 articles (3 col x 4 rows)
+  }
+}
+
+      // 4. Calculate Dynamic Device-Based Pagination Slices
+      const postsPerPage = getPostsPerPage();
+      const totalPages = Math.ceil(filtered.length / postsPerPage) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
 
-      const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-      const paginatedPosts = filtered.slice(startIndex, startIndex + POSTS_PER_PAGE);
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const paginatedPosts = filtered.slice(startIndex, startIndex + postsPerPage);
 
       // 5. Render Main Grid
       postsGrid.innerHTML = '';
