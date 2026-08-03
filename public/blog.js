@@ -10,7 +10,7 @@ const HUMAN_AUTHORS = [
 let currentCategory = 'ALL';
 let currentSearchQuery = '';
 let currentPage = 1;
-const POSTS_PER_PAGE = 6;
+const POSTS_PER_PAGE = 12;
 let cachedPosts = [];
 
 // Load Homepage Grid Posts & Featured Hero with Live Search & Pagination
