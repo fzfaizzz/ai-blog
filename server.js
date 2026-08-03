@@ -156,16 +156,25 @@ app.get('/sitemap.xml', (req, res) => {
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
   xml += `  <url>\n    <loc>${baseUrl}/index.html</loc>\n    <priority>1.0</priority>\n    <changefreq>daily</changefreq>\n  </url>\n`;
 
+  const twoDaysAgo = Date.now() - (48 * 60 * 60 * 1000);
+
   posts.forEach(post => {
+    const postDate = new Date(post.publishedAt || Date.now());
+    const isoDate = isNaN(postDate.getTime()) ? new Date().toISOString() : postDate.toISOString();
+    const dateOnly = isoDate.split('T')[0];
+
     xml += `  <url>\n`;
-    xml += `    <loc>${baseUrl}/post/${post.slug}</loc>\n`;
-    xml += `    <lastmod>${new Date(post.publishedAt).toISOString().split('T')[0]}</lastmod>\n`;
+    xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
+    xml += `    <lastmod>${dateOnly}</lastmod>\n`;
     xml += `    <priority>0.8</priority>\n`;
     xml += `    <changefreq>weekly</changefreq>\n`;
     if (post.imageUrl) {
-      xml += `    <image:image><image:loc>${post.imageUrl}</image:loc><image:title>${escapeXml(post.title)}</image:title></image:image>\n`;
+      xml += `    <image:image><image:loc>${escapeXml(post.imageUrl)}</image:loc><image:title>${escapeXml(post.title)}</image:title></image:image>\n`;
     }
-    xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${post.publishedAt}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+    // Google News sitemap standard: Only include news tags for stories from last 48 hours
+    if (postDate.getTime() >= twoDaysAgo) {
+      xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+    }
     xml += `  </url>\n`;
   });
 
