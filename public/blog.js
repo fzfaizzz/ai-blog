@@ -1012,36 +1012,44 @@ function initAdminPanel() {
         if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length || '37';
 
         topTopicsList.innerHTML = '';
-        data.topTopics.forEach(t => {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
-          div.innerHTML = `
-            <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              <strong>${escapeHtml(t.title)}</strong>
-              <div style="font-size: 0.725rem; color: #64748B;">Category: ${escapeHtml(t.category)}</div>
-            </div>
-            <div style="text-align: right; min-width: 90px; font-weight: 700; color: #2563EB;">
-              👁️ ${t.views.toLocaleString()}
-            </div>
-          `;
-          topTopicsList.appendChild(div);
-        });
+        if (data.topTopics && data.topTopics.length > 0) {
+          data.topTopics.forEach(t => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
+            div.innerHTML = `
+              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <strong>${escapeHtml(t.title)}</strong>
+                <div style="font-size: 0.725rem; color: #64748B;">Category: ${escapeHtml(t.category)}</div>
+              </div>
+              <div style="text-align: right; min-width: 90px; font-weight: 700; color: #2563EB;">
+                👁️ ${t.views.toLocaleString()}
+              </div>
+            `;
+            topTopicsList.appendChild(div);
+          });
+        } else {
+          topTopicsList.innerHTML = `<div style="color: #64748B; padding: 1rem 0; text-align: center;">⚡ Real-Time Article Tracking Active...</div>`;
+        }
 
         countryTrafficList.innerHTML = '';
-        data.countryTraffic.forEach(c => {
-          const div = document.createElement('div');
-          div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;';
-          div.innerHTML = `
-            <div>
-              <strong>${escapeHtml(c.country)}</strong>
-              <div style="font-size: 0.725rem; color: #64748B;">Page Views: ${c.pageViews}</div>
-            </div>
-            <div style="font-weight: 700; color: #059669; font-size: 0.95rem;">
-              ${c.percent}
-            </div>
-          `;
-          countryTrafficList.appendChild(div);
-        });
+        if (data.countryTraffic && data.countryTraffic.length > 0) {
+          data.countryTraffic.forEach(c => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;';
+            div.innerHTML = `
+              <div>
+                <strong>${escapeHtml(c.country)}</strong>
+                <div style="font-size: 0.725rem; color: #64748B;">Page Views: ${c.pageViews}</div>
+              </div>
+              <div style="font-weight: 700; color: #059669; font-size: 0.95rem;">
+                ${c.percent}
+              </div>
+            `;
+            countryTrafficList.appendChild(div);
+          });
+        } else {
+          countryTrafficList.innerHTML = `<div style="color: #64748B; padding: 1.25rem 0; text-align: center;">⚡ Real-Time IP Tracking Active<br/><small style="font-size: 0.8rem; color: #94A3B8;">Country views update dynamically as live readers visit your site.</small></div>`;
+        }
       }
     } catch (e) {
       console.error('Error loading analytics:', e);

@@ -166,25 +166,25 @@ export function getRealAnalyticsData() {
   const topTopics = sortedPosts.slice(0, 5).map(p => ({
     title: p.title,
     category: p.category || 'World News',
-    views: p.views || 1
+    views: p.views || 0
   }));
 
-  let analytics = INITIAL_ANALYTICS;
+  let analytics = { countryViews: {} };
   try {
     if (fs.existsSync(ANALYTICS_FILE)) {
       analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8'));
     }
   } catch (e) {}
 
-  const cMap = analytics.countryViews || INITIAL_ANALYTICS.countryViews;
-  let totalViews = Object.values(cMap).reduce((a, b) => a + b, 0) || 1;
+  const cMap = analytics.countryViews || {};
+  let totalViews = Object.values(cMap).reduce((a, b) => a + b, 0);
 
   const countryTraffic = Object.entries(cMap)
     .sort((a, b) => b[1] - a[1])
     .map(([country, count]) => ({
       country,
       pageViews: count.toLocaleString(),
-      percent: `${Math.round((count / totalViews) * 100)}%`
+      percent: `${totalViews > 0 ? Math.round((count / totalViews) * 100) : 0}%`
     }));
 
   return {
