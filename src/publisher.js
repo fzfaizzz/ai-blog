@@ -68,14 +68,7 @@ function initializePostsFile() {
 initializePostsFile();
 
 const INITIAL_ANALYTICS = {
-  countryViews: {
-    '🇺🇸 United States': 18450,
-    '🇮🇳 India': 14100,
-    '🇬🇧 United Kingdom': 6800,
-    '🇩🇪 Germany': 4380,
-    '🇯🇵 Japan': 2920,
-    '🇨🇦 Canada': 1950
-  }
+  countryViews: {}
 };
 
 if (!fs.existsSync(ANALYTICS_FILE)) {
@@ -222,7 +215,7 @@ export function publishPost(postData) {
     imageCredit: postData.imageCredit || 'Unsplash / Media Provider',
     category: postData.category || 'Trending',
     readTimeMinutes: postData.readTimeMinutes || 4,
-    views: Math.floor(Math.random() * 500) + 100, // Initial views for new story
+    views: 0,
     publishedAt: new Date().toISOString()
   };
 

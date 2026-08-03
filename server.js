@@ -118,23 +118,18 @@ function saveAppSettings(newSettings) {
 
 // Helper: Detect Country Name from Request IP / Geo Headers
 function detectRequestCountry(req) {
-  const countryHeader = req.headers['cf-ipcountry'] || req.headers['x-country-code'];
+  const countryHeader = (req.headers['cf-ipcountry'] || req.headers['x-country-code'] || req.headers['x-vercel-ip-country'] || '').toUpperCase();
   if (countryHeader === 'US') return '🇺🇸 United States';
   if (countryHeader === 'IN') return '🇮🇳 India';
   if (countryHeader === 'GB' || countryHeader === 'UK') return '🇬🇧 United Kingdom';
   if (countryHeader === 'DE') return '🇩🇪 Germany';
   if (countryHeader === 'JP') return '🇯🇵 Japan';
   if (countryHeader === 'CA') return '🇨🇦 Canada';
+  if (countryHeader === 'AU') return '🇦🇺 Australia';
+  if (countryHeader === 'FR') return '🇫🇷 France';
+  if (countryHeader === 'BR') return '🇧🇷 Brazil';
 
-  const defaultCountries = [
-    '🇺🇸 United States',
-    '🇺🇸 United States',
-    '🇮🇳 India',
-    '🇬🇧 United Kingdom',
-    '🇨🇦 Canada',
-    '🇩🇪 Germany'
-  ];
-  return defaultCountries[Math.floor(Math.random() * defaultCountries.length)];
+  return '🌐 Global Direct';
 }
 
 function escapeXml(str) {
