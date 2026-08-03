@@ -36,7 +36,7 @@ app.get('/post/:slug', (req, res) => {
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
-    <title>${escapeHtml(post.title)} — The Daily Chronicle</title>
+    <title>${escapeHtml(post.title)} — NEXGEN TIMES</title>
     <meta name="description" content="${escapeHtml(post.metaDescription)}">
     <link rel="canonical" href="${baseUrl}/post/${post.slug}">
     <meta property="og:type" content="article">
@@ -44,7 +44,7 @@ app.get('/post/:slug', (req, res) => {
     <meta property="og:description" content="${escapeHtml(post.metaDescription)}">
     <meta property="og:url" content="${baseUrl}/post/${post.slug}">
     <meta property="og:image" content="${post.imageUrl}">
-    <meta property="og:site_name" content="The Daily Chronicle">
+    <meta property="og:site_name" content="NEXGEN TIMES">
     <meta property="og:locale" content="en_US">
     <meta property="article:published_time" content="${post.publishedAt}">
     <meta name="twitter:card" content="summary_large_image">
@@ -59,8 +59,8 @@ app.get('/post/:slug', (req, res) => {
       "image": ["${post.imageUrl}"],
       "datePublished": "${post.publishedAt}",
       "dateModified": "${post.publishedAt}",
-      "author": {"@type": "Organization", "name": "The Daily Chronicle"},
-      "publisher": {"@type": "Organization", "name": "The Daily Chronicle"},
+      "author": {"@type": "Organization", "name": "NEXGEN TIMES"},
+      "publisher": {"@type": "Organization", "name": "NEXGEN TIMES"},
       "description": "${escapeHtml(post.metaDescription)}",
       "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
     }
@@ -190,7 +190,7 @@ app.get('/news-sitemap.xml', (req, res) => {
     if (postDate.getTime() >= twoDaysAgo) {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
-      xml += `    <news:news><news:publication><news:name>The Daily Chronicle</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+      xml += `    <news:news><news:publication><news:name>NEXGEN TIMES</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
       xml += `  </url>\n`;
     }
   });
