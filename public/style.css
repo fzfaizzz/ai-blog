@@ -47,17 +47,23 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: none;
 }
 
-.brand-logo {
+.brand-logo,
+.brand-logo a {
   font-family: var(--font-serif);
   font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: -0.5px;
   color: var(--text-main);
-  text-decoration: none;
+  text-decoration: none !important;
+  border-bottom: none !important;
   display: inline-block;
+}
+
+.brand-logo a:hover {
+  text-decoration: none !important;
 }
 
 .brand-logo span {
