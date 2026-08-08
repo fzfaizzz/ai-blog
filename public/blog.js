@@ -292,7 +292,11 @@ function setCanonicalTag(url) {
 }
 
 // Load Single Article Page
+let isArticleLoading = false;
 async function loadSingleArticle() {
+  if (isArticleLoading) return;
+  isArticleLoading = true;
+
   const params = new URLSearchParams(window.location.search);
   // Support both /post/slug and post.html?slug=slug
   let slug = params.get('slug');
@@ -456,7 +460,11 @@ async function loadRecommendedArticles(currentSlug, category) {
 }
 
 // Admin Control Panel Handlers
+let isAdminPanelInitialized = false;
 function initAdminPanel() {
+  if (isAdminPanelInitialized) return;
+  isAdminPanelInitialized = true;
+
   const loginModal = document.getElementById('adminLoginModal');
   const loginForm = document.getElementById('adminLoginForm');
   const passwordInput = document.getElementById('adminPasswordInput');
