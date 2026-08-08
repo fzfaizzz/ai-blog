@@ -38,7 +38,7 @@ app.get('/post/:slug', (req, res) => {
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
-    <title>${escapeHtml(post.title)} — NEXGEN TIMES</title>
+    <title>${escapeHtml(post.title)} — Next Gen Times</title>
     <meta name="description" content="${escapeHtml(post.metaDescription)}">
     <link rel="canonical" href="${baseUrl}/post/${post.slug}">
     <meta property="og:type" content="article">
@@ -46,7 +46,7 @@ app.get('/post/:slug', (req, res) => {
     <meta property="og:description" content="${escapeHtml(post.metaDescription)}">
     <meta property="og:url" content="${baseUrl}/post/${post.slug}">
     <meta property="og:image" content="${post.imageUrl}">
-    <meta property="og:site_name" content="NEXGEN TIMES">
+    <meta property="og:site_name" content="Next Gen Times">
     <meta property="og:locale" content="en_US">
     <meta property="article:published_time" content="${post.publishedAt}">
     <meta name="twitter:card" content="summary_large_image">
@@ -54,18 +54,43 @@ app.get('/post/:slug', (req, res) => {
     <meta name="twitter:description" content="${escapeHtml(post.metaDescription)}">
     <meta name="twitter:image" content="${post.imageUrl}">
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "NewsArticle",
-      "headline": "${escapeHtml(post.title)}",
-      "image": ["${post.imageUrl}"],
-      "datePublished": "${post.publishedAt}",
-      "dateModified": "${post.publishedAt}",
-      "author": {"@type": "Organization", "name": "NEXGEN TIMES"},
-      "publisher": {"@type": "Organization", "name": "NEXGEN TIMES"},
-      "description": "${escapeHtml(post.metaDescription)}",
-      "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
-    }
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": "${escapeHtml(post.title)}",
+        "image": ["${post.imageUrl}"],
+        "datePublished": "${post.publishedAt}",
+        "dateModified": "${post.publishedAt}",
+        "author": {"@type": "Organization", "name": "Next Gen Times"},
+        "publisher": {"@type": "Organization", "name": "Next Gen Times", "logo": {"@type": "ImageObject", "url": "${baseUrl}/og-cover.png"}},
+        "description": "${escapeHtml(post.metaDescription)}",
+        "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "${baseUrl}"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "${escapeHtml(post.category || 'News')}",
+            "item": "${baseUrl}/#category-${encodeURIComponent(post.category || 'news')}"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "${escapeHtml(post.title)}"
+          }
+        ]
+      }
+    ]
     </script>
   `;
   

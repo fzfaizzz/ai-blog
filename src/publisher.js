@@ -233,5 +233,17 @@ export function publishPost(postData) {
   sendPostToTwitter(newPost).catch(e => console.error('Twitter API broadcast background error:', e));
   sendTweetViaCookieSession(newPost).catch(e => console.error('Custom Twitter Cookie Bot error:', e));
 
+  // Asynchronously ping Google Search & Bing IndexNow for instant indexing
+  pingSearchEngines();
+
   return newPost;
+}
+
+async function pingSearchEngines() {
+  const sitemapUrl = encodeURIComponent('https://www.nextgentimes.jo3.org/news-sitemap.xml');
+  try {
+    fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
+    fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
+    console.log('⚡ Successfully Pinged Google Search & Bing Search with updated Sitemap!');
+  } catch (e) {}
 }
