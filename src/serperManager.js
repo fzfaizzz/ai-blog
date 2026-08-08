@@ -112,21 +112,25 @@ export async function callSerperWithFailover(endpoint, payload) {
     return null;
   }
 
-  for (let i = activeKeyIndex; i < keys.length; i++) {
+  // Always check all keys in the pool starting from activeKeyIndex
+  const startIdx = activeKeyIndex < keys.length ? activeKeyIndex : 0;
+
+  for (let step = 0; step < keys.length; step++) {
+    const i = (startIdx + step) % keys.length;
     const currentKey = keys[i];
-    console.log(` 🔑 Using Serper Key #${i + 1} (${currentKey.substring(0, 8)}...)`);
+    console.log(` 🔑 Trying Serper Key #${i + 1} (${currentKey.substring(0, 8)}...)`);
 
     try {
       const response = await sendSerperRequest(endpoint, payload, currentKey);
       
       if (response && response.statusCode === 200 && response.data) {
         activeKeyIndex = i; // Maintain working key
+        console.log(`   ✅ Serper Key #${i + 1} SUCCESS! (Credits Active)`);
         return response.data;
       }
 
       if (response && (response.statusCode === 400 || response.statusCode === 403 || response.statusCode === 429)) {
-        console.warn(` ⚠️ Serper Key #${i + 1} EXHAUSTED / OUT OF CREDITS (Status ${response.statusCode}). Auto-switching to Key #${i + 2}...`);
-        activeKeyIndex = i + 1; // Auto shift to next key
+        console.warn(` ⚠️ Serper Key #${i + 1} EXHAUSTED / OUT OF CREDITS (Status ${response.statusCode}). Auto-switching to next key...`);
       }
     } catch (e) {
       console.warn(` ⚠️ Error with Serper Key #${i + 1}: ${e.message}. Retrying next key...`);

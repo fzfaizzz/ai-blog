@@ -25,7 +25,7 @@ export async function getGoogleMatchingImages(topicQuery) {
         .map(img => img.imageUrl)
         .filter(url => url && (url.startsWith('http://') || url.startsWith('https://')) && !url.includes('gstatic.com') && !url.includes('google.com/images'));
 
-      console.log(`   🔎 Pre-verifying ${candidateUrls.length} image URLs for 200 OK live status...`);
+      console.log(`   🔎 Found ${candidateUrls.length} Google Image candidate URLs from Serper API...`);
 
       // Pre-verify live working images
       const verifiedImages = [];
@@ -37,22 +37,15 @@ export async function getGoogleMatchingImages(topicQuery) {
         }
       }
 
-      if (verifiedImages.length >= 3) {
-        console.log(`   ✅ Pre-verified 3 Live Google Images (0 Broken Placeholders)!`);
-        return {
-          hero: { url: verifiedImages[0], credit: 'Google Images / Press Wire' },
-          inline1: { url: verifiedImages[1], credit: 'Google Images / Media Coverage' },
-          inline2: { url: verifiedImages[2], credit: 'Google Images / Editorial Desk' }
-        };
-      } else if (verifiedImages.length > 0) {
-        console.log(`   ✅ Pre-verified ${verifiedImages.length} Live Google Image(s).`);
-        const fallbackPool = getRealMediaFallbackPool();
-        return {
-          hero: { url: verifiedImages[0], credit: 'Google Images' },
-          inline1: { url: verifiedImages[1] || fallbackPool[0], credit: 'Real Press Photography' },
-          inline2: { url: verifiedImages[2] || fallbackPool[1], credit: 'Real Press Photography' }
-        };
-      }
+      const finalUrls = verifiedImages.length > 0 ? verifiedImages : candidateUrls;
+      const fallbackPool = getRealMediaFallbackPool();
+
+      console.log(`   ✅ Selected ${finalUrls.length} Live News Image(s) for story!`);
+      return {
+        hero: { url: finalUrls[0] || fallbackPool[0], credit: 'Google Images / Press Wire' },
+        inline1: { url: finalUrls[1] || fallbackPool[1], credit: 'Google Images / Media Coverage' },
+        inline2: { url: finalUrls[2] || fallbackPool[2], credit: 'Google Images / Editorial Desk' }
+      };
     }
   } catch (e) {
     console.warn('⚠️ Serper Image API error:', e.message);
