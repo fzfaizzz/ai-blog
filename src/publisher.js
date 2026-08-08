@@ -37,7 +37,7 @@ const INITIAL_POSTS = [
     imageCredit: 'Unsplash / Tech Visuals',
     category: 'Technology',
     readTimeMinutes: 4,
-    views: 4599,
+    views: 0,
     publishedAt: new Date(Date.now() - 86400000).toISOString()
   }
 ];
