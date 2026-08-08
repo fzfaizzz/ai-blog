@@ -1311,10 +1311,8 @@ function initAdminPanel() {
       const data = await res.json();
 
       if (data.success) {
-        const statTotalViews = document.getElementById('statTotalViews');
-        const statTotalArticles = document.getElementById('statTotalArticles');
-        if (statTotalViews && data.totalMonthlyViews) statTotalViews.innerText = data.totalMonthlyViews;
-        if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length || '37';
+        if (statTotalViews && typeof data.totalMonthlyViews !== 'undefined') statTotalViews.innerText = data.totalMonthlyViews;
+        if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length;
 
         topTopicsList.innerHTML = '';
         if (data.topTopics && data.topTopics.length > 0) {

@@ -161,9 +161,12 @@ export function recordRealView(slug, countryName = '🇺🇸 United States') {
 export function getRealAnalyticsData() {
   const posts = getAllPosts();
   
+  // Calculate total real combined views from database
+  const totalPostViews = posts.reduce((sum, p) => sum + (p.views || 0), 0);
+
   // Sort posts by actual real views
   const sortedPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0));
-  const topTopics = sortedPosts.slice(0, 5).map(p => ({
+  const topTopics = sortedPosts.filter(p => (p.views || 0) > 0).slice(0, 5).map(p => ({
     title: p.title,
     category: p.category || 'World News',
     views: p.views || 0
@@ -177,18 +180,20 @@ export function getRealAnalyticsData() {
   } catch (e) {}
 
   const cMap = analytics.countryViews || {};
-  let totalViews = Object.values(cMap).reduce((a, b) => a + b, 0);
+  let totalCountryViews = Object.values(cMap).reduce((a, b) => a + b, 0);
+
+  const realTotal = Math.max(totalPostViews, totalCountryViews);
 
   const countryTraffic = Object.entries(cMap)
     .sort((a, b) => b[1] - a[1])
     .map(([country, count]) => ({
       country,
       pageViews: count.toLocaleString(),
-      percent: `${totalViews > 0 ? Math.round((count / totalViews) * 100) : 0}%`
+      percent: `${realTotal > 0 ? Math.round((count / realTotal) * 100) : 0}%`
     }));
 
   return {
-    totalMonthlyViews: totalViews.toLocaleString(),
+    totalMonthlyViews: realTotal.toLocaleString(),
     topTopics,
     countryTraffic
   };
