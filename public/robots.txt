@@ -12,4 +12,5 @@ Disallow: /api/
 User-agent: Googlebot-News
 Allow: /
 
-Sitemap: https://thedailychronicle.up.railway.app/sitemap.xml
+Sitemap: https://nextgentimes.up.railway.app/sitemap.xml
+Sitemap: https://nextgentimes.up.railway.app/news-sitemap.xml

@@ -108,6 +108,32 @@ app.get('/ads.txt', (req, res) => {
   res.send('google.com, pub-9492642167600744, DIRECT, f08c47fec0942fa0\n');
 });
 
+// Dynamic robots.txt for Googlebot & Googlebot-News
+app.get('/robots.txt', (req, res) => {
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+
+  res.header('Content-Type', 'text/plain');
+  res.send(`User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /data/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin.html
+Disallow: /api/
+
+User-agent: Googlebot-News
+Allow: /
+
+Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/news-sitemap.xml
+`);
+});
+
 app.use(express.static('public', {
   maxAge: '1h',
   setHeaders: (res, filePath) => {

@@ -245,10 +245,13 @@ export function publishPost(postData) {
 }
 
 async function pingSearchEngines() {
-  const sitemapUrl = encodeURIComponent('https://www.nextgentimes.jo3.org/news-sitemap.xml');
+  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const sitemapUrl = encodeURIComponent(`${domain}/news-sitemap.xml`);
+  const fullSitemapUrl = encodeURIComponent(`${domain}/sitemap.xml`);
   try {
     fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
+    fetch(`https://www.google.com/ping?sitemap=${fullSitemapUrl}`).catch(() => {});
     fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
-    console.log('⚡ Successfully Pinged Google Search & Bing Search with updated Sitemap!');
+    console.log(`⚡ Successfully Pinged Google Search & Bing Search with updated Sitemaps (${domain})!`);
   } catch (e) {}
 }
