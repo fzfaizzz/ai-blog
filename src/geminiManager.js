@@ -34,11 +34,25 @@ export function getGeminiKeys() {
 }
 
 export function saveGeminiKeys(keysList) {
+  const currentKeys = getGeminiKeys();
   const cleanKeys = keysList.map(k => k.trim()).filter(k => k.length > 10);
-  fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: cleanKeys, activeIndex: 0 }, null, 2));
+
+  const resolvedKeys = cleanKeys.map(key => {
+    if (key.includes('...')) {
+      const parts = key.split('...');
+      const prefix = parts[0];
+      const suffix = parts[1];
+      const found = currentKeys.find(r => r.startsWith(prefix) && r.endsWith(suffix));
+      if (found) return found;
+    }
+    return key;
+  });
+
+  const uniqueKeys = [...new Set(resolvedKeys)];
+  fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: uniqueKeys, activeIndex: 0 }, null, 2));
   activeKeyIndex = 0;
-  console.log(`✅ Saved ${cleanKeys.length} Gemini AI API Keys to pool.`);
-  return cleanKeys;
+  console.log(`✅ Saved ${uniqueKeys.length} Gemini AI API Keys to pool.`);
+  return uniqueKeys;
 }
 
 export function getActiveGeminiKey() {
