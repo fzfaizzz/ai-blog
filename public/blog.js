@@ -1300,6 +1300,108 @@ function initAdminPanel() {
 
   loadCustomTwitterConfig();
 
+  // Reddit Subreddit Auto-Poster Admin Handlers
+  const redditConfigForm = document.getElementById('redditConfigForm');
+  const redditClientIdInput = document.getElementById('redditClientIdInput');
+  const redditClientSecretInput = document.getElementById('redditClientSecretInput');
+  const redditUsernameInput = document.getElementById('redditUsernameInput');
+  const redditPasswordInput = document.getElementById('redditPasswordInput');
+  const redditSubredditInput = document.getElementById('redditSubredditInput');
+  const redditAutoPostToggle = document.getElementById('redditAutoPostToggle');
+  const saveRedditConfigBtn = document.getElementById('saveRedditConfigBtn');
+  const testRedditPostBtn = document.getElementById('testRedditPostBtn');
+  const redditStatus = document.getElementById('redditStatus');
+
+  async function loadRedditConfig() {
+    if (!redditClientIdInput) return;
+    try {
+      const res = await fetch('/api/reddit-config');
+      const data = await res.json();
+      if (data.success && data.config) {
+        redditClientIdInput.value = data.config.clientId || '';
+        redditClientSecretInput.value = data.config.clientSecret || '';
+        redditUsernameInput.value = data.config.username || '';
+        redditPasswordInput.value = data.config.password || '';
+        redditSubredditInput.value = data.config.subreddit || '';
+        redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
+      }
+    } catch (e) {
+      console.error('Error loading Reddit config:', e);
+    }
+  }
+
+  async function handleSaveRedditConfig(e) {
+    if (e) e.preventDefault();
+    if (redditStatus) redditStatus.innerText = '⌛ Saving Reddit Settings...';
+    try {
+      const res = await fetch('/api/save-reddit-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: redditClientIdInput.value.trim(),
+          clientSecret: redditClientSecretInput.value.trim(),
+          username: redditUsernameInput.value.trim(),
+          password: redditPasswordInput.value.trim(),
+          subreddit: redditSubredditInput.value.trim(),
+          autoPostEnabled: redditAutoPostToggle.checked
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (redditStatus) {
+          redditStatus.style.color = '#059669';
+          redditStatus.innerText = '✓ Reddit Settings Saved!';
+        }
+        alert('✓ Reddit Auto-Poster Settings Saved Successfully!');
+        logMessage('✓ Reddit Auto-Poster settings saved!');
+      } else {
+        if (redditStatus) {
+          redditStatus.style.color = '#DC2626';
+          redditStatus.innerText = '❌ Failed to save Reddit settings.';
+        }
+      }
+    } catch (err) {
+      if (redditStatus) {
+        redditStatus.style.color = '#DC2626';
+        redditStatus.innerText = `❌ Error: ${err.message}`;
+      }
+    }
+  }
+
+  if (saveRedditConfigBtn) saveRedditConfigBtn.addEventListener('click', handleSaveRedditConfig);
+  if (redditConfigForm) redditConfigForm.addEventListener('submit', handleSaveRedditConfig);
+
+  if (testRedditPostBtn) {
+    testRedditPostBtn.addEventListener('click', async () => {
+      if (redditStatus) redditStatus.innerText = '⌛ Sending test post to Reddit...';
+      try {
+        const res = await fetch('/api/test-reddit-post', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (redditStatus) {
+            redditStatus.style.color = '#059669';
+            redditStatus.innerText = '✓ Test Post Sent to Reddit!';
+          }
+          alert(`✓ Test Post successfully posted to Reddit!\n${data.message}`);
+          logMessage('✓ Test Post sent to Reddit!');
+        } else {
+          if (redditStatus) {
+            redditStatus.style.color = '#DC2626';
+            redditStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Reddit Bot Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (redditStatus) {
+          redditStatus.style.color = '#DC2626';
+          redditStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  loadRedditConfig();
+
   async function loadAnalytics() {
     if (!topTopicsList || !countryTrafficList) return;
 

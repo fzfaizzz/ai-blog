@@ -11,6 +11,7 @@ import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/s
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
 import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
 import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
+import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -424,6 +425,26 @@ app.post('/api/test-custom-twitter-post', async (req, res) => {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
   const result = await sendTweetViaCookieSession(posts[0]);
+  res.json(result);
+});
+
+// Reddit Auto-Poster API Endpoints
+app.get('/api/reddit-config', (req, res) => {
+  res.json({ success: true, config: getRedditConfig() });
+});
+
+app.post('/api/save-reddit-config', (req, res) => {
+  const { clientId, clientSecret, username, password, subreddit, autoPostEnabled } = req.body;
+  const saved = saveRedditConfig({ clientId, clientSecret, username, password, subreddit, autoPostEnabled });
+  res.json({ success: saved });
+});
+
+app.post('/api/test-reddit-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+  const result = await sendPostToReddit(posts[0]);
   res.json(result);
 });
 
