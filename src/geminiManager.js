@@ -40,9 +40,9 @@ export function saveGeminiKeys(keysList) {
   const resolvedKeys = cleanKeys.map(key => {
     if (key.includes('...')) {
       const parts = key.split('...');
-      const prefix = parts[0];
-      const suffix = parts[1];
-      const found = currentKeys.find(r => r.startsWith(prefix) && r.endsWith(suffix));
+      const prefix = parts[0] || '';
+      const suffix = parts[1] || '';
+      const found = currentKeys.find(r => (prefix ? r.startsWith(prefix) : true) && (suffix ? r.endsWith(suffix) : true));
       if (found) return found;
     }
     return key;

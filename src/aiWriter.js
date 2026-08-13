@@ -24,10 +24,9 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
 
   const models = [
-    { name: 'gemini-1.5-flash', apiVersion: 'v1beta' },
+    { name: 'gemini-2.5-flash', apiVersion: 'v1beta' },
     { name: 'gemini-2.0-flash', apiVersion: 'v1beta' },
-    { name: 'gemini-1.5-pro', apiVersion: 'v1beta' },
-    { name: 'gemini-1.5-flash-8b', apiVersion: 'v1beta' }
+    { name: 'gemini-1.5-flash', apiVersion: 'v1beta' }
   ];
 
   if (keys.length === 0) {

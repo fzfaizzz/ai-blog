@@ -552,19 +552,24 @@ const handleGetGeminiKey = (req, res) => {
 };
 
 const handlePostGeminiKey = (req, res) => {
-  const { apiKey, keys } = req.body;
-  
-  let keysList = [];
-  if (keys) {
-    keysList = Array.isArray(keys) ? keys : keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
-  } else if (apiKey) {
-    keysList = [apiKey.trim()];
+  try {
+    const { apiKey, keys } = req.body || {};
+    
+    let keysList = [];
+    if (keys) {
+      keysList = Array.isArray(keys) ? keys : keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
+    } else if (apiKey) {
+      keysList = [apiKey.trim()];
+    }
+
+    if (keysList.length === 0) return res.status(400).json({ success: false, error: 'No Gemini API Keys provided' });
+
+    const saved = saveGeminiKeys(keysList);
+    res.json({ success: true, count: saved.length, message: `${saved.length} Gemini AI API Key(s) saved to pool!` });
+  } catch (err) {
+    console.error('Error in handlePostGeminiKey:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to save Gemini key' });
   }
-
-  if (keysList.length === 0) return res.status(400).json({ success: false, error: 'No Gemini API Keys provided' });
-
-  const saved = saveGeminiKeys(keysList);
-  res.json({ success: true, count: saved.length, message: `${saved.length} Gemini AI API Key(s) saved to pool!` });
 };
 
 app.get('/api/gemini-key', handleGetGeminiKey);
