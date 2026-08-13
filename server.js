@@ -12,6 +12,7 @@ import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src
 import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
 import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
 import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
+import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
