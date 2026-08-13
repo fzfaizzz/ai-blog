@@ -58,7 +58,7 @@ async function getRedditAccessToken(config) {
     headers: {
       'Authorization': authHeader,
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'NextGenTimesBot/1.0.0 (by /u/' + (config.username || 'NextGenTimes') + ')'
+      'User-Agent': 'PrimeMediaBot/1.0.0 (by /u/' + (config.username || 'PrimeMediaNews') + ')'
     },
     body: params.toString()
   });
@@ -103,7 +103,7 @@ export async function sendPostToReddit(post) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'NextGenTimesBot/1.0.0 (by /u/' + config.username + ')'
+        'User-Agent': 'PrimeMediaBot/1.0.0 (by /u/' + config.username + ')'
       },
       body: submitParams.toString()
     });
