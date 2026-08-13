@@ -265,6 +265,46 @@ app.get('/news-sitemap.xml', (req, res) => {
   res.send(xml);
 });
 
+// Official RSS 2.0 Feed Endpoints for IFTTT, Zapier & RSS Auto-Posters
+const handleRssFeed = (req, res) => {
+  const posts = getAllPosts();
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+
+  let rss = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
+  rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n`;
+  rss += `  <channel>\n`;
+  rss += `    <title>Prime Media — High-Tech, Movies, Business &amp; Global News</title>\n`;
+  rss += `    <link>${baseUrl}</link>\n`;
+  rss += `    <description>Prime Media delivers breaking news, movies, AI breakthroughs, and world affairs.</description>\n`;
+  rss += `    <language>en-us</language>\n`;
+  rss += `    <atom:link href="${baseUrl}/feed" rel="self" type="application/rss+xml" />\n`;
+
+  posts.slice(0, 30).forEach(post => {
+    const postUrl = `${baseUrl}/post/${post.slug}`;
+    const pubDate = new Date(post.publishedAt || post.id).toUTCString();
+
+    rss += `    <item>\n`;
+    rss += `      <title>${escapeXml(post.title)}</title>\n`;
+    rss += `      <link>${postUrl}</link>\n`;
+    rss += `      <guid isPermaLink="true">${postUrl}</guid>\n`;
+    rss += `      <pubDate>${pubDate}</pubDate>\n`;
+    rss += `      <description>${escapeXml(post.metaDescription || post.title)}</description>\n`;
+    rss += `    </item>\n`;
+  });
+
+  rss += `  </channel>\n`;
+  rss += `</rss>`;
+
+  res.header('Content-Type', 'application/rss+xml; charset=utf-8');
+  res.send(rss);
+};
+
+app.get('/rss.xml', handleRssFeed);
+app.get('/feed', handleRssFeed);
+app.get('/rss', handleRssFeed);
+
 // 1. Get All Posts (For Homepage)
 app.get('/api/posts', (req, res) => {
   const posts = getAllPosts();
