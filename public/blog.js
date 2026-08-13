@@ -817,7 +817,7 @@ function initAdminPanel() {
 
       try {
         const token = sessionStorage.getItem('adminToken') || 'Faiz@1122';
-        const res = await fetch('/api/gemini-key', {
+        let res = await fetch('/api/save-gemini-key', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -825,7 +825,13 @@ function initAdminPanel() {
           },
           body: JSON.stringify({ apiKey })
         });
-        const data = await res.json();
+        
+        let rawText = await res.text();
+        let data = {};
+        try { data = JSON.parse(rawText); } catch(err) {
+          console.error('Non-JSON Response:', rawText);
+          throw new Error(rawText.substring(0, 100) || 'Server returned invalid response');
+        }
 
         if (data.success) {
           logMessage('✅ Gemini AI API Key saved & activated for 1,500-word deep story writing!');

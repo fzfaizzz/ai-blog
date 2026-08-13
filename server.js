@@ -571,6 +571,7 @@ app.get('/api/gemini-key', handleGetGeminiKey);
 app.get('/api/gemini-keys', handleGetGeminiKey);
 app.post('/api/gemini-key', handlePostGeminiKey);
 app.post('/api/gemini-keys', handlePostGeminiKey);
+app.post('/api/save-gemini-key', handlePostGeminiKey);
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
 app.get('/api/analytics', requireAdminAuth, (req, res) => {
