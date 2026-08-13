@@ -80,7 +80,7 @@ export async function sendPostToReddit(post) {
     return { success: false, message: 'Reddit Auto-Poster not configured or disabled.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   const targetSubreddit = (config.subreddit || `u_${config.username}`).replace(/^r\//, '').trim();
 

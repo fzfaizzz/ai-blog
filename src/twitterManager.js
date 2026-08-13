@@ -75,13 +75,16 @@ export async function sendPostToTwitter(post) {
     return { success: false, message: 'Twitter auto-posting not configured or disabled.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
 
   // Dynamic High-Traffic Viral Hashtags Selector
   const keywordTags = [];
   const lowerTitle = (post.title + ' ' + (post.metaDescription || '')).toLowerCase();
 
+  if (lowerTitle.includes('movie') || lowerTitle.includes('film') || lowerTitle.includes('cinema') || lowerTitle.includes('trailer') || lowerTitle.includes('box office') || lowerTitle.includes('netflix')) {
+    keywordTags.push('#Movies', '#Cinema', '#Hollywood', '#Bollywood', '#OTT');
+  }
   if (lowerTitle.includes('ai') || lowerTitle.includes('gpt') || lowerTitle.includes('claude') || lowerTitle.includes('deepseek') || lowerTitle.includes('openai')) {
     keywordTags.push('#AINews', '#ArtificialIntelligence', '#DeepSeek', '#OpenAI');
   }
@@ -103,10 +106,10 @@ export async function sendPostToTwitter(post) {
 
   // Fallback viral tags
   if (keywordTags.length === 0) {
-    keywordTags.push('#BreakingNews', '#Trending', '#WorldNews', '#TechNews');
+    keywordTags.push('#BreakingNews', '#Trending', '#Movies', '#TechNews');
   }
 
-  keywordTags.push('#NextGenTimes', '#Viral');
+  keywordTags.push('#PrimeMedia', '#Viral');
   const hashtags = [...new Set(keywordTags)].slice(0, 5).join(' ');
   const shortDesc = post.metaDescription ? post.metaDescription.substring(0, 95) + '...' : '';
 

@@ -39,7 +39,7 @@ app.get('/post/:slug', (req, res) => {
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
-    <title>${escapeHtml(post.title)} — Next Gen Times</title>
+    <title>${escapeHtml(post.title)} — Prime Media</title>
     <meta name="description" content="${escapeHtml(post.metaDescription)}">
     <link rel="canonical" href="${baseUrl}/post/${post.slug}">
     <meta property="og:type" content="article">
@@ -47,7 +47,7 @@ app.get('/post/:slug', (req, res) => {
     <meta property="og:description" content="${escapeHtml(post.metaDescription)}">
     <meta property="og:url" content="${baseUrl}/post/${post.slug}">
     <meta property="og:image" content="${post.imageUrl}">
-    <meta property="og:site_name" content="Next Gen Times">
+    <meta property="og:site_name" content="Prime Media">
     <meta property="og:locale" content="en_US">
     <meta property="article:published_time" content="${post.publishedAt}">
     <meta name="twitter:card" content="summary_large_image">
@@ -63,8 +63,8 @@ app.get('/post/:slug', (req, res) => {
         "image": ["${post.imageUrl}"],
         "datePublished": "${post.publishedAt}",
         "dateModified": "${post.publishedAt}",
-        "author": {"@type": "Organization", "name": "Next Gen Times"},
-        "publisher": {"@type": "Organization", "name": "Next Gen Times", "logo": {"@type": "ImageObject", "url": "${baseUrl}/og-cover.png"}},
+        "author": {"@type": "Organization", "name": "Prime Media"},
+        "publisher": {"@type": "Organization", "name": "Prime Media", "logo": {"@type": "ImageObject", "url": "${baseUrl}/og-cover.png"}},
         "description": "${escapeHtml(post.metaDescription)}",
         "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
       },
@@ -254,7 +254,7 @@ app.get('/news-sitemap.xml', (req, res) => {
 
     xml += `  <url>\n`;
     xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
-    xml += `    <news:news><news:publication><news:name>Next Gen Times</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
+    xml += `    <news:news><news:publication><news:name>Prime Media</news:name><news:language>en</news:language></news:publication><news:publication_date>${isoDate}</news:publication_date><news:title>${escapeXml(post.title)}</news:title></news:news>\n`;
     xml += `  </url>\n`;
   });
 

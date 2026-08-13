@@ -45,18 +45,21 @@ export async function sendTweetViaCookieSession(post) {
     return { success: false, message: 'Custom Twitter Bot not configured or disabled.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
 
-  // Dynamic Keyword Hashtags
+  // Dynamic High-Traffic Viral Hashtags Selector
   const keywordTags = [];
   const lowerTitle = (post.title + ' ' + (post.metaDescription || '')).toLowerCase();
 
-  if (lowerTitle.includes('ai') || lowerTitle.includes('gpt') || lowerTitle.includes('deepseek') || lowerTitle.includes('openai')) {
-    keywordTags.push('#AINews', '#DeepSeek', '#OpenAI');
+  if (lowerTitle.includes('movie') || lowerTitle.includes('film') || lowerTitle.includes('cinema') || lowerTitle.includes('trailer') || lowerTitle.includes('box office') || lowerTitle.includes('netflix')) {
+    keywordTags.push('#Movies', '#Cinema', '#Hollywood', '#Bollywood', '#OTT');
+  }
+  if (lowerTitle.includes('ai') || lowerTitle.includes('gpt') || lowerTitle.includes('claude') || lowerTitle.includes('deepseek') || lowerTitle.includes('openai')) {
+    keywordTags.push('#AINews', '#ArtificialIntelligence', '#DeepSeek', '#OpenAI');
   }
   if (lowerTitle.includes('spacex') || lowerTitle.includes('musk') || lowerTitle.includes('nasa') || lowerTitle.includes('space')) {
-    keywordTags.push('#SpaceX', '#ElonMusk', '#SpaceNews');
+    keywordTags.push('#SpaceX', '#ElonMusk', '#SpaceNews', '#NASA');
   }
   if (lowerTitle.includes('stock') || lowerTitle.includes('market') || lowerTitle.includes('economy')) {
     keywordTags.push('#StockMarket', '#Markets', '#Economy');
@@ -65,9 +68,9 @@ export async function sendTweetViaCookieSession(post) {
     keywordTags.push('#Crypto', '#Bitcoin');
   }
   if (keywordTags.length === 0) {
-    keywordTags.push('#BreakingNews', '#Trending', '#WorldNews');
+    keywordTags.push('#BreakingNews', '#Trending', '#Movies', '#PrimeMedia');
   }
-  keywordTags.push('#NextGenTimes', '#Viral');
+  keywordTags.push('#PrimeMedia', '#Viral');
   const hashtags = [...new Set(keywordTags)].slice(0, 5).join(' ');
 
   const shortDesc = post.metaDescription ? post.metaDescription.substring(0, 90) + '...' : '';

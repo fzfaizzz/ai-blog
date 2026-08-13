@@ -247,7 +247,7 @@ export function publishPost(postData) {
 }
 
 async function pingSearchEngines() {
-  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
   const sitemapUrl = encodeURIComponent(`${domain}/news-sitemap.xml`);
   const fullSitemapUrl = encodeURIComponent(`${domain}/sitemap.xml`);
   try {
