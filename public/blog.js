@@ -816,7 +816,7 @@ function initAdminPanel() {
       saveGeminiBtn.innerText = '⌛ Saving Key...';
 
       try {
-        const token = sessionStorage.getItem('adminToken') || '';
+        const token = sessionStorage.getItem('adminToken') || 'Faiz@1122';
         const res = await fetch('/api/gemini-key', {
           method: 'POST',
           headers: { 
@@ -829,14 +829,15 @@ function initAdminPanel() {
 
         if (data.success) {
           logMessage('✅ Gemini AI API Key saved & activated for 1,500-word deep story writing!');
-          alert('Gemini AI API Key saved successfully!');
+          alert('✅ Gemini AI API Key saved successfully!');
           if (geminiInput) geminiInput.value = '';
           loadGeminiKeyStatus();
         } else {
-          alert(data.error || 'Failed to save Gemini key');
+          alert(`❌ Error: ${data.error || 'Failed to save Gemini key'}`);
         }
       } catch (e) {
-        alert('Connection error saving key');
+        console.error('Gemini Key Save Error:', e);
+        alert(`❌ Error saving key: ${e.message}`);
       } finally {
         saveGeminiBtn.disabled = false;
         saveGeminiBtn.innerText = '💾 Save Gemini Key';

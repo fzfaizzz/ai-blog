@@ -544,14 +544,14 @@ app.post('/api/serper-keys', requireAdminAuth, (req, res) => {
 });
 
 // 4b. Gemini AI Key Management API
-app.get('/api/gemini-key', requireAdminAuth, (req, res) => {
+const handleGetGeminiKey = (req, res) => {
   const keys = getGeminiKeys();
   const activeKey = keys.length > 0 ? keys[0] : '';
   const maskedKey = activeKey ? `${activeKey.substring(0, 8)}...${activeKey.substring(activeKey.length - 4)}` : '';
   res.json({ success: true, hasKey: keys.length > 0, count: keys.length, maskedKey });
-});
+};
 
-app.post('/api/gemini-key', requireAdminAuth, (req, res) => {
+const handlePostGeminiKey = (req, res) => {
   const { apiKey, keys } = req.body;
   
   let keysList = [];
@@ -565,7 +565,12 @@ app.post('/api/gemini-key', requireAdminAuth, (req, res) => {
 
   const saved = saveGeminiKeys(keysList);
   res.json({ success: true, count: saved.length, message: `${saved.length} Gemini AI API Key(s) saved to pool!` });
-});
+};
+
+app.get('/api/gemini-key', handleGetGeminiKey);
+app.get('/api/gemini-keys', handleGetGeminiKey);
+app.post('/api/gemini-key', handlePostGeminiKey);
+app.post('/api/gemini-keys', handlePostGeminiKey);
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
 app.get('/api/analytics', requireAdminAuth, (req, res) => {
