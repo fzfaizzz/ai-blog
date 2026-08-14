@@ -1,4 +1,4 @@
-// Client JavaScript for The Daily Chronicle
+// Client JavaScript for Prime Media
 
 const HUMAN_AUTHORS = [
   { name: 'Sarah Jenkins', role: 'Senior Tech Correspondent', initials: 'SJ' },
@@ -314,20 +314,20 @@ async function loadSingleArticle() {
       const p = data.post;
       const author = HUMAN_AUTHORS[Math.abs(hashString(p.slug)) % HUMAN_AUTHORS.length];
 
-      if (document.getElementById('pageTitle')) document.getElementById('pageTitle').innerText = `${p.title} — NEXGEN TIMES`;
+      if (document.getElementById('pageTitle')) document.getElementById('pageTitle').innerText = `${p.title} — PRIME MEDIA`;
       if (document.getElementById('metaDesc')) document.getElementById('metaDesc').content = p.metaDescription;
 
       // Dynamic SEO Meta Tags for Social Sharing
       const postUrl = `${window.location.origin}/post/${p.slug}`;
       setMetaTag('og:type', 'article');
-      setMetaTag('og:title', p.title + ' — NEXGEN TIMES');
+      setMetaTag('og:title', p.title + ' — PRIME MEDIA');
       setMetaTag('og:description', p.metaDescription);
       setMetaTag('og:url', postUrl);
       setMetaTag('og:image', p.imageUrl);
-      setMetaTag('og:site_name', 'NEXGEN TIMES');
+      setMetaTag('og:site_name', 'PRIME MEDIA');
       setMetaTag('article:published_time', p.publishedAt);
       setMetaTag('twitter:card', 'summary_large_image');
-      setMetaTag('twitter:title', p.title + ' — NEXGEN TIMES');
+      setMetaTag('twitter:title', p.title + ' — PRIME MEDIA');
       setMetaTag('twitter:description', p.metaDescription);
       setMetaTag('twitter:image', p.imageUrl);
       setCanonicalTag(postUrl);

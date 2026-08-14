@@ -2,7 +2,7 @@ import https from 'https';
 import { getActiveGeminiKey, rotateGeminiKey, getGeminiKeys } from './geminiManager.js';
 
 /**
- * Real News AI Article Generator Engine for The Daily Chronicle.
+ * Real News AI Article Generator Engine for Prime Media.
  * Ultra-Professional Journalist Storytelling & E-E-A-T User Trust Seal.
  */
 
@@ -188,7 +188,7 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
     },
     "publisher": {
       "@type": "Organization",
-      "name": "NEXGEN TIMES"
+      "name": "PRIME MEDIA"
     },
     "description": metaDescription
   });
@@ -301,7 +301,7 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
         </div>
         <div class="faq-item">
           <strong>Q: How can readers follow ongoing updates?</strong>
-          <p>A: Follow real-time updates and expert analysis on NEXGEN TIMES digital edition.</p>
+          <p>A: Follow real-time updates and expert analysis on PRIME MEDIA digital edition.</p>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
         </div>
         <div>
           <div style="font-weight: 700; color: #0F172A; font-size: 1.05rem;">Written & Fact-Checked by Sarah Jenkins</div>
-          <div style="font-size: 0.825rem; color: #64748B; margin-top: 0.15rem;">Senior International Bureau Chief • NEXGEN TIMES</div>
+          <div style="font-size: 0.825rem; color: #64748B; margin-top: 0.15rem;">Senior International Bureau Chief • PRIME MEDIA</div>
           <div style="font-size: 0.775rem; color: #94A3B8; margin-top: 0.35rem;">Coverage verified against primary press releases and wire reports from ${source}.</div>
         </div>
       </div>
