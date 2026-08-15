@@ -33,8 +33,27 @@ export function saveTelegramConfig(config) {
   }
 }
 
+const HISTORY_FILE = path.join(__dirname, '../data/telegram_history.json');
+
+// Helper: Get Telegram History Tracker
+function getTelegramHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return { lastPostedPerTarget: {}, dailyCounts: {}, date: new Date().toDateString() };
+}
+
+// Helper: Save Telegram History Tracker
+function saveTelegramHistory(history) {
+  try {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+  } catch (e) {}
+}
+
 /**
- * Sends a published article automatically to Category-Smart Telegram Channels / Groups (100% Free Multi-Group Broadcast)
+ * Sends a published article automatically to Category-Smart Telegram Channels / Groups with 100% Anti-Spam Protection
  */
 export async function sendPostToTelegram(post) {
   const config = getTelegramConfig();
@@ -68,6 +87,18 @@ export async function sendPostToTelegram(post) {
     return { success: false, message: 'No target Telegram channels/groups configured for this category.' };
   }
 
+  // 🛡️ Anti-Spam & Rate-Limiter Engine
+  const history = getTelegramHistory();
+  const todayStr = new Date().toDateString();
+  if (history.date !== todayStr) {
+    history.dailyCounts = {};
+    history.date = todayStr;
+  }
+
+  const now = Date.now();
+  const MIN_COOLDOWN_MS = (config.cooldownMinutes || 60) * 60 * 1000; // Default: 60 minutes cooldown per group
+  const MAX_DAILY_POSTS_PER_GROUP = config.maxDailyPosts || 6; // Max 6 curated posts per group per day
+
   const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   
@@ -76,6 +107,25 @@ export async function sendPostToTelegram(post) {
   const results = [];
 
   for (const target of finalTargets) {
+    // 🛡️ Check Cooldown & Daily Limits for this target
+    const lastPosted = history.lastPostedPerTarget[target] || 0;
+    const dailyCount = history.dailyCounts[target] || 0;
+
+    // Skip if posted within cooldown window (prevents spamming groups!)
+    if (now - lastPosted < MIN_COOLDOWN_MS) {
+      const waitMin = Math.ceil((MIN_COOLDOWN_MS - (now - lastPosted)) / (60 * 1000));
+      console.log(`🛡️ [Anti-Spam Shield] Cooldown active for ${target}. Skipping (Next available in ${waitMin} mins).`);
+      results.push({ target, skipped: true, reason: `Cooldown active (${waitMin} mins remaining)` });
+      continue;
+    }
+
+    // Skip if daily group post limit reached
+    if (dailyCount >= MAX_DAILY_POSTS_PER_GROUP) {
+      console.log(`🛡️ [Anti-Spam Shield] Daily limit reached (${MAX_DAILY_POSTS_PER_GROUP} posts) for ${target}. Skipping.`);
+      results.push({ target, skipped: true, reason: 'Daily limit reached' });
+      continue;
+    }
+
     try {
       let apiUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
       let payload = {
@@ -106,10 +156,18 @@ export async function sendPostToTelegram(post) {
       if (resData.ok) {
         console.log(`✈️ [Telegram Bot] Successfully posted to ${target} (${post.category || 'General'}): "${post.title}"`);
         results.push({ target, success: true });
+        
+        // Update Anti-Spam History Ledger
+        history.lastPostedPerTarget[target] = now;
+        history.dailyCounts[target] = dailyCount + 1;
+        saveTelegramHistory(history);
       } else {
         console.warn(`⚠️ [Telegram Bot] Warning for ${target}:`, resData.description);
         results.push({ target, success: false, error: resData.description });
       }
+
+      // Stagger delay between groups (3 seconds) to prevent simultaneous blast flags
+      await new Promise(r => setTimeout(r, 3000));
     } catch (err) {
       console.error(`❌ [Telegram Bot] Error for ${target}:`, err.message);
       results.push({ target, success: false, error: err.message });
@@ -119,7 +177,7 @@ export async function sendPostToTelegram(post) {
   const successCount = results.filter(r => r.success).length;
   return {
     success: successCount > 0,
-    message: `Category-Smart Broadcast sent to ${successCount}/${finalTargets.length} Telegram group(s)!`,
+    message: `Anti-Spam Protected Broadcast sent to ${successCount} group(s)!`,
     results
   };
 }
