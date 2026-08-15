@@ -270,14 +270,15 @@
         </div>
         
         <div style="margin-bottom: 1rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TELEGRAM CHANNEL USERNAME OR CHAT ID</label>
-          <input type="text" id="telegramChannelIdInput" placeholder="e.g. @NextGenTimesNews or -100123456789" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET TELEGRAM GROUPS / CHANNELS (SEPARATE BY COMMAS FOR MULTI-GROUP BROADCAST)</label>
+          <input type="text" id="telegramChannelIdInput" placeholder="e.g. -1004393806831, @MovieGroup1, @TechDiscussion, @ViralNews" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
+          <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem;">💡 <strong>100% Free Multi-Broadcast:</strong> Enter multiple group chat IDs or usernames separated by commas. Bot will auto-post to ALL of them simultaneously!</div>
         </div>
 
         <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
           <input type="checkbox" id="telegramAutoPostToggle" style="width: 18px; height: 18px; cursor: pointer;" />
           <label for="telegramAutoPostToggle" style="font-size: 0.9rem; font-weight: 700; color: #0F172A; cursor: pointer;">
-            Enable Automatic Auto-Posting to Telegram Channel
+            Enable Automatic Auto-Broadcasting to All Telegram Groups / Channels
           </label>
         </div>
 

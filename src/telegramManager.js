@@ -34,7 +34,7 @@ export function saveTelegramConfig(config) {
 }
 
 /**
- * Sends a published article automatically to Telegram Channel
+ * Sends a published article automatically to ALL configured Telegram Channels / Groups (100% Free Multi-Group Broadcast)
  */
 export async function sendPostToTelegram(post) {
   const config = getTelegramConfig();
@@ -42,47 +42,64 @@ export async function sendPostToTelegram(post) {
     return { success: false, message: 'Telegram auto-posting not configured or disabled.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://nextgentimes.up.railway.app';
+  // Support multiple target channels/groups separated by comma or newlines
+  const rawTargets = String(config.channelId).split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+  if (rawTargets.length === 0) {
+    return { success: false, message: 'No target Telegram channels/groups specified.' };
+  }
+
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   
-  const caption = `🚨 <b>BREAKING NEWS</b> 🚨\n\n<b>${post.title}</b>\n\n${post.metaDescription || ''}\n\n📖 <i>Read Full Investigative Story:</i>\n👉 <a href="${postUrl}">${postUrl}</a>\n\n#NextGenTimes #BreakingNews #TechTrends`;
+  const caption = `🔥 <b>${post.title}</b>\n\n${post.metaDescription || ''}\n\n📖 <i>Read Full Story & Updates:</i>\n👉 <a href="${postUrl}">${postUrl}</a>\n\n#PrimeMedia #News #Breaking #Movies`;
 
-  try {
-    let apiUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    let payload = {
-      chat_id: config.channelId,
-      text: caption,
-      parse_mode: 'HTML',
-      disable_web_page_preview: false
-    };
+  const results = [];
 
-    // If image URL is valid, use sendPhoto
-    if (post.imageUrl && post.imageUrl.startsWith('http')) {
-      apiUrl = `https://api.telegram.org/bot${config.botToken}/sendPhoto`;
-      payload = {
-        chat_id: config.channelId,
-        photo: post.imageUrl,
-        caption: caption,
-        parse_mode: 'HTML'
+  for (const target of rawTargets) {
+    try {
+      let apiUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+      let payload = {
+        chat_id: target,
+        text: caption,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false
       };
-    }
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+      // If image URL is valid, use sendPhoto
+      if (post.imageUrl && post.imageUrl.startsWith('http')) {
+        apiUrl = `https://api.telegram.org/bot${config.botToken}/sendPhoto`;
+        payload = {
+          chat_id: target,
+          photo: post.imageUrl,
+          caption: caption,
+          parse_mode: 'HTML'
+        };
+      }
 
-    const resData = await response.json();
-    if (resData.ok) {
-      console.log(`✈️ Successfully posted to Telegram Channel: ${post.title}`);
-      return { success: true, message: 'Post sent to Telegram channel!' };
-    } else {
-      console.error('Telegram API error:', resData);
-      return { success: false, message: resData.description || 'Failed to post to Telegram' };
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const resData = await response.json();
+      if (resData.ok) {
+        console.log(`✈️ [Telegram Bot] Successfully posted to ${target}: "${post.title}"`);
+        results.push({ target, success: true });
+      } else {
+        console.warn(`⚠️ [Telegram Bot] Failed for ${target}:`, resData.description);
+        results.push({ target, success: false, error: resData.description });
+      }
+    } catch (err) {
+      console.error(`❌ [Telegram Bot] Error for ${target}:`, err.message);
+      results.push({ target, success: false, error: err.message });
     }
-  } catch (e) {
-    console.error('Error sending post to Telegram:', e);
-    return { success: false, message: e.message };
   }
+
+  const successCount = results.filter(r => r.success).length;
+  return {
+    success: successCount > 0,
+    message: `Broadcasted to ${successCount}/${rawTargets.length} Telegram group(s)/channel(s)!`,
+    results
+  };
 }
