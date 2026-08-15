@@ -7,19 +7,19 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, '../data/telegram_config.json');
 
 /**
- * Gets Telegram Configuration with rock-solid fallbacks
+ * Gets Telegram Configuration with safe local persistence
  */
 export function getTelegramConfig() {
   let config = {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '8876747140:AAHJnhAgVP_7In0_291_KeD9yzy6Yj2efRQ',
-    channelId: '-1004393806831',
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    channelId: process.env.TELEGRAM_CHANNEL_ID || '',
     categoryRouting: {
       movies: '',
       tech: '',
       business: '',
       world: ''
     },
-    autoPostEnabled: true
+    autoPostEnabled: false
   };
 
   try {
@@ -28,13 +28,6 @@ export function getTelegramConfig() {
       config = { ...config, ...saved };
     }
   } catch (e) {}
-
-  if (!config.botToken || config.botToken.trim() === '') {
-    config.botToken = '8876747140:AAHJnhAgVP_7In0_291_KeD9yzy6Yj2efRQ';
-  }
-  if (!config.channelId || config.channelId.trim() === '') {
-    config.channelId = '-1004393806831';
-  }
 
   return config;
 }
