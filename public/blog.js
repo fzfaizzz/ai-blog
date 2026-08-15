@@ -1026,6 +1026,10 @@ function initAdminPanel() {
   const telegramConfigForm = document.getElementById('telegramConfigForm');
   const telegramBotTokenInput = document.getElementById('telegramBotTokenInput');
   const telegramChannelIdInput = document.getElementById('telegramChannelIdInput');
+  const telegramMoviesRouteInput = document.getElementById('telegramMoviesRouteInput');
+  const telegramTechRouteInput = document.getElementById('telegramTechRouteInput');
+  const telegramBusinessRouteInput = document.getElementById('telegramBusinessRouteInput');
+  const telegramWorldRouteInput = document.getElementById('telegramWorldRouteInput');
   const telegramAutoPostToggle = document.getElementById('telegramAutoPostToggle');
   const testTelegramPostBtn = document.getElementById('testTelegramPostBtn');
   const telegramStatus = document.getElementById('telegramStatus');
@@ -1038,6 +1042,10 @@ function initAdminPanel() {
       if (data.success && data.config) {
         telegramBotTokenInput.value = data.config.botToken || '';
         telegramChannelIdInput.value = data.config.channelId || '';
+        if (telegramMoviesRouteInput) telegramMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
+        if (telegramTechRouteInput) telegramTechRouteInput.value = data.config.categoryRouting?.tech || '';
+        if (telegramBusinessRouteInput) telegramBusinessRouteInput.value = data.config.categoryRouting?.business || '';
+        if (telegramWorldRouteInput) telegramWorldRouteInput.value = data.config.categoryRouting?.world || '';
         telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
       }
     } catch (e) {
@@ -1056,6 +1064,12 @@ function initAdminPanel() {
           body: JSON.stringify({
             botToken: telegramBotTokenInput.value.trim(),
             channelId: telegramChannelIdInput.value.trim(),
+            categoryRouting: {
+              movies: telegramMoviesRouteInput ? telegramMoviesRouteInput.value.trim() : '',
+              tech: telegramTechRouteInput ? telegramTechRouteInput.value.trim() : '',
+              business: telegramBusinessRouteInput ? telegramBusinessRouteInput.value.trim() : '',
+              world: telegramWorldRouteInput ? telegramWorldRouteInput.value.trim() : ''
+            },
             autoPostEnabled: telegramAutoPostToggle.checked
           })
         });
@@ -1063,9 +1077,9 @@ function initAdminPanel() {
         if (data.success) {
           if (telegramStatus) {
             telegramStatus.style.color = '#059669';
-            telegramStatus.innerText = '✓ Telegram Settings Saved!';
+            telegramStatus.innerText = '✓ Category-Smart Telegram Settings Saved!';
           }
-          logMessage('✓ Telegram Auto-Poster settings saved!');
+          logMessage('✓ Category-Smart Telegram Auto-Poster settings saved!');
         } else {
           if (telegramStatus) {
             telegramStatus.style.color = '#DC2626';

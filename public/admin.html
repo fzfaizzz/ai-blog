@@ -270,15 +270,41 @@
         </div>
         
         <div style="margin-bottom: 1rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET TELEGRAM GROUPS / CHANNELS (SEPARATE BY COMMAS FOR MULTI-GROUP BROADCAST)</label>
-          <input type="text" id="telegramChannelIdInput" placeholder="e.g. -1004393806831, @MovieGroup1, @TechDiscussion, @ViralNews" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
-          <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem;">💡 <strong>100% Free Multi-Broadcast:</strong> Enter multiple group chat IDs or usernames separated by commas. Bot will auto-post to ALL of them simultaneously!</div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">MAIN DEFAULT BROADCAST CHANNELS / GROUPS (RECEIVES ALL BREAKING NEWS)</label>
+          <input type="text" id="telegramChannelIdInput" placeholder="e.g. -1004393806831, @PrimeMediaOfficial" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.9rem;" />
+        </div>
+
+        <!-- 🎯 Category-Smart Routing Section -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 800; color: #1E293B; margin-top: 0; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            🎯 Category-Smart Auto-Routing (Zero Cross-Pollution)
+          </h4>
+          
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">🎬 MOVIES & ENTERTAINMENT GROUPS (Only receives Movie Trailers & Hollywood/Bollywood Stories)</label>
+            <input type="text" id="telegramMoviesRouteInput" placeholder="e.g. @CinemaDiscussions, @HollywoodBuzz, @MovieLoversHub" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">💻 AI, HIGH-TECH & GADGET GROUPS (Only receives AI Breakthroughs & Tech Updates)</label>
+            <input type="text" id="telegramTechRouteInput" placeholder="e.g. @TechDiscussions, @OpenAINews, @GadgetReviewsTalk" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">📈 BUSINESS & FINANCIAL GROUPS (Only receives Stock Markets, Crypto & Business Updates)</label>
+            <input type="text" id="telegramBusinessRouteInput" placeholder="e.g. @GlobalMarketsTalk, @CryptoTechTrends, @FinanceHub" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">🌍 WORLD NEWS & GLOBAL AFFAIRS GROUPS</label>
+            <input type="text" id="telegramWorldRouteInput" placeholder="e.g. @WorldNewsDiscussion, @USNewsHub" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
         </div>
 
         <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
           <input type="checkbox" id="telegramAutoPostToggle" style="width: 18px; height: 18px; cursor: pointer;" />
           <label for="telegramAutoPostToggle" style="font-size: 0.9rem; font-weight: 700; color: #0F172A; cursor: pointer;">
-            Enable Automatic Auto-Broadcasting to All Telegram Groups / Channels
+            Enable Automatic Category-Smart Auto-Broadcasting
           </label>
         </div>
 

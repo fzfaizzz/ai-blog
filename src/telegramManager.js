@@ -34,28 +34,48 @@ export function saveTelegramConfig(config) {
 }
 
 /**
- * Sends a published article automatically to ALL configured Telegram Channels / Groups (100% Free Multi-Group Broadcast)
+ * Sends a published article automatically to Category-Smart Telegram Channels / Groups (100% Free Multi-Group Broadcast)
  */
 export async function sendPostToTelegram(post) {
   const config = getTelegramConfig();
-  if (!config.botToken || !config.channelId || !config.autoPostEnabled) {
+  if (!config.botToken || !config.autoPostEnabled) {
     return { success: false, message: 'Telegram auto-posting not configured or disabled.' };
   }
 
-  // Support multiple target channels/groups separated by comma or newlines
-  const rawTargets = String(config.channelId).split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
-  if (rawTargets.length === 0) {
-    return { success: false, message: 'No target Telegram channels/groups specified.' };
+  // 1. Gather all default / global channels
+  let targetList = String(config.channelId || '').split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+
+  // 2. Category-Smart Routing Engine
+  const categoryRouting = config.categoryRouting || {};
+  const postCat = (post.category || '').toLowerCase();
+
+  let categorySpecificTargets = [];
+
+  if (postCat.includes('movie') || postCat.includes('entertainment') || postCat.includes('cinema') || postCat.includes('hollywood') || postCat.includes('bollywood') || postCat.includes('ott')) {
+    categorySpecificTargets = String(categoryRouting.movies || '').split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+  } else if (postCat.includes('ai') || postCat.includes('tech') || postCat.includes('cyber') || postCat.includes('gadget') || postCat.includes('software')) {
+    categorySpecificTargets = String(categoryRouting.tech || '').split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+  } else if (postCat.includes('business') || postCat.includes('market') || postCat.includes('crypto') || postCat.includes('stock') || postCat.includes('finance') || postCat.includes('economy')) {
+    categorySpecificTargets = String(categoryRouting.business || '').split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+  } else if (postCat.includes('world') || postCat.includes('politics') || postCat.includes('global') || postCat.includes('breaking')) {
+    categorySpecificTargets = String(categoryRouting.world || '').split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+  }
+
+  // Combine targets while avoiding duplicates
+  const finalTargets = [...new Set([...targetList, ...categorySpecificTargets])];
+
+  if (finalTargets.length === 0) {
+    return { success: false, message: 'No target Telegram channels/groups configured for this category.' };
   }
 
   const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   
-  const caption = `🔥 <b>${post.title}</b>\n\n${post.metaDescription || ''}\n\n📖 <i>Read Full Story & Updates:</i>\n👉 <a href="${postUrl}">${postUrl}</a>\n\n#PrimeMedia #News #Breaking #Movies`;
+  const caption = `🔥 <b>${post.title}</b>\n\n${post.metaDescription || ''}\n\n📖 <i>Read Full Story & Updates:</i>\n👉 <a href="${postUrl}">${postUrl}</a>\n\n#PrimeMedia #News #Breaking`;
 
   const results = [];
 
-  for (const target of rawTargets) {
+  for (const target of finalTargets) {
     try {
       let apiUrl = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
       let payload = {
@@ -84,10 +104,10 @@ export async function sendPostToTelegram(post) {
 
       const resData = await response.json();
       if (resData.ok) {
-        console.log(`✈️ [Telegram Bot] Successfully posted to ${target}: "${post.title}"`);
+        console.log(`✈️ [Telegram Bot] Successfully posted to ${target} (${post.category || 'General'}): "${post.title}"`);
         results.push({ target, success: true });
       } else {
-        console.warn(`⚠️ [Telegram Bot] Failed for ${target}:`, resData.description);
+        console.warn(`⚠️ [Telegram Bot] Warning for ${target}:`, resData.description);
         results.push({ target, success: false, error: resData.description });
       }
     } catch (err) {
@@ -99,7 +119,7 @@ export async function sendPostToTelegram(post) {
   const successCount = results.filter(r => r.success).length;
   return {
     success: successCount > 0,
-    message: `Broadcasted to ${successCount}/${rawTargets.length} Telegram group(s)/channel(s)!`,
+    message: `Category-Smart Broadcast sent to ${successCount}/${finalTargets.length} Telegram group(s)!`,
     results
   };
 }
