@@ -200,6 +200,7 @@ export function getRealAnalyticsData() {
 }
 
 import { sendPostToTelegram } from './telegramManager.js';
+import { sendPostViaUserbot } from './userbotManager.js';
 import { sendPostToTwitter } from './twitterManager.js';
 import { sendTweetViaCookieSession } from './customTwitterBot.js';
 import { sendPostToReddit } from './redditManager.js';
@@ -234,8 +235,9 @@ export function publishPost(postData) {
 
   console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
-  // Asynchronously broadcast to Telegram, Twitter API, Custom Cookie Twitter Bot & Reddit Bot if enabled
+  // Asynchronously broadcast to Telegram Bot, Telegram Userbot, Twitter API, Custom Twitter & Reddit
   sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));
+  sendPostViaUserbot(newPost).catch(e => console.error('Telegram Userbot background error:', e));
   sendPostToTwitter(newPost).catch(e => console.error('Twitter API broadcast background error:', e));
   sendTweetViaCookieSession(newPost).catch(e => console.error('Custom Twitter Cookie Bot error:', e));
   sendPostToReddit(newPost).catch(e => console.error('Reddit Auto-Poster error:', e));

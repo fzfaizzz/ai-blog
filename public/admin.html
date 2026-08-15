@@ -320,6 +320,86 @@
       </form>
     </div>
 
+    <!-- 🚀 Telegram Userbot (MTProto Account Auto-Poster - Posts to ANY Joined Public Group) -->
+    <div class="admin-card" style="border: 2px solid #0EA5E9; background: #F0F9FF;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 style="font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #0369A1;">
+          🚀 Telegram Userbot (MTProto User Account Auto-Poster)
+        </h3>
+        <span id="userbotAuthBadge" style="background: #E2E8F0; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px;">
+          ⚪ NOT CONNECTED
+        </span>
+      </div>
+      <p style="color: #475569; font-size: 0.875rem; margin-bottom: 1.25rem;">
+        <strong>Zero Bot Restrictions!</strong> Automatically posts directly from your personal Telegram Account into <strong>ALL joined public groups (like @cinema_kotaka)</strong> with zero manual forwarding!
+      </p>
+
+      <!-- Step 1: Authentication Form -->
+      <div id="userbotAuthSection" style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.85rem; font-weight: 800; color: #0369A1; margin-top: 0; margin-bottom: 0.75rem;">
+          🔐 Step 1: Connect Your Telegram Account (One-Time Setup via my.telegram.org)
+        </h4>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">TELEGRAM API ID</label>
+            <input type="text" id="userbotApiIdInput" placeholder="e.g. 29381029" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">TELEGRAM API HASH</label>
+            <input type="password" id="userbotApiHashInput" placeholder="e.g. 9df83b281f09c8d7..." style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.75rem;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">PHONE NUMBER (WITH COUNTRY CODE)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="userbotPhoneInput" placeholder="e.g. +919876543210" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+            <button type="button" id="sendUserbotCodeBtn" class="btn" style="background: #0284C7; color: #FFF; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 1rem;">
+              📲 Send Login Code
+            </button>
+          </div>
+        </div>
+
+        <!-- OTP Verification Row (Hidden until code is sent) -->
+        <div id="userbotOtpRow" style="display: none; background: #F8FAFC; border: 1px dashed #38BDF8; border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #0369A1; margin-bottom: 0.2rem;">ENTER TELEGRAM LOGIN CODE (RECEIVED IN TELEGRAM APP)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="userbotOtpInput" placeholder="Enter 5-digit code" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+            <button type="button" id="verifyUserbotCodeBtn" class="btn" style="background: #059669; color: #FFF; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 1rem;">
+              ✓ Verify & Connect
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Target Groups & Category Routing -->
+      <form id="userbotConfigForm" style="max-width: 620px;">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET JOINED PUBLIC GROUPS (SEPARATE BY COMMAS)</label>
+          <input type="text" id="userbotTargetGroupsInput" placeholder="e.g. @cinema_kotaka, @MovieDiscussions, @TechNewsTalk" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem;" />
+          <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem;">💡 Userbot will automatically post as yourself into all joined public groups!</div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="userbotAutoPostToggle" style="width: 18px; height: 18px; cursor: pointer;" />
+          <label for="userbotAutoPostToggle" style="font-size: 0.9rem; font-weight: 700; color: #0F172A; cursor: pointer;">
+            Enable Automatic Userbot Auto-Posting to Joined Groups
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+          <button type="submit" id="saveUserbotConfigBtn" class="btn btn-primary" style="background: #0284C7;">
+            💾 Save Userbot Settings
+          </button>
+          <button type="button" id="testUserbotPostBtn" class="btn" style="background: #059669; color: #FFF; font-weight: 600;">
+            🧪 Test Userbot Post to Groups
+          </button>
+          <span id="userbotStatus" style="font-size: 0.85rem; font-weight: 700;"></span>
+        </div>
+      </form>
+    </div>
+
     <!-- 🤖 Custom Direct Cookie Twitter Bot (0 API Fees & Unlimited) -->
     <div class="admin-card" style="border: 2px solid #3B82F6;">
       <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #1D4ED8;">

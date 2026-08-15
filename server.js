@@ -9,6 +9,7 @@ import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyti
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
+import { getUserbotConfig, saveUserbotConfig, sendUserbotAuthCode, verifyUserbotAuthCode, sendPostViaUserbot } from './src/userbotManager.js';
 import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
 import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
 import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
@@ -426,6 +427,38 @@ app.post('/api/test-telegram-post', async (req, res) => {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
   const result = await sendPostToTelegram(posts[0], true);
+  res.json(result);
+});
+
+// 🚀 Telegram Userbot (MTProto Account Auto-Poster) Endpoints
+app.get('/api/userbot-config', (req, res) => {
+  res.json({ success: true, config: getUserbotConfig() });
+});
+
+app.post('/api/save-userbot-config', (req, res) => {
+  const { targetGroups, categoryRouting, autoPostEnabled } = req.body;
+  const saved = saveUserbotConfig({ targetGroups, categoryRouting, autoPostEnabled });
+  res.json({ success: saved });
+});
+
+app.post('/api/userbot/send-code', async (req, res) => {
+  const { apiId, apiHash, phoneNumber } = req.body;
+  const result = await sendUserbotAuthCode(apiId, apiHash, phoneNumber);
+  res.json(result);
+});
+
+app.post('/api/userbot/verify-code', async (req, res) => {
+  const { phoneCode, password } = req.body;
+  const result = await verifyUserbotAuthCode(phoneCode, password);
+  res.json(result);
+});
+
+app.post('/api/test-userbot-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+  const result = await sendPostViaUserbot(posts[0], true);
   res.json(result);
 });
 

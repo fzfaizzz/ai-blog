@@ -1126,6 +1126,185 @@ function initAdminPanel() {
 
   loadTelegramConfig();
 
+  // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Handlers
+  const userbotAuthBadge = document.getElementById('userbotAuthBadge');
+  const userbotApiIdInput = document.getElementById('userbotApiIdInput');
+  const userbotApiHashInput = document.getElementById('userbotApiHashInput');
+  const userbotPhoneInput = document.getElementById('userbotPhoneInput');
+  const sendUserbotCodeBtn = document.getElementById('sendUserbotCodeBtn');
+  const userbotOtpRow = document.getElementById('userbotOtpRow');
+  const userbotOtpInput = document.getElementById('userbotOtpInput');
+  const verifyUserbotCodeBtn = document.getElementById('verifyUserbotCodeBtn');
+  const userbotConfigForm = document.getElementById('userbotConfigForm');
+  const userbotTargetGroupsInput = document.getElementById('userbotTargetGroupsInput');
+  const userbotAutoPostToggle = document.getElementById('userbotAutoPostToggle');
+  const testUserbotPostBtn = document.getElementById('testUserbotPostBtn');
+  const userbotStatus = document.getElementById('userbotStatus');
+
+  async function loadUserbotConfig() {
+    if (!userbotTargetGroupsInput) return;
+    try {
+      const res = await fetch('/api/userbot-config');
+      const data = await res.json();
+      if (data.success && data.config) {
+        if (userbotApiIdInput) userbotApiIdInput.value = data.config.apiId || '';
+        if (userbotApiHashInput) userbotApiHashInput.value = data.config.apiHash || '';
+        if (userbotPhoneInput) userbotPhoneInput.value = data.config.phoneNumber || '';
+        userbotTargetGroupsInput.value = data.config.targetGroups || '';
+        userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        if (data.config.sessionString && data.config.sessionString.length > 10) {
+          if (userbotAuthBadge) {
+            userbotAuthBadge.style.background = '#DCFCE7';
+            userbotAuthBadge.style.color = '#15803D';
+            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading Userbot config:', e);
+    }
+  }
+
+  if (sendUserbotCodeBtn) {
+    sendUserbotCodeBtn.addEventListener('click', async () => {
+      const apiId = userbotApiIdInput.value.trim();
+      const apiHash = userbotApiHashInput.value.trim();
+      const phoneNumber = userbotPhoneInput.value.trim();
+
+      if (!apiId || !apiHash || !phoneNumber) {
+        alert('Please enter Telegram API ID, API Hash, and Phone Number.');
+        return;
+      }
+
+      sendUserbotCodeBtn.disabled = true;
+      sendUserbotCodeBtn.innerText = '⌛ Sending Code...';
+
+      try {
+        const res = await fetch('/api/userbot/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiId, apiHash, phoneNumber })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✓ Login code sent to your Telegram app! Check your Telegram messages.');
+          if (userbotOtpRow) userbotOtpRow.style.display = 'block';
+        } else {
+          alert(`❌ Failed to send code: ${data.message}`);
+        }
+      } catch (err) {
+        alert(`❌ Network Error: ${err.message}`);
+      } finally {
+        sendUserbotCodeBtn.disabled = false;
+        sendUserbotCodeBtn.innerText = '📲 Send Login Code';
+      }
+    });
+  }
+
+  if (verifyUserbotCodeBtn) {
+    verifyUserbotCodeBtn.addEventListener('click', async () => {
+      const phoneCode = userbotOtpInput.value.trim();
+      if (!phoneCode) {
+        alert('Please enter the 5-digit Telegram code.');
+        return;
+      }
+
+      verifyUserbotCodeBtn.disabled = true;
+      verifyUserbotCodeBtn.innerText = '⌛ Verifying...';
+
+      try {
+        const res = await fetch('/api/userbot/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneCode })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✓ Telegram Account Connected Successfully!');
+          if (userbotAuthBadge) {
+            userbotAuthBadge.style.background = '#DCFCE7';
+            userbotAuthBadge.style.color = '#15803D';
+            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
+          }
+          if (userbotOtpRow) userbotOtpRow.style.display = 'none';
+        } else {
+          alert(`❌ Verification Failed: ${data.message}`);
+        }
+      } catch (err) {
+        alert(`❌ Error: ${err.message}`);
+      } finally {
+        verifyUserbotCodeBtn.disabled = false;
+        verifyUserbotCodeBtn.innerText = '✓ Verify & Connect';
+      }
+    });
+  }
+
+  if (userbotConfigForm) {
+    userbotConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (userbotStatus) userbotStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-userbot-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetGroups: userbotTargetGroupsInput.value.trim(),
+            autoPostEnabled: userbotAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#059669';
+            userbotStatus.innerText = '✓ Userbot Settings Saved!';
+          }
+          logMessage('✓ Telegram Userbot settings saved!');
+        } else {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#DC2626';
+            userbotStatus.innerText = '❌ Failed to save settings.';
+          }
+        }
+      } catch (err) {
+        if (userbotStatus) {
+          userbotStatus.style.color = '#DC2626';
+          userbotStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testUserbotPostBtn) {
+    testUserbotPostBtn.addEventListener('click', async () => {
+      if (userbotStatus) userbotStatus.innerText = '⌛ Broadcasting via Userbot...';
+      try {
+        const res = await fetch('/api/test-userbot-post', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#059669';
+            userbotStatus.innerText = `✓ ${data.message}`;
+          }
+          alert(`✓ ${data.message}`);
+        } else {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#DC2626';
+            userbotStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Userbot Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (userbotStatus) {
+          userbotStatus.style.color = '#DC2626';
+          userbotStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  loadUserbotConfig();
+
   // Twitter / X Auto-Poster Admin Handlers
   const twitterConfigForm = document.getElementById('twitterConfigForm');
   const twitterApiKeyInput = document.getElementById('twitterApiKeyInput');

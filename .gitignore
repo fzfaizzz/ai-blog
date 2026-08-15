@@ -7,6 +7,9 @@ data/posts.json
 data/analytics.json
 data/telegram_config.json
 data/telegram_history.json
+data/userbot_config.json
+data/userbot_history.json
 data/twitter_config.json
 data/custom_twitter_config.json
+
 
