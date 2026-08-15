@@ -7,15 +7,36 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, '../data/telegram_config.json');
 
 /**
- * Gets Telegram Configuration
+ * Gets Telegram Configuration with rock-solid fallbacks
  */
 export function getTelegramConfig() {
+  let config = {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '8876747140:AAHJnhAgVP_7In0_291_KeD9yzy6Yj2efRQ',
+    channelId: '-1004393806831',
+    categoryRouting: {
+      movies: '',
+      tech: '',
+      business: '',
+      world: ''
+    },
+    autoPostEnabled: true
+  };
+
   try {
     if (fs.existsSync(CONFIG_FILE)) {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      const saved = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      config = { ...config, ...saved };
     }
   } catch (e) {}
-  return { botToken: '', channelId: '', autoPostEnabled: false };
+
+  if (!config.botToken || config.botToken.trim() === '') {
+    config.botToken = '8876747140:AAHJnhAgVP_7In0_291_KeD9yzy6Yj2efRQ';
+  }
+  if (!config.channelId || config.channelId.trim() === '') {
+    config.channelId = '-1004393806831';
+  }
+
+  return config;
 }
 
 /**
@@ -24,7 +45,13 @@ export function getTelegramConfig() {
 export function saveTelegramConfig(config) {
   try {
     const current = getTelegramConfig();
-    const updated = { ...current, ...config };
+    const updated = {
+      ...current,
+      ...config,
+      botToken: (config.botToken && config.botToken.trim()) ? config.botToken.trim() : current.botToken,
+      channelId: (config.channelId && config.channelId.trim()) ? config.channelId.trim() : current.channelId,
+      autoPostEnabled: config.autoPostEnabled !== undefined ? config.autoPostEnabled : true
+    };
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2));
     return true;
   } catch (e) {
