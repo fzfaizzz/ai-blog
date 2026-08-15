@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { TelegramClient } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,27 +94,30 @@ export async function sendUserbotAuthCode(apiId, apiHash, phoneNumber) {
 export async function verifyUserbotAuthCode(phoneCode, password = '') {
   try {
     if (!pendingAuth || !pendingAuth.client) {
-      return { success: false, message: 'No pending login session. Please request code again.' };
+      return { success: false, message: 'No pending login session. Please click Send Login Code again.' };
     }
 
     const { client, apiId, apiHash, phoneNumber, phoneCodeHash } = pendingAuth;
 
-    await client.invoke(
-      new (await import('telegram/tl/index.js')).tl.auth.SignIn({
-        phoneNumber,
-        phoneCodeHash,
-        phoneCode: String(phoneCode).trim()
-      })
-    ).catch(async (err) => {
+    try {
+      await client.invoke(
+        new Api.auth.SignIn({
+          phoneNumber,
+          phoneCodeHash,
+          phoneCode: String(phoneCode).trim()
+        })
+      );
+    } catch (err) {
       if (err.message && err.message.includes('SESSION_PASSWORD_NEEDED') && password) {
-        return await client.signInWithPassword({
+        await client.signInWithPassword({
           apiId,
           apiHash,
           password
         });
+      } else {
+        throw err;
       }
-      throw err;
-    });
+    }
 
     const sessionString = client.session.save();
     
