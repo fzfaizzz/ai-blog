@@ -415,8 +415,8 @@ app.get('/api/telegram-config', (req, res) => {
 });
 
 app.post('/api/save-telegram-config', (req, res) => {
-  const { botToken, channelId, autoPostEnabled } = req.body;
-  const saved = saveTelegramConfig({ botToken, channelId, autoPostEnabled });
+  const { botToken, channelId, categoryRouting, autoPostEnabled } = req.body;
+  const saved = saveTelegramConfig({ botToken, channelId, categoryRouting, autoPostEnabled });
   res.json({ success: saved });
 });
 
@@ -425,7 +425,7 @@ app.post('/api/test-telegram-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
-  const result = await sendPostToTelegram(posts[0]);
+  const result = await sendPostToTelegram(posts[0], true);
   res.json(result);
 });
 

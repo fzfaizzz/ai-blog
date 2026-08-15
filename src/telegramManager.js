@@ -55,10 +55,13 @@ function saveTelegramHistory(history) {
 /**
  * Sends a published article automatically to Category-Smart Telegram Channels / Groups with 100% Anti-Spam Protection
  */
-export async function sendPostToTelegram(post) {
+export async function sendPostToTelegram(post, isTest = false) {
   const config = getTelegramConfig();
-  if (!config.botToken || !config.autoPostEnabled) {
-    return { success: false, message: 'Telegram auto-posting not configured or disabled.' };
+  if (!config.botToken) {
+    return { success: false, message: 'Telegram Bot Token is missing. Please enter and save Bot Token.' };
+  }
+  if (!isTest && !config.autoPostEnabled) {
+    return { success: false, message: 'Telegram auto-posting is currently disabled in settings.' };
   }
 
   // 1. Gather all default / global channels
@@ -84,7 +87,7 @@ export async function sendPostToTelegram(post) {
   const finalTargets = [...new Set([...targetList, ...categorySpecificTargets])];
 
   if (finalTargets.length === 0) {
-    return { success: false, message: 'No target Telegram channels/groups configured for this category.' };
+    return { success: false, message: 'No target Telegram channels/groups configured. Please enter a Group or Channel ID.' };
   }
 
   // 🛡️ Anti-Spam & Rate-Limiter Engine
@@ -107,23 +110,25 @@ export async function sendPostToTelegram(post) {
   const results = [];
 
   for (const target of finalTargets) {
-    // 🛡️ Check Cooldown & Daily Limits for this target
+    // 🛡️ Check Cooldown & Daily Limits for this target (bypassed on manual test button)
     const lastPosted = history.lastPostedPerTarget[target] || 0;
     const dailyCount = history.dailyCounts[target] || 0;
 
-    // Skip if posted within cooldown window (prevents spamming groups!)
-    if (now - lastPosted < MIN_COOLDOWN_MS) {
-      const waitMin = Math.ceil((MIN_COOLDOWN_MS - (now - lastPosted)) / (60 * 1000));
-      console.log(`🛡️ [Anti-Spam Shield] Cooldown active for ${target}. Skipping (Next available in ${waitMin} mins).`);
-      results.push({ target, skipped: true, reason: `Cooldown active (${waitMin} mins remaining)` });
-      continue;
-    }
+    if (!isTest) {
+      // Skip if posted within cooldown window (prevents spamming groups!)
+      if (now - lastPosted < MIN_COOLDOWN_MS) {
+        const waitMin = Math.ceil((MIN_COOLDOWN_MS - (now - lastPosted)) / (60 * 1000));
+        console.log(`🛡️ [Anti-Spam Shield] Cooldown active for ${target}. Skipping (Next available in ${waitMin} mins).`);
+        results.push({ target, skipped: true, reason: `Cooldown active (${waitMin} mins remaining)` });
+        continue;
+      }
 
-    // Skip if daily group post limit reached
-    if (dailyCount >= MAX_DAILY_POSTS_PER_GROUP) {
-      console.log(`🛡️ [Anti-Spam Shield] Daily limit reached (${MAX_DAILY_POSTS_PER_GROUP} posts) for ${target}. Skipping.`);
-      results.push({ target, skipped: true, reason: 'Daily limit reached' });
-      continue;
+      // Skip if daily group post limit reached
+      if (dailyCount >= MAX_DAILY_POSTS_PER_GROUP) {
+        console.log(`🛡️ [Anti-Spam Shield] Daily limit reached (${MAX_DAILY_POSTS_PER_GROUP} posts) for ${target}. Skipping.`);
+        results.push({ target, skipped: true, reason: 'Daily limit reached' });
+        continue;
+      }
     }
 
     try {
