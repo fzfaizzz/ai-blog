@@ -194,28 +194,67 @@ export async function sendPostViaUserbot(post, isTest = false) {
   try {
     await client.connect();
 
+    // Fetch user's joined dialogs for smart entity matching
+    const dialogs = await client.getDialogs({});
+
     for (const target of finalTargets) {
       try {
-        console.log(`🤖 [Userbot] Posting to target: ${target}`);
+        console.log(`🤖 [Userbot] Resolving target: "${target}"`);
         
-        let entity = target;
-        if (target.startsWith('@')) {
-          entity = target.replace('@', '');
+        let targetEntity = null;
+        const cleanTarget = target.trim();
+        const cleanTargetNoAt = cleanTarget.startsWith('@') ? cleanTarget.substring(1) : cleanTarget;
+        const numClean = cleanTarget.replace(/^-100/, '').replace(/^-/, '');
+
+        // 1. Try matching by Title or ID in joined dialogs
+        for (const d of dialogs) {
+          const dId = String(d.id || '');
+          const dTitle = (d.title || d.name || '').toLowerCase();
+          const dUsername = (d.entity?.username || '').toLowerCase();
+
+          if (
+            dId === cleanTarget ||
+            dId === `-100${numClean}` ||
+            dId === `-${numClean}` ||
+            dId === numClean ||
+            (dUsername && dUsername === cleanTargetNoAt.toLowerCase()) ||
+            (dTitle && dTitle === cleanTarget.toLowerCase()) ||
+            (dTitle && dTitle.includes(cleanTarget.toLowerCase()))
+          ) {
+            targetEntity = d.entity || d.inputEntity;
+            console.log(`✓ [Userbot] Matched dialog "${d.title || d.name}" (ID: ${d.id})`);
+            break;
+          }
         }
 
-        await client.sendMessage(entity, {
+        // 2. Fallback to direct getEntity
+        if (!targetEntity) {
+          try {
+            targetEntity = await client.getEntity(cleanTarget);
+          } catch (e) {
+            try {
+              targetEntity = await client.getEntity(`-100${numClean}`);
+            } catch (e2) {}
+          }
+        }
+
+        if (!targetEntity) {
+          throw new Error(`Could not find group "${target}". Make sure your Telegram account is a member of this group.`);
+        }
+
+        await client.sendMessage(targetEntity, {
           message: messageText,
           parseMode: 'md',
           linkPreview: true
         });
 
-        console.log(`✓ [Userbot] Successfully posted to ${target}: "${post.title}"`);
+        console.log(`✓ [Userbot] Successfully posted to "${target}": "${post.title}"`);
         results.push({ target, success: true });
 
         // Natural Human Stagger Delay (5 seconds) between groups
         await new Promise(r => setTimeout(r, 5000));
       } catch (postErr) {
-        console.warn(`⚠️ [Userbot] Warning for ${target}:`, postErr.message);
+        console.warn(`⚠️ [Userbot] Warning for "${target}":`, postErr.message);
         results.push({ target, success: false, error: postErr.message });
       }
     }
