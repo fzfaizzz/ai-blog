@@ -181,13 +181,13 @@ export async function sendPostViaUserbot(post, isTest = false) {
   const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   
-  // 🎭 Human-Style Conversational Formatter (Bypasses Anti-Spam Bots)
+  // 🎭 Human-Style Conversational Formatter in 100% Pure English (Bypasses Anti-Spam Bots)
   const humanTemplates = [
     (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCheck out the full breakdown & latest updates here:\n👉 ${url}\n\nWhat do you guys think about this?`,
-    (title, desc, url) => `🔥 Just dropped: **${title}**\n\nFull details and official updates are live:\n🔗 ${url}\n\nLet me know your thoughts!`,
-    (title, desc, url) => `Guys, big update on **${title}**!\n\nRead the complete story here:\n👉 ${url}\n\nIs anyone else excited for this?`,
-    (title, desc, url) => `Bhai logo, **${title}** ka latest update aa gaya hai!\n\nPoori details yahan check karo:\n👉 ${url}`,
-    (title, desc, url) => `📌 Trending today: **${title}**\n\n${desc ? desc.substring(0, 120) + '...' : ''}\n\nFull article:\n👉 ${url}`
+    (title, desc, url) => `🔥 Just released: **${title}**\n\nFull details and official coverage are live:\n🔗 ${url}\n\nWhat are your thoughts?`,
+    (title, desc, url) => `Big update regarding **${title}**!\n\nRead the complete story here:\n👉 ${url}\n\nIs anyone else following this?`,
+    (title, desc, url) => `📌 Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull article:\n👉 ${url}`,
+    (title, desc, url) => `Check this out: **${title}**\n\nComplete breakdown & key highlights:\n👉 ${url}`
   ];
 
   // Pick random conversational template
