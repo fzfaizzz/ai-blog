@@ -225,38 +225,25 @@ export async function sendPostViaUserbot(post, isTest = false) {
     let sourceEntity = null;
     let sourceMessage = null;
 
-    for (const d of dialogs) {
-      const dId = String(d.id || '');
-      const dUsername = (d.entity?.username || '').toLowerCase();
-      const dTitle = (d.title || d.name || '').toLowerCase();
-
-      if (
-        dId === '-1004393806831' ||
-        dId === '4393806831' ||
-        dId === '-4393806831' ||
-        dUsername === 'primemediaofficial' ||
-        dTitle.includes('prime media official') ||
-        dTitle.includes('prime media')
-      ) {
-        sourceEntity = d.entity || d.inputEntity;
-        console.log(`✓ [Userbot] Located source channel for forwarding: "${d.title || d.name}" (ID: ${d.id})`);
-        break;
-      }
-    }
-
-    if (!sourceEntity) {
+    try {
+      sourceEntity = await client.getEntity('-1004393806831');
+    } catch (e) {
       try {
         sourceEntity = await client.getEntity('@PrimeMediaOfficial');
-      } catch (e) {
-        try {
-          sourceEntity = await client.getEntity('-1004393806831');
-        } catch (e2) {}
+      } catch (e2) {
+        for (const d of dialogs) {
+          const dId = String(d.id || '');
+          const dTitle = (d.title || d.name || '').toLowerCase();
+          if (dId === '-1004393806831' || dId === '4393806831' || dTitle.includes('prime media official') || dTitle.includes('prime media')) {
+            sourceEntity = d.entity || d.inputEntity;
+            break;
+          }
+        }
       }
     }
 
     if (sourceEntity) {
       try {
-        // Send fresh post to official channel first to establish legitimate origin post
         sourceMessage = await client.sendMessage(sourceEntity, {
           message: messageText,
           parseMode: 'md',
@@ -266,13 +253,8 @@ export async function sendPostViaUserbot(post, isTest = false) {
       } catch (e) {
         try {
           const msgs = await client.getMessages(sourceEntity, { limit: 1 });
-          if (msgs && msgs.length > 0) {
-            sourceMessage = msgs[0];
-            console.log(`✓ [Userbot] Found latest official channel post (ID: ${sourceMessage.id}) to forward!`);
-          }
-        } catch (e2) {
-          console.warn('⚠️ [Userbot] Could not get latest channel message for forwarding:', e2.message);
-        }
+          if (msgs && msgs.length > 0) sourceMessage = msgs[0];
+        } catch (e2) {}
       }
     }
 
@@ -322,6 +304,13 @@ export async function sendPostViaUserbot(post, isTest = false) {
         }
 
         const matchedTitle = targetEntity.title || targetEntity.username || target;
+        const isSourceChannel = String(targetEntity.id || '') === String(sourceEntity?.id || '') || matchedTitle.toLowerCase().includes('prime media');
+
+        // If target is the official source channel itself, it's already posted!
+        if (isSourceChannel && sourceMessage) {
+          results.push({ target, matchedTitle, success: true, method: 'Official Channel Post' });
+          continue;
+        }
 
         // 🏆 Method 1: Forward Official Channel Post (100% AntiSpam Bot Safe)
         let forwarded = false;
@@ -329,12 +318,13 @@ export async function sendPostViaUserbot(post, isTest = false) {
           try {
             await client.forwardMessages(targetEntity, {
               messages: [sourceMessage.id],
-              fromPeer: sourceEntity
+              fromPeer: sourceEntity,
+              dropAuthor: false
             });
             forwarded = true;
             console.log(`✓ [Userbot] Successfully FORWARDED post to "${matchedTitle}" (Anti-Spam Safe)`);
           } catch (fwdErr) {
-            console.warn(`⚠️ [Userbot] Forwarding fallback to direct message for "${matchedTitle}":`, fwdErr.message);
+            console.warn(`⚠️ [Userbot] Forwarding error for "${matchedTitle}":`, fwdErr.message);
           }
         }
 
