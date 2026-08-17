@@ -191,10 +191,14 @@ export async function sendPostViaUserbot(post, isTest = false) {
     return { success: false, message: 'No target Telegram groups configured for Userbot.' };
   }
 
+  const domain = process.env.BASE_URL || 'https://primemedia.site';
+  const postUrl = `${domain}/post/${post.slug}`;
   const channelHandle = '@PrimeMediaOfficial';
 
-  // 🎭 100% Anti-Spam Bot Safe Channel Call-To-Action (CTA) Templates (Zero External URLs!)
-  // Anti-spam bots (DeFensy, Rose) ignore Telegram channel mentions (@PrimeMediaOfficial) but ban external web links!
+  // 1️⃣ Official Channel Post Format (Contains Direct Website Link for Visitors)
+  const officialChannelMessage = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
+
+  // 2️⃣ Public Groups Call-To-Action (CTA) Format (Zero External URLs to Bypass Anti-Spam Bots)
   const humanTemplates = [
     (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
     (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
@@ -203,9 +207,8 @@ export async function sendPostViaUserbot(post, isTest = false) {
     (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
   ];
 
-  // Pick random conversational template
   const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
-  const messageText = randomTemplate(post.title, post.metaDescription);
+  const groupCtaMessage = randomTemplate(post.title, post.metaDescription);
 
   const numApiId = parseInt(config.apiId, 10);
   const session = new StringSession(config.sessionString);
@@ -245,11 +248,11 @@ export async function sendPostViaUserbot(post, isTest = false) {
     if (sourceEntity) {
       try {
         sourceMessage = await client.sendMessage(sourceEntity, {
-          message: messageText,
+          message: officialChannelMessage,
           parseMode: 'md',
           linkPreview: true
         });
-        console.log(`✓ [Userbot] Created official origin post (ID: ${sourceMessage.id}) in Prime Media Official!`);
+        console.log(`✓ [Userbot] Created official origin post with direct website link (ID: ${sourceMessage.id}) in Prime Media Official!`);
       } catch (e) {
         try {
           const msgs = await client.getMessages(sourceEntity, { limit: 1 });
@@ -343,7 +346,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
           } catch (typingErr) {}
 
           await client.sendMessage(targetEntity, {
-            message: messageText,
+            message: groupCtaMessage,
             parseMode: 'md',
             linkPreview: true
           });
