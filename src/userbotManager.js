@@ -224,43 +224,6 @@ export async function sendPostViaUserbot(post, isTest = false) {
     // Fetch user's joined dialogs for smart entity matching
     const dialogs = await client.getDialogs({});
 
-    // 📡 Find Source Channel (@PrimeMediaOfficial / -1004393806831) for 100% Safe Channel Forwarding
-    let sourceEntity = null;
-    let sourceMessage = null;
-
-    try {
-      sourceEntity = await client.getEntity('-1004393806831');
-    } catch (e) {
-      try {
-        sourceEntity = await client.getEntity('@PrimeMediaOfficial');
-      } catch (e2) {
-        for (const d of dialogs) {
-          const dId = String(d.id || '');
-          const dTitle = (d.title || d.name || '').toLowerCase();
-          if (dId === '-1004393806831' || dId === '4393806831' || dTitle.includes('prime media official') || dTitle.includes('prime media')) {
-            sourceEntity = d.entity || d.inputEntity;
-            break;
-          }
-        }
-      }
-    }
-
-    if (sourceEntity) {
-      try {
-        sourceMessage = await client.sendMessage(sourceEntity, {
-          message: officialChannelMessage,
-          parseMode: 'md',
-          linkPreview: true
-        });
-        console.log(`✓ [Userbot] Created official origin post with direct website link (ID: ${sourceMessage.id}) in Prime Media Official!`);
-      } catch (e) {
-        try {
-          const msgs = await client.getMessages(sourceEntity, { limit: 1 });
-          if (msgs && msgs.length > 0) sourceMessage = msgs[0];
-        } catch (e2) {}
-      }
-    }
-
     for (const target of finalTargets) {
       try {
         console.log(`🤖 [Userbot] Resolving target: "${target}"`);
@@ -307,58 +270,48 @@ export async function sendPostViaUserbot(post, isTest = false) {
         }
 
         const matchedTitle = targetEntity.title || targetEntity.username || target;
-        const isSourceChannel = String(targetEntity.id || '') === String(sourceEntity?.id || '') || matchedTitle.toLowerCase().includes('prime media');
+        const isSourceChannel = String(targetEntity.id || '') === '-1004393806831' || String(targetEntity.id || '') === '4393806831' || matchedTitle.toLowerCase().includes('prime media');
 
-        // If target is the official source channel itself, it's already posted!
-        if (isSourceChannel && sourceMessage) {
-          results.push({ target, matchedTitle, success: true, method: 'Official Channel Post' });
+        // If target is the official source channel, skip to avoid duplicate (Telegram Bot already posts full photo + link)
+        if (isSourceChannel) {
+          console.log(`ℹ️ [Userbot] Skipping official channel "${matchedTitle}" (Already handled by Telegram Bot with photo + link)`);
+          results.push({ target, matchedTitle, success: true, method: 'Official Channel (Bot Handled)' });
           continue;
         }
 
-        // 🏆 Method 1: Forward Official Channel Post (100% AntiSpam Bot Safe)
-        let forwarded = false;
-        let forwardError = '';
-        if (sourceEntity && sourceMessage) {
-          try {
-            await client.forwardMessages(targetEntity, {
-              messages: [sourceMessage],
-              fromPeer: sourceEntity,
-              dropAuthor: false
-            });
-            forwarded = true;
-            console.log(`✓ [Userbot] Successfully FORWARDED post to "${matchedTitle}" (Anti-Spam Safe)`);
-          } catch (fwdErr) {
-            forwardError = fwdErr.message;
-            console.warn(`⚠️ [Userbot] Forwarding error for "${matchedTitle}":`, fwdErr.message);
-          }
-        }
+        // Simulate natural typing before posting
+        try {
+          await client.invoke(
+            new Api.messages.SetTyping({
+              peer: targetEntity,
+              action: new Api.SendMessageTypingAction()
+            })
+          );
+          await new Promise(r => setTimeout(r, 2000));
+        } catch (typingErr) {}
 
-        // Fallback to human direct post if forward failed or source not found
-        if (!forwarded) {
-          try {
-            await client.invoke(
-              new Api.messages.SetTyping({
-                peer: targetEntity,
-                action: new Api.SendMessageTypingAction()
-              })
-            );
-            await new Promise(r => setTimeout(r, 2000));
-          } catch (typingErr) {}
-
+        // 🖼️ Send Banner Poster with Clean Channel CTA (Zero External Links)
+        if (post.imageUrl && (post.imageUrl.startsWith('http://') || post.imageUrl.startsWith('https://'))) {
+          await client.sendFile(targetEntity, {
+            file: post.imageUrl,
+            caption: groupCtaMessage,
+            parseMode: 'md'
+          });
+          console.log(`✓ [Userbot] Successfully posted BANNER POSTER + CTA to "${matchedTitle}"`);
+        } else {
           await client.sendMessage(targetEntity, {
             message: groupCtaMessage,
             parseMode: 'md',
             linkPreview: true
           });
-          console.log(`✓ [Userbot] Successfully sent direct human post to "${matchedTitle}" (Fallback reason: ${forwardError || 'Source not found'})`);
+          console.log(`✓ [Userbot] Successfully sent CTA to "${matchedTitle}"`);
         }
 
         results.push({
           target,
           matchedTitle,
           success: true,
-          method: forwarded ? 'Forwarded' : 'Direct Post',
-          note: forwardError ? `Direct post used (${forwardError})` : ''
+          method: 'Banner Poster + CTA'
         });
 
         // Natural Human Stagger Delay (5 seconds) between groups
