@@ -221,6 +221,39 @@ export async function sendPostViaUserbot(post, isTest = false) {
     // Fetch user's joined dialogs for smart entity matching
     const dialogs = await client.getDialogs({});
 
+    // 📡 Find Source Channel (@PrimeMediaOfficial / -1004393806831) for 100% Safe Channel Forwarding
+    let sourceEntity = null;
+    let sourceMessage = null;
+
+    for (const d of dialogs) {
+      const dId = String(d.id || '');
+      const dUsername = (d.entity?.username || '').toLowerCase();
+      const dTitle = (d.title || d.name || '').toLowerCase();
+
+      if (
+        dId === '-1004393806831' ||
+        dId === '4393806831' ||
+        dUsername === 'primemediaofficial' ||
+        dTitle.includes('prime media')
+      ) {
+        sourceEntity = d.entity || d.inputEntity;
+        console.log(`✓ [Userbot] Located source channel for forwarding: "${d.title || d.name}" (ID: ${d.id})`);
+        break;
+      }
+    }
+
+    if (sourceEntity) {
+      try {
+        const msgs = await client.getMessages(sourceEntity, { limit: 1 });
+        if (msgs && msgs.length > 0) {
+          sourceMessage = msgs[0];
+          console.log(`✓ [Userbot] Found latest official channel post (ID: ${sourceMessage.id}) to forward!`);
+        }
+      } catch (e) {
+        console.warn('⚠️ [Userbot] Could not get latest channel message for forwarding:', e.message);
+      }
+    }
+
     for (const target of finalTargets) {
       try {
         console.log(`🤖 [Userbot] Resolving target: "${target}"`);
@@ -266,26 +299,44 @@ export async function sendPostViaUserbot(post, isTest = false) {
           throw new Error(`Could not find group "${target}". Make sure your Telegram account is a member of this group.`);
         }
 
-        // 🟢 Human Emulation: Send "Typing..." action for 2.5 seconds before posting
-        try {
-          await client.invoke(
-            new Api.messages.SetTyping({
-              peer: targetEntity,
-              action: new Api.SendMessageTypingAction()
-            })
-          );
-          await new Promise(r => setTimeout(r, 2500));
-        } catch (typingErr) {}
-
-        await client.sendMessage(targetEntity, {
-          message: messageText,
-          parseMode: 'md',
-          linkPreview: true
-        });
-
         const matchedTitle = targetEntity.title || targetEntity.username || target;
-        console.log(`✓ [Userbot] Successfully posted to "${matchedTitle}": "${post.title}"`);
-        results.push({ target, matchedTitle, success: true });
+
+        // 🏆 Method 1: Forward Official Channel Post (100% AntiSpam Bot Safe)
+        let forwarded = false;
+        if (sourceEntity && sourceMessage) {
+          try {
+            await client.forwardMessages(targetEntity, {
+              messages: [sourceMessage.id],
+              fromPeer: sourceEntity
+            });
+            forwarded = true;
+            console.log(`✓ [Userbot] Successfully FORWARDED post to "${matchedTitle}" (Anti-Spam Safe)`);
+          } catch (fwdErr) {
+            console.warn(`⚠️ [Userbot] Forwarding fallback to direct message for "${matchedTitle}":`, fwdErr.message);
+          }
+        }
+
+        // Fallback to human direct post if forward failed or source not found
+        if (!forwarded) {
+          try {
+            await client.invoke(
+              new Api.messages.SetTyping({
+                peer: targetEntity,
+                action: new Api.SendMessageTypingAction()
+              })
+            );
+            await new Promise(r => setTimeout(r, 2000));
+          } catch (typingErr) {}
+
+          await client.sendMessage(targetEntity, {
+            message: messageText,
+            parseMode: 'md',
+            linkPreview: true
+          });
+          console.log(`✓ [Userbot] Successfully sent direct human post to "${matchedTitle}"`);
+        }
+
+        results.push({ target, matchedTitle, success: true, method: forwarded ? 'Channel Forward' : 'Direct Post' });
 
         // Natural Human Stagger Delay (5 seconds) between groups
         await new Promise(r => setTimeout(r, 5000));
