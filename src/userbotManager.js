@@ -248,8 +248,9 @@ export async function sendPostViaUserbot(post, isTest = false) {
           linkPreview: true
         });
 
-        console.log(`✓ [Userbot] Successfully posted to "${target}": "${post.title}"`);
-        results.push({ target, success: true });
+        const matchedTitle = targetEntity.title || targetEntity.username || target;
+        console.log(`✓ [Userbot] Successfully posted to "${matchedTitle}": "${post.title}"`);
+        results.push({ target, matchedTitle, success: true });
 
         // Natural Human Stagger Delay (5 seconds) between groups
         await new Promise(r => setTimeout(r, 5000));
@@ -265,10 +266,14 @@ export async function sendPostViaUserbot(post, isTest = false) {
     return { success: false, message: err.message };
   }
 
-  const successCount = results.filter(r => r.success).length;
-  return {
-    success: successCount > 0,
-    message: `Userbot posted to ${successCount}/${finalTargets.length} group(s)!`,
-    results
-  };
+  const successList = results.filter(r => r.success).map(r => r.matchedTitle || r.target);
+  const failList = results.filter(r => !r.success).map(r => `"${r.target}" (${r.error})`);
+
+  if (successList.length > 0) {
+    let msg = `✓ Successfully posted to: ${successList.join(', ')}`;
+    if (failList.length > 0) msg += ` | Failed: ${failList.join(', ')}`;
+    return { success: true, message: msg, results };
+  } else {
+    return { success: false, message: `Failed: ${failList.join(', ')}`, results };
+  }
 }
