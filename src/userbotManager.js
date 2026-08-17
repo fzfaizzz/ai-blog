@@ -191,21 +191,21 @@ export async function sendPostViaUserbot(post, isTest = false) {
     return { success: false, message: 'No target Telegram groups configured for Userbot.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://primemedia.site';
-  const postUrl = `${domain}/post/${post.slug}`;
-  
-  // 🎭 Human-Style Conversational Formatter in 100% Pure English (Bypasses Anti-Spam Bots)
+  const channelHandle = '@PrimeMediaOfficial';
+
+  // 🎭 100% Anti-Spam Bot Safe Channel Call-To-Action (CTA) Templates (Zero External URLs!)
+  // Anti-spam bots (DeFensy, Rose) ignore Telegram channel mentions (@PrimeMediaOfficial) but ban external web links!
   const humanTemplates = [
-    (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCheck out the full breakdown & latest updates here:\n👉 ${url}\n\nWhat do you guys think about this?`,
-    (title, desc, url) => `🔥 Just released: **${title}**\n\nFull details and official coverage are live:\n🔗 ${url}\n\nWhat are your thoughts?`,
-    (title, desc, url) => `Big update regarding **${title}**!\n\nRead the complete story here:\n👉 ${url}\n\nIs anyone else following this?`,
-    (title, desc, url) => `📌 Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull article:\n👉 ${url}`,
-    (title, desc, url) => `Check this out: **${title}**\n\nComplete breakdown & key highlights:\n👉 ${url}`
+    (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
+    (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
+    (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join: **${channelHandle}**\n\nIs anyone else following this?`,
+    (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 **${channelHandle}**`,
+    (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
   ];
 
   // Pick random conversational template
   const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
-  const messageText = randomTemplate(post.title, post.metaDescription, postUrl);
+  const messageText = randomTemplate(post.title, post.metaDescription);
 
   const numApiId = parseInt(config.apiId, 10);
   const session = new StringSession(config.sessionString);
