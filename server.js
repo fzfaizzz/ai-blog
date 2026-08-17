@@ -101,6 +101,25 @@ app.get('/post/:slug', (req, res) => {
   html = html.replace(/<title[^>]*>.*?<\/title>/i, '');
   html = html.replace(/<meta[^>]*name="description"[^>]*>/i, '');
   html = html.replace('</head>', `${ogTags}\n</head>`);
+
+  // 🚀 Full Server-Side Rendered (SSR) Body Content for Googlebot & SEO Crawlers
+  const formattedDate = new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  html = html.replace(/<span id="postCategoryPill"[^>]*>.*?<\/span>/i, `<span id="postCategoryPill" class="article-category-pill">${escapeHtml(post.category || 'TECHNOLOGY').toUpperCase()}</span>`);
+  html = html.replace(/<h1 id="postTitle"[^>]*>.*?<\/h1>/i, `<h1 id="postTitle" class="article-title" style="margin-top: 0.5rem; margin-bottom: 1rem;">${escapeHtml(post.title)}</h1>`);
+  html = html.replace(/<p id="postLeadDesc"[^>]*>.*?<\/p>/i, `<p id="postLeadDesc" style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; margin-bottom: 1.5rem;">${escapeHtml(post.metaDescription || '')}</p>`);
+  if (post.imageUrl) {
+    html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="featured-img" referrerpolicy="no-referrer" />`);
+  }
+  html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate">Senior Editorial Staff • Published ${formattedDate}</span>`);
+  html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 4} min read</span>`);
+  if (post.contentHtml) {
+    html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${post.contentHtml}</article>`);
+  }
   
   res.send(html);
 });
