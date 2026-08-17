@@ -314,16 +314,18 @@ export async function sendPostViaUserbot(post, isTest = false) {
 
         // 🏆 Method 1: Forward Official Channel Post (100% AntiSpam Bot Safe)
         let forwarded = false;
+        let forwardError = '';
         if (sourceEntity && sourceMessage) {
           try {
             await client.forwardMessages(targetEntity, {
-              messages: [sourceMessage.id],
+              messages: [sourceMessage],
               fromPeer: sourceEntity,
               dropAuthor: false
             });
             forwarded = true;
             console.log(`✓ [Userbot] Successfully FORWARDED post to "${matchedTitle}" (Anti-Spam Safe)`);
           } catch (fwdErr) {
+            forwardError = fwdErr.message;
             console.warn(`⚠️ [Userbot] Forwarding error for "${matchedTitle}":`, fwdErr.message);
           }
         }
@@ -345,10 +347,16 @@ export async function sendPostViaUserbot(post, isTest = false) {
             parseMode: 'md',
             linkPreview: true
           });
-          console.log(`✓ [Userbot] Successfully sent direct human post to "${matchedTitle}"`);
+          console.log(`✓ [Userbot] Successfully sent direct human post to "${matchedTitle}" (Fallback reason: ${forwardError || 'Source not found'})`);
         }
 
-        results.push({ target, matchedTitle, success: true, method: forwarded ? 'Channel Forward' : 'Direct Post' });
+        results.push({
+          target,
+          matchedTitle,
+          success: true,
+          method: forwarded ? 'Forwarded' : 'Direct Post',
+          note: forwardError ? `Direct post used (${forwardError})` : ''
+        });
 
         // Natural Human Stagger Delay (5 seconds) between groups
         await new Promise(r => setTimeout(r, 5000));
@@ -364,7 +372,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
     return { success: false, message: err.message };
   }
 
-  const successList = results.filter(r => r.success).map(r => r.matchedTitle || r.target);
+  const successList = results.filter(r => r.success).map(r => `${r.matchedTitle} [${r.method}]`);
   const failList = results.filter(r => !r.success).map(r => `"${r.target}" (${r.error})`);
 
   if (successList.length > 0) {
