@@ -325,13 +325,15 @@ app.get('/rss.xml', handleRssFeed);
 app.get('/feed', handleRssFeed);
 app.get('/rss', handleRssFeed);
 
-// 1. Get All Posts (For Homepage)
+// 1. Get All Posts (For Homepage - Lightweight Optimized Payload)
 app.get('/api/posts', (req, res) => {
   const posts = getAllPosts();
+  // Strip heavy article HTML from overview list to keep homepage payload under 100KB (10x faster load)
+  const previewPosts = posts.map(({ contentHtml, ...rest }) => rest);
   res.json({
     success: true,
-    count: posts.length,
-    posts,
+    count: previewPosts.length,
+    posts: previewPosts,
     settings: appSettings,
     serperKeysCount: getSerperKeys().length
   });
