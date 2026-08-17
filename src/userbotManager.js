@@ -191,25 +191,6 @@ export async function sendPostViaUserbot(post, isTest = false) {
     return { success: false, message: 'No target Telegram groups configured for Userbot.' };
   }
 
-  const domain = process.env.BASE_URL || 'https://primemedia.site';
-  const postUrl = `${domain}/post/${post.slug}`;
-  const channelHandle = '@PrimeMediaOfficial';
-
-  // 1️⃣ Official Channel Post Format (Contains Direct Website Link for Visitors)
-  const officialChannelMessage = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
-
-  // 2️⃣ Public Groups Call-To-Action (CTA) Format (Zero External URLs to Bypass Anti-Spam Bots)
-  const humanTemplates = [
-    (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
-    (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
-    (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join: **${channelHandle}**\n\nIs anyone else following this?`,
-    (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 **${channelHandle}**`,
-    (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
-  ];
-
-  const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
-  const groupCtaMessage = randomTemplate(post.title, post.metaDescription);
-
   const numApiId = parseInt(config.apiId, 10);
   const session = new StringSession(config.sessionString);
   const client = new TelegramClient(session, numApiId, config.apiHash, {
@@ -243,6 +224,56 @@ export async function sendPostViaUserbot(post, isTest = false) {
 
     // Fetch user's joined dialogs for smart entity matching
     const dialogs = await client.getDialogs({});
+
+    // 🎯 Resolve Exact Channel Post Deep-Link (e.g. https://t.me/PrimeMediaOfficial/158)
+    // When users in public groups click this link, Telegram DIRECTLY SCROLLS & JUMPS to this specific article!
+    let channelPostUrl = 'https://t.me/PrimeMediaOfficial';
+    try {
+      let channelEntity = null;
+      for (const d of dialogs) {
+        const dId = String(d.id || '');
+        const dTitle = (d.title || d.name || '').toLowerCase();
+        if (dId === '-1004393806831' || dId === '4393806831' || dTitle.includes('prime media official')) {
+          channelEntity = d.entity || d.inputEntity;
+          break;
+        }
+      }
+
+      if (!channelEntity) {
+        try {
+          channelEntity = await client.getEntity('@PrimeMediaOfficial');
+        } catch (e) {
+          channelEntity = await client.getEntity('-1004393806831');
+        }
+      }
+
+      if (channelEntity) {
+        const msgs = await client.getMessages(channelEntity, { limit: 15 });
+        const targetTitleShort = (post.title || '').substring(0, 25).toLowerCase();
+        const match = msgs.find(m => (m.message || '').toLowerCase().includes(targetTitleShort));
+        if (match) {
+          channelPostUrl = `https://t.me/PrimeMediaOfficial/${match.id}`;
+          console.log(`🎯 [Userbot] Resolved exact post deep-link: ${channelPostUrl}`);
+        } else if (msgs.length > 0) {
+          channelPostUrl = `https://t.me/PrimeMediaOfficial/${msgs[0].id}`;
+          console.log(`🎯 [Userbot] Using latest channel post deep-link: ${channelPostUrl}`);
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [Userbot] Channel deep-link resolver:', e.message);
+    }
+
+    // 2️⃣ Public Groups Call-To-Action (CTA) Format (Points Directly to the Specific Article Post)
+    const humanTemplates = [
+      (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates:\n📢 ${url}\n\nWhat do you guys think about this?`,
+      (title, desc, url) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 ${url}\n\nWhat are your thoughts?`,
+      (title, desc, url) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Read Full Story: ${url}\n\nIs anyone else following this?`,
+      (title, desc, url) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 ${url}`,
+      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Story: ${channelPostUrl}`
+    ];
+
+    const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
+    const groupCtaMessage = randomTemplate(post.title, post.metaDescription, channelPostUrl);
 
     for (const target of finalTargets) {
       try {
