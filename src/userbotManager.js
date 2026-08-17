@@ -181,7 +181,18 @@ export async function sendPostViaUserbot(post, isTest = false) {
   const domain = process.env.BASE_URL || 'https://primemedia.site';
   const postUrl = `${domain}/post/${post.slug}`;
   
-  const messageText = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 Read Full Story & Updates:\n👉 ${postUrl}\n\n#PrimeMedia #BreakingNews #Movies`;
+  // 🎭 Human-Style Conversational Formatter (Bypasses Anti-Spam Bots)
+  const humanTemplates = [
+    (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCheck out the full breakdown & latest updates here:\n👉 ${url}\n\nWhat do you guys think about this?`,
+    (title, desc, url) => `🔥 Just dropped: **${title}**\n\nFull details and official updates are live:\n🔗 ${url}\n\nLet me know your thoughts!`,
+    (title, desc, url) => `Guys, big update on **${title}**!\n\nRead the complete story here:\n👉 ${url}\n\nIs anyone else excited for this?`,
+    (title, desc, url) => `Bhai logo, **${title}** ka latest update aa gaya hai!\n\nPoori details yahan check karo:\n👉 ${url}`,
+    (title, desc, url) => `📌 Trending today: **${title}**\n\n${desc ? desc.substring(0, 120) + '...' : ''}\n\nFull article:\n👉 ${url}`
+  ];
+
+  // Pick random conversational template
+  const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
+  const messageText = randomTemplate(post.title, post.metaDescription, postUrl);
 
   const numApiId = parseInt(config.apiId, 10);
   const session = new StringSession(config.sessionString);
@@ -241,6 +252,17 @@ export async function sendPostViaUserbot(post, isTest = false) {
         if (!targetEntity) {
           throw new Error(`Could not find group "${target}". Make sure your Telegram account is a member of this group.`);
         }
+
+        // 🟢 Human Emulation: Send "Typing..." action for 2.5 seconds before posting
+        try {
+          await client.invoke(
+            new Api.messages.SetTyping({
+              peer: targetEntity,
+              action: new Api.SendMessageTypingAction()
+            })
+          );
+          await new Promise(r => setTimeout(r, 2500));
+        } catch (typingErr) {}
 
         await client.sendMessage(targetEntity, {
           message: messageText,
