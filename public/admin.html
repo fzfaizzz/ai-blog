@@ -376,9 +376,35 @@
       <!-- Step 2: Target Groups & Category Routing -->
       <form id="userbotConfigForm" style="max-width: 620px;">
         <div style="margin-bottom: 1rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET JOINED PUBLIC GROUPS (SEPARATE BY COMMAS)</label>
-          <input type="text" id="userbotTargetGroupsInput" placeholder="e.g. @cinema_kotaka, @MovieDiscussions, @TechNewsTalk" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem;" />
-          <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem;">💡 Userbot will automatically post as yourself into all joined public groups!</div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">MAIN DEFAULT TARGET GROUPS (RECEIVES ALL BREAKING NEWS)</label>
+          <input type="text" id="userbotTargetGroupsInput" placeholder="e.g. @PrimeMediaOfficial, @cinema_kotaka" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.9rem;" />
+        </div>
+
+        <!-- 🎯 Userbot Category-Smart Routing Section -->
+        <div style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 800; color: #0369A1; margin-top: 0; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            🎯 Userbot Category-Smart Auto-Routing (Zero Bot Restrictions)
+          </h4>
+          
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">🎬 MOVIES & ENTERTAINMENT GROUPS (Only receives Movie Trailers & Hollywood/Bollywood Stories)</label>
+            <input type="text" id="userbotMoviesRouteInput" placeholder="e.g. @cinema_kotaka, @CinemaDiscussions, MovieBox_India Official" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">💻 AI, HIGH-TECH & GADGET GROUPS (Only receives AI Breakthroughs & Tech Updates)</label>
+            <input type="text" id="userbotTechRouteInput" placeholder="e.g. @TechDiscussions, @OpenAINews, @GadgetReviewsTalk" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">📈 BUSINESS & FINANCIAL GROUPS (Only receives Stock Markets, Crypto & Business Updates)</label>
+            <input type="text" id="userbotBusinessRouteInput" placeholder="e.g. @GlobalMarketsTalk, @CryptoTechTrends, @FinanceHub" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem;">🌍 WORLD NEWS & GLOBAL AFFAIRS GROUPS</label>
+            <input type="text" id="userbotWorldRouteInput" placeholder="e.g. @WorldNewsDiscussion, @USNewsHub" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.85rem;" />
+          </div>
         </div>
 
         <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">

@@ -1137,6 +1137,10 @@ function initAdminPanel() {
   const verifyUserbotCodeBtn = document.getElementById('verifyUserbotCodeBtn');
   const userbotConfigForm = document.getElementById('userbotConfigForm');
   const userbotTargetGroupsInput = document.getElementById('userbotTargetGroupsInput');
+  const userbotMoviesRouteInput = document.getElementById('userbotMoviesRouteInput');
+  const userbotTechRouteInput = document.getElementById('userbotTechRouteInput');
+  const userbotBusinessRouteInput = document.getElementById('userbotBusinessRouteInput');
+  const userbotWorldRouteInput = document.getElementById('userbotWorldRouteInput');
   const userbotAutoPostToggle = document.getElementById('userbotAutoPostToggle');
   const testUserbotPostBtn = document.getElementById('testUserbotPostBtn');
   const userbotStatus = document.getElementById('userbotStatus');
@@ -1151,6 +1155,10 @@ function initAdminPanel() {
         if (userbotApiHashInput) userbotApiHashInput.value = data.config.apiHash || '';
         if (userbotPhoneInput) userbotPhoneInput.value = data.config.phoneNumber || '';
         userbotTargetGroupsInput.value = data.config.targetGroups || '';
+        if (userbotMoviesRouteInput) userbotMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
+        if (userbotTechRouteInput) userbotTechRouteInput.value = data.config.categoryRouting?.tech || '';
+        if (userbotBusinessRouteInput) userbotBusinessRouteInput.value = data.config.categoryRouting?.business || '';
+        if (userbotWorldRouteInput) userbotWorldRouteInput.value = data.config.categoryRouting?.world || '';
         userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
 
         if (data.config.sessionString && data.config.sessionString.length > 10) {
@@ -1250,6 +1258,12 @@ function initAdminPanel() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             targetGroups: userbotTargetGroupsInput.value.trim(),
+            categoryRouting: {
+              movies: userbotMoviesRouteInput ? userbotMoviesRouteInput.value.trim() : '',
+              tech: userbotTechRouteInput ? userbotTechRouteInput.value.trim() : '',
+              business: userbotBusinessRouteInput ? userbotBusinessRouteInput.value.trim() : '',
+              world: userbotWorldRouteInput ? userbotWorldRouteInput.value.trim() : ''
+            },
             autoPostEnabled: userbotAutoPostToggle.checked
           })
         });
