@@ -202,8 +202,8 @@ export async function sendPostViaUserbot(post, isTest = false) {
   try {
     await client.connect();
 
-    // Pre-download banner image buffer in Node.js to prevent Telegram MTProto WEBPAGE_CURL_FAILED
-    let imageBuffer = null;
+    // Pre-download HD banner image to local temp file for 100% reliable Telegram MTProto Photo upload
+    let tempBannerPath = null;
     if (post.imageUrl && (post.imageUrl.startsWith('http://') || post.imageUrl.startsWith('https://'))) {
       try {
         const imgRes = await fetch(post.imageUrl, {
@@ -214,8 +214,9 @@ export async function sendPostViaUserbot(post, isTest = false) {
         });
         if (imgRes.ok) {
           const ab = await imgRes.arrayBuffer();
-          imageBuffer = Buffer.from(ab);
-          imageBuffer.name = 'banner.jpg';
+          tempBannerPath = path.join(dataDir, `temp_banner_${Date.now()}.jpg`);
+          fs.writeFileSync(tempBannerPath, Buffer.from(ab));
+          console.log(`🖼️ [Userbot] HD Banner saved to temp file (${ab.byteLength} bytes): ${tempBannerPath}`);
         }
       } catch (bufErr) {
         console.warn('⚠️ [Userbot] Could not pre-fetch banner image buffer:', bufErr.message);
@@ -341,17 +342,17 @@ export async function sendPostViaUserbot(post, isTest = false) {
           await new Promise(r => setTimeout(r, 2000));
         } catch (typingErr) {}
 
-        // 🖼️ Send Banner Poster with Clean Channel CTA
+        // 🖼️ Send HD Banner Poster with Clean Channel CTA
         let sentWithPhoto = false;
-        if (imageBuffer) {
+        if (tempBannerPath && fs.existsSync(tempBannerPath)) {
           try {
             await client.sendFile(targetEntity, {
-              file: imageBuffer,
+              file: tempBannerPath,
               caption: groupCtaMessage,
               parseMode: 'md'
             });
             sentWithPhoto = true;
-            console.log(`✓ [Userbot] Successfully posted BANNER POSTER + CTA to "${matchedTitle}"`);
+            console.log(`✓ [Userbot] Successfully posted HD BANNER POSTER + CTA to "${matchedTitle}"`);
           } catch (fileErr) {
             console.warn(`⚠️ [Userbot] Media upload failed for "${matchedTitle}" (${fileErr.message}), falling back to text CTA...`);
           }
@@ -370,7 +371,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
           target,
           matchedTitle,
           success: true,
-          method: sentWithPhoto ? 'Banner Poster + CTA' : 'Clean CTA Message'
+          method: sentWithPhoto ? 'HD Banner Poster + CTA' : 'Clean CTA Message'
         });
 
         // Natural Human Stagger Delay (5 seconds) between groups
@@ -379,6 +380,11 @@ export async function sendPostViaUserbot(post, isTest = false) {
         console.warn(`⚠️ [Userbot] Warning for "${target}":`, postErr.message);
         results.push({ target, success: false, error: postErr.message });
       }
+    }
+
+    // Clean up temporary banner file after broadcast
+    if (tempBannerPath && fs.existsSync(tempBannerPath)) {
+      try { fs.unlinkSync(tempBannerPath); } catch (e) {}
     }
 
     await client.disconnect();
