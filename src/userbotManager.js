@@ -229,6 +229,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
 
     // 🎯 STEP 1: Post Official Channel Post with HD Photo + Website Link
     let channelEntity = null;
+    let channelPostMsgId = null;
     try {
       for (const d of dialogs) {
         const dId = String(d.id || '');
@@ -248,47 +249,65 @@ export async function sendPostViaUserbot(post, isTest = false) {
       }
 
       if (channelEntity) {
-        const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
+        // Check if message already exists
+        const msgs = await client.getMessages(channelEntity, { limit: 15 });
+        const targetTitleShort = (post.title || '').substring(0, 25).toLowerCase();
+        const match = msgs.find(m => (m.message || '').toLowerCase().includes(targetTitleShort));
         
-        if (imgBuffer) {
-          try {
-            const channelFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
-            await client.sendFile(channelEntity, {
-              file: channelFile,
-              caption: channelCaption,
-              parseMode: 'md'
-            });
-            console.log(`✓ [Userbot] Successfully posted HD Photo + Website Link to Official Channel!`);
-          } catch (chPhotoErr) {
-            console.warn('⚠️ [Userbot] Channel photo send warning:', chPhotoErr.message);
-            await client.sendMessage(channelEntity, {
+        if (match) {
+          channelPostMsgId = match.id;
+          console.log(`🎯 [Userbot] Found existing channel post ID: ${channelPostMsgId}`);
+        } else {
+          const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
+          
+          let channelMsg = null;
+          if (imgBuffer) {
+            try {
+              const channelFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
+              channelMsg = await client.sendFile(channelEntity, {
+                file: channelFile,
+                caption: channelCaption,
+                parseMode: 'md'
+              });
+              console.log(`✓ [Userbot] Successfully posted HD Photo + Website Link to Official Channel!`);
+            } catch (chPhotoErr) {
+              console.warn('⚠️ [Userbot] Channel photo send warning:', chPhotoErr.message);
+              channelMsg = await client.sendMessage(channelEntity, {
+                message: channelCaption,
+                parseMode: 'md',
+                linkPreview: true
+              });
+            }
+          } else {
+            channelMsg = await client.sendMessage(channelEntity, {
               message: channelCaption,
               parseMode: 'md',
               linkPreview: true
             });
           }
-        } else {
-          await client.sendMessage(channelEntity, {
-            message: channelCaption,
-            parseMode: 'md',
-            linkPreview: true
-          });
-          console.log(`✓ [Userbot] Posted text + link to Official Channel!`);
+
+          if (channelMsg) {
+            channelPostMsgId = channelMsg.id;
+            console.log(`✓ [Userbot] Channel post created with ID: ${channelPostMsgId}`);
+          }
         }
       }
     } catch (e) {
       console.warn('⚠️ [Userbot] Channel handler error:', e.message);
     }
 
-    const channelHandle = '@PrimeMediaOfficial';
+    // 🎯 Auto-Scroll Deep Link to Specific Message
+    const autoScrollLink = channelPostMsgId 
+      ? `https://t.me/PrimeMediaOfficial/${channelPostMsgId}` 
+      : 'https://t.me/PrimeMediaOfficial';
 
-    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero Website Links, Only HD Photo + @PrimeMediaOfficial)
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (Clickable @PrimeMediaOfficial Auto-Scrolls to the Exact Post!)
     const humanTemplates = [
-      (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
-      (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
-      (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join & Read: **${channelHandle}**\n\nIs anyone else following this?`,
-      (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 **${channelHandle}**`,
-      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
+      (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 [@PrimeMediaOfficial](${autoScrollLink})\n\nWhat do you guys think about this?`,
+      (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 [@PrimeMediaOfficial](${autoScrollLink})\n\nWhat are your thoughts?`,
+      (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join & Read: [@PrimeMediaOfficial](${autoScrollLink})\n\nIs anyone else following this?`,
+      (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 [@PrimeMediaOfficial](${autoScrollLink})`,
+      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: [@PrimeMediaOfficial](${autoScrollLink})`
     ];
 
     const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
