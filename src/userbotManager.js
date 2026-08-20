@@ -291,17 +291,19 @@ export async function sendPostViaUserbot(post, isTest = false) {
       console.warn('⚠️ [Userbot] Channel deep-link resolver error:', e.message);
     }
 
-    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (Zero External Links, Points Directly to the Exact Channel Post)
+    const channelHandle = '@PrimeMediaOfficial';
+
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero URLs / Zero t.me links, Only Clean @Mention)
     const humanTemplates = [
-      (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates:\n📢 ${url}\n\nWhat do you guys think about this?`,
-      (title, desc, url) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 ${url}\n\nWhat are your thoughts?`,
-      (title, desc, url) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Read Full Story: ${url}\n\nIs anyone else following this?`,
-      (title, desc, url) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 ${url}`,
-      (title, desc, url) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Story: ${url}`
+      (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
+      (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
+      (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join & Read: **${channelHandle}**\n\nIs anyone else following this?`,
+      (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 **${channelHandle}**`,
+      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
     ];
 
     const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
-    const groupCtaMessage = randomTemplate(post.title, post.metaDescription, channelPostUrl);
+    const groupCtaMessage = randomTemplate(post.title, post.metaDescription);
 
     for (const target of finalTargets) {
       try {
