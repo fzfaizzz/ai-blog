@@ -297,8 +297,10 @@ export async function sendPostViaUserbot(post, isTest = false) {
     }
 
     const channelHandle = '@PrimeMediaOfficial';
+    const cleanTitle = (post.title || '').replace(/[*_`\[\]()]/g, '').trim();
+    const cleanDesc = (post.metaDescription || '').replace(/[*_`\[\]()]/g, '').trim();
 
-    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero URLs / Zero t.me links, Pure Clean @Mention)
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero URLs, Pure Clean @Mention)
     const humanTemplates = [
       (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
       (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
@@ -308,7 +310,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
     ];
 
     const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
-    const groupCtaMessage = randomTemplate(post.title, post.metaDescription);
+    const groupCtaMessage = randomTemplate(cleanTitle, cleanDesc);
 
     for (const target of finalTargets) {
       try {
@@ -352,7 +354,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
         }
 
         if (!targetEntity) {
-          throw new Error(`Could not find group "${target}". Make sure your Telegram account is a member of this group.`);
+          throw new Error(`Group "${target}" not found in joined dialogs. Make sure your account has joined this group.`);
         }
 
         const matchedTitle = targetEntity.title || targetEntity.username || target;
@@ -412,8 +414,16 @@ export async function sendPostViaUserbot(post, isTest = false) {
         // Natural Human Stagger Delay (5 seconds) between groups
         await new Promise(r => setTimeout(r, 5000));
       } catch (postErr) {
-        console.warn(`⚠️ [Userbot] Warning for "${target}":`, postErr.message);
-        results.push({ target, success: false, error: postErr.message });
+        let friendlyError = postErr.message;
+        if (postErr.message.includes('CHAT_WRITE_FORBIDDEN') || postErr.message.includes('403')) {
+          friendlyError = 'Group is locked by Admin / Requires human captcha solve in Telegram app';
+        } else if (postErr.message.includes('SLOWMODE_WAIT')) {
+          friendlyError = 'Group slowmode active';
+        } else if (postErr.message.includes('FLOOD_WAIT')) {
+          friendlyError = 'Telegram flood wait active';
+        }
+        console.warn(`⚠️ [Userbot] Warning for "${target}":`, friendlyError);
+        results.push({ target, success: false, error: friendlyError });
       }
     }
 
