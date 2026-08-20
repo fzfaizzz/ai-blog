@@ -120,6 +120,25 @@ app.get('/post/:slug', (req, res) => {
   if (post.contentHtml) {
     html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${post.contentHtml}</article>`);
   }
+
+  // 🔗 Inject SSR Internal Links (Recommended Stories) for Googlebot Rapid Discovery & Crawling
+  try {
+    const allPosts = getAllPosts();
+    const relatedPosts = allPosts.filter(p => p.slug !== post.slug).slice(0, 4);
+    const recommendedHtml = relatedPosts.map(r => `
+      <div class="recommended-card" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.75rem;">
+        <a href="/post/${escapeHtml(r.slug)}" style="text-decoration: none; color: inherit; display: flex; gap: 0.75rem; align-items: center;">
+          ${r.imageUrl ? `<img src="${r.imageUrl}" alt="${escapeHtml(r.title)}" style="width: 70px; height: 50px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />` : ''}
+          <div>
+            <h4 style="font-size: 0.85rem; font-weight: 700; line-height: 1.3; margin: 0; color: #0F172A;">${escapeHtml(r.title)}</h4>
+            <span style="font-size: 0.72rem; color: #DC2626; font-weight: 600; text-transform: uppercase;">${escapeHtml(r.category || 'News')}</span>
+          </div>
+        </a>
+      </div>
+    `).join('');
+
+    html = html.replace(/<div id="recommendedGrid"[^>]*>[\s\S]*?<\/div>/i, `<div id="recommendedGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">${recommendedHtml}</div>`);
+  } catch (recErr) {}
   
   res.send(html);
 });
