@@ -296,18 +296,15 @@ export async function sendPostViaUserbot(post, isTest = false) {
       console.warn('⚠️ [Userbot] Channel handler error:', e.message);
     }
 
-    // 🎯 Auto-Scroll Deep Link to Specific Message
-    const autoScrollLink = channelPostMsgId 
-      ? `https://t.me/PrimeMediaOfficial/${channelPostMsgId}` 
-      : 'https://t.me/PrimeMediaOfficial';
+    const channelHandle = '@PrimeMediaOfficial';
 
-    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (Clickable @PrimeMediaOfficial Auto-Scrolls to the Exact Post!)
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero URLs / Zero t.me links, Pure Clean @Mention)
     const humanTemplates = [
-      (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 [@PrimeMediaOfficial](${autoScrollLink})\n\nWhat do you guys think about this?`,
-      (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 [@PrimeMediaOfficial](${autoScrollLink})\n\nWhat are your thoughts?`,
-      (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join & Read: [@PrimeMediaOfficial](${autoScrollLink})\n\nIs anyone else following this?`,
-      (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 [@PrimeMediaOfficial](${autoScrollLink})`,
-      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: [@PrimeMediaOfficial](${autoScrollLink})`
+      (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
+      (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
+      (title, desc) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Join & Read: **${channelHandle}**\n\nIs anyone else following this?`,
+      (title, desc) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 **${channelHandle}**`,
+      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Channel: **${channelHandle}**`
     ];
 
     const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
