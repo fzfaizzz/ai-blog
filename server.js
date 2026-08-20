@@ -502,6 +502,10 @@ app.post('/api/test-userbot-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
+  // 1. Ensure official post with photo & website link is sent to channel first
+  await sendPostToTelegram(posts[0], true).catch(e => console.error('Telegram test bot error:', e));
+  
+  // 2. Post to public groups via Userbot with HD Photo Banner + exact deep-link
   const result = await sendPostViaUserbot(posts[0], true);
   res.json(result);
 });

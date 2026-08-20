@@ -3,11 +3,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Api, TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
+import { CustomFile } from 'telegram/client/uploads.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CONFIG_FILE = path.join(__dirname, '../data/userbot_config.json');
-const HISTORY_FILE = path.join(__dirname, '../data/userbot_history.json');
+const DATA_DIR = path.join(__dirname, '../data');
+const CONFIG_FILE = path.join(DATA_DIR, 'userbot_config.json');
+const HISTORY_FILE = path.join(DATA_DIR, 'userbot_history.json');
 
 // Get Userbot Config
 export function getUserbotConfig() {
@@ -202,24 +204,28 @@ export async function sendPostViaUserbot(post, isTest = false) {
   try {
     await client.connect();
 
-    // Pre-download HD banner image to local temp file for 100% reliable Telegram MTProto Photo upload
-    let tempBannerPath = null;
+    // Pre-upload HD banner image to Telegram servers via CustomFile
+    let uploadedMedia = null;
     if (post.imageUrl && (post.imageUrl.startsWith('http://') || post.imageUrl.startsWith('https://'))) {
       try {
         const imgRes = await fetch(post.imageUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
           },
-          signal: AbortSignal.timeout(8000)
+          signal: AbortSignal.timeout(10000)
         });
         if (imgRes.ok) {
           const ab = await imgRes.arrayBuffer();
-          tempBannerPath = path.join(dataDir, `temp_banner_${Date.now()}.jpg`);
-          fs.writeFileSync(tempBannerPath, Buffer.from(ab));
-          console.log(`🖼️ [Userbot] HD Banner saved to temp file (${ab.byteLength} bytes): ${tempBannerPath}`);
+          const imgBuffer = Buffer.from(ab);
+          const customFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
+          uploadedMedia = await client.uploadFile({
+            file: customFile,
+            workers: 1,
+          });
+          console.log(`🖼️ [Userbot] HD Banner uploaded to Telegram servers (${imgBuffer.length} bytes)!`);
         }
       } catch (bufErr) {
-        console.warn('⚠️ [Userbot] Could not pre-fetch banner image buffer:', bufErr.message);
+        console.warn('⚠️ [Userbot] Could not upload banner image:', bufErr.message);
       }
     }
 
@@ -261,9 +267,9 @@ export async function sendPostViaUserbot(post, isTest = false) {
           const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
           
           let channelMsg = null;
-          if (tempBannerPath && fs.existsSync(tempBannerPath)) {
+          if (uploadedMedia) {
             channelMsg = await client.sendFile(channelEntity, {
-              file: tempBannerPath,
+              file: uploadedMedia,
               caption: channelCaption,
               parseMode: 'md'
             });
@@ -365,10 +371,10 @@ export async function sendPostViaUserbot(post, isTest = false) {
 
         // 🖼️ Send HD Banner Poster with Clean Channel CTA
         let sentWithPhoto = false;
-        if (tempBannerPath && fs.existsSync(tempBannerPath)) {
+        if (uploadedMedia) {
           try {
             await client.sendFile(targetEntity, {
-              file: tempBannerPath,
+              file: uploadedMedia,
               caption: groupCtaMessage,
               parseMode: 'md'
             });
@@ -401,11 +407,6 @@ export async function sendPostViaUserbot(post, isTest = false) {
         console.warn(`⚠️ [Userbot] Warning for "${target}":`, postErr.message);
         results.push({ target, success: false, error: postErr.message });
       }
-    }
-
-    // Clean up temporary banner file after broadcast
-    if (tempBannerPath && fs.existsSync(tempBannerPath)) {
-      try { fs.unlinkSync(tempBannerPath); } catch (e) {}
     }
 
     await client.disconnect();
