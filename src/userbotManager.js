@@ -226,7 +226,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
     // Fetch user's joined dialogs for smart entity matching
     const dialogs = await client.getDialogs({});
 
-    // 🎯 Resolve Exact Channel Post Deep-Link (e.g. https://t.me/PrimeMediaOfficial/158)
+    // 🎯 STEP 1: Resolve (or Post) Official Channel Post with HD Photo + Website Link
     // When users in public groups click this link, Telegram DIRECTLY SCROLLS & JUMPS to this specific article!
     let channelPostUrl = 'https://t.me/PrimeMediaOfficial';
     try {
@@ -249,28 +249,49 @@ export async function sendPostViaUserbot(post, isTest = false) {
       }
 
       if (channelEntity) {
-        const msgs = await client.getMessages(channelEntity, { limit: 15 });
+        const msgs = await client.getMessages(channelEntity, { limit: 20 });
         const targetTitleShort = (post.title || '').substring(0, 25).toLowerCase();
         const match = msgs.find(m => (m.message || '').toLowerCase().includes(targetTitleShort));
+        
         if (match) {
           channelPostUrl = `https://t.me/PrimeMediaOfficial/${match.id}`;
-          console.log(`🎯 [Userbot] Resolved exact post deep-link: ${channelPostUrl}`);
-        } else if (msgs.length > 0) {
-          channelPostUrl = `https://t.me/PrimeMediaOfficial/${msgs[0].id}`;
-          console.log(`🎯 [Userbot] Using latest channel post deep-link: ${channelPostUrl}`);
+          console.log(`🎯 [Userbot] Found existing channel post deep-link: ${channelPostUrl}`);
+        } else {
+          // If not yet on channel, post official article with HD Photo + Direct Website Link!
+          const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
+          
+          let channelMsg = null;
+          if (tempBannerPath && fs.existsSync(tempBannerPath)) {
+            channelMsg = await client.sendFile(channelEntity, {
+              file: tempBannerPath,
+              caption: channelCaption,
+              parseMode: 'md'
+            });
+          } else {
+            channelMsg = await client.sendMessage(channelEntity, {
+              message: channelCaption,
+              parseMode: 'md',
+              linkPreview: true
+            });
+          }
+
+          if (channelMsg) {
+            channelPostUrl = `https://t.me/PrimeMediaOfficial/${channelMsg.id}`;
+            console.log(`✓ [Userbot] Created Official Channel post with HD Photo + Website Link: ${channelPostUrl}`);
+          }
         }
       }
     } catch (e) {
-      console.warn('⚠️ [Userbot] Channel deep-link resolver:', e.message);
+      console.warn('⚠️ [Userbot] Channel deep-link resolver error:', e.message);
     }
 
-    // 2️⃣ Public Groups Call-To-Action (CTA) Format (Points Directly to the Specific Article Post)
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (Zero External Links, Points Directly to the Exact Channel Post)
     const humanTemplates = [
       (title, desc, url) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates:\n📢 ${url}\n\nWhat do you guys think about this?`,
       (title, desc, url) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 ${url}\n\nWhat are your thoughts?`,
       (title, desc, url) => `📌 Big Update: **${title}**!\n\nRead the full analytical story & key highlights:\n📢 Read Full Story: ${url}\n\nIs anyone else following this?`,
       (title, desc, url) => `Trending right now: **${title}**\n\n${desc ? desc.substring(0, 130) + '...' : ''}\n\nFull official story & facts:\n👉 ${url}`,
-      (title, desc) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Story: ${channelPostUrl}`
+      (title, desc, url) => `Check this out: **${title}**\n\nComplete breakdown, key data & source updates:\n📢 Official Story: ${url}`
     ];
 
     const randomTemplate = humanTemplates[Math.floor(Math.random() * humanTemplates.length)];
