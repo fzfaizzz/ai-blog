@@ -226,7 +226,11 @@ app.get('/sitemap.xml', (req, res) => {
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
-  xml += `  <url>\n    <loc>${baseUrl}/index.html</loc>\n    <priority>1.0</priority>\n    <changefreq>daily</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}</loc>\n    <priority>1.0</priority>\n    <changefreq>daily</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}/about.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}/privacy.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}/terms.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}/contact.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
 
   posts.forEach(post => {
     const postDate = new Date(post.publishedAt || Date.now());

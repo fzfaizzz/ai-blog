@@ -42,7 +42,11 @@ async function loadHomepagePosts(category = null, page = null) {
   sessionStorage.setItem('homepage_page', currentPage);
   try {
     const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('page', currentPage);
+    if (currentPage > 1) {
+      newUrl.searchParams.set('page', currentPage);
+    } else {
+      newUrl.searchParams.delete('page');
+    }
     window.history.replaceState(null, '', newUrl.toString());
   } catch (e) {}
 
