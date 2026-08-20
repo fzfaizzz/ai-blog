@@ -204,8 +204,8 @@ export async function sendPostViaUserbot(post, isTest = false) {
   try {
     await client.connect();
 
-    // Pre-upload HD banner image to Telegram servers via CustomFile
-    let uploadedMedia = null;
+    // Pre-download HD banner image buffer in memory
+    let imgBuffer = null;
     if (post.imageUrl && (post.imageUrl.startsWith('http://') || post.imageUrl.startsWith('https://'))) {
       try {
         const imgRes = await fetch(post.imageUrl, {
@@ -216,24 +216,18 @@ export async function sendPostViaUserbot(post, isTest = false) {
         });
         if (imgRes.ok) {
           const ab = await imgRes.arrayBuffer();
-          const imgBuffer = Buffer.from(ab);
-          const customFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
-          uploadedMedia = await client.uploadFile({
-            file: customFile,
-            workers: 1,
-          });
-          console.log(`🖼️ [Userbot] HD Banner uploaded to Telegram servers (${imgBuffer.length} bytes)!`);
+          imgBuffer = Buffer.from(ab);
+          console.log(`🖼️ [Userbot] HD Banner fetched into memory (${imgBuffer.length} bytes)!`);
         }
       } catch (bufErr) {
-        console.warn('⚠️ [Userbot] Could not upload banner image:', bufErr.message);
+        console.warn('⚠️ [Userbot] Could not fetch banner image buffer:', bufErr.message);
       }
     }
 
     // Fetch user's joined dialogs for smart entity matching
     const dialogs = await client.getDialogs({});
 
-    // 🎯 STEP 1: Resolve (or Post) Official Channel Post with HD Photo + Website Link
-    let channelPostMsgId = null;
+    // 🎯 STEP 1: Post Official Channel Post with HD Photo + Website Link
     let channelEntity = null;
     try {
       for (const d of dialogs) {
@@ -254,36 +248,32 @@ export async function sendPostViaUserbot(post, isTest = false) {
       }
 
       if (channelEntity) {
-        const msgs = await client.getMessages(channelEntity, { limit: 20 });
-        const targetTitleShort = (post.title || '').substring(0, 25).toLowerCase();
-        const match = msgs.find(m => (m.message || '').toLowerCase().includes(targetTitleShort));
+        const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
         
-        if (match) {
-          channelPostMsgId = match.id;
-          console.log(`🎯 [Userbot] Found existing channel post ID: ${channelPostMsgId}`);
-        } else {
-          // If not yet on channel, post official article with HD Photo + Direct Website Link!
-          const channelCaption = `🔥 **${post.title}**\n\n${post.metaDescription || ''}\n\n📖 **Read Full Story & Analysis on Prime Media:**\n👉 ${postUrl}\n\n#PrimeMedia #News #Breaking`;
-          
-          let channelMsg = null;
-          if (uploadedMedia) {
-            channelMsg = await client.sendFile(channelEntity, {
-              file: uploadedMedia,
+        if (imgBuffer) {
+          try {
+            const channelFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
+            await client.sendFile(channelEntity, {
+              file: channelFile,
               caption: channelCaption,
               parseMode: 'md'
             });
-          } else {
-            channelMsg = await client.sendMessage(channelEntity, {
+            console.log(`✓ [Userbot] Successfully posted HD Photo + Website Link to Official Channel!`);
+          } catch (chPhotoErr) {
+            console.warn('⚠️ [Userbot] Channel photo send warning:', chPhotoErr.message);
+            await client.sendMessage(channelEntity, {
               message: channelCaption,
               parseMode: 'md',
               linkPreview: true
             });
           }
-
-          if (channelMsg) {
-            channelPostMsgId = channelMsg.id;
-            console.log(`✓ [Userbot] Created Official Channel post with HD Photo + Website Link (ID: ${channelPostMsgId})`);
-          }
+        } else {
+          await client.sendMessage(channelEntity, {
+            message: channelCaption,
+            parseMode: 'md',
+            linkPreview: true
+          });
+          console.log(`✓ [Userbot] Posted text + link to Official Channel!`);
         }
       }
     } catch (e) {
@@ -292,7 +282,7 @@ export async function sendPostViaUserbot(post, isTest = false) {
 
     const channelHandle = '@PrimeMediaOfficial';
 
-    // 🎯 Public Groups Clean CTA Format
+    // 🎯 STEP 2: Public Groups Call-To-Action (CTA) Format (100% Anti-Bot Safe: Zero Website Links, Only HD Photo + @PrimeMediaOfficial)
     const humanTemplates = [
       (title, desc) => `🎬 **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\n👉 Full story breakdown & verified updates posted here:\n📢 **${channelHandle}**\n\nWhat do you guys think about this?`,
       (title, desc) => `🔥 Breaking News: **${title}**\n\n${desc ? desc.substring(0, 140) + '...' : ''}\n\nCatch the complete coverage & official details:\n👉 **${channelHandle}**\n\nWhat are your thoughts?`,
@@ -352,9 +342,9 @@ export async function sendPostViaUserbot(post, isTest = false) {
         const matchedTitle = targetEntity.title || targetEntity.username || target;
         const isSourceChannel = String(targetEntity.id || '') === '-1004393806831' || String(targetEntity.id || '') === '4393806831' || matchedTitle.toLowerCase().includes('prime media');
 
-        // If target is the official source channel, skip to avoid duplicate
+        // If target is the official source channel, skip because already handled in STEP 1
         if (isSourceChannel) {
-          console.log(`ℹ️ [Userbot] Skipping official channel "${matchedTitle}" (Already handled)`);
+          console.log(`ℹ️ [Userbot] Skipping official channel "${matchedTitle}" (Already posted in Step 1)`);
           results.push({ target, matchedTitle, success: true, method: 'Official Channel' });
           continue;
         }
@@ -370,57 +360,37 @@ export async function sendPostViaUserbot(post, isTest = false) {
           await new Promise(r => setTimeout(r, 1500));
         } catch (typingErr) {}
 
-        let methodUsed = 'Clean CTA Message';
-
-        // 🚀 STRATEGY A: Native Telegram Forwarding (HD Banner Photo + Auto-Scroll Channel Link Header + Zero Bot Blocks)
-        let sentViaForward = false;
-        if (channelEntity && channelPostMsgId) {
+        // 🖼️ Post HD Banner Photo + Clean @PrimeMediaOfficial CTA to Public Group (Zero External Links!)
+        let sentWithPhoto = false;
+        if (imgBuffer) {
           try {
-            await client.forwardMessages(targetEntity, {
-              messages: [channelPostMsgId],
-              fromPeer: channelEntity
+            const groupFile = new CustomFile('banner.jpg', imgBuffer.length, '', imgBuffer);
+            await client.sendFile(targetEntity, {
+              file: groupFile,
+              caption: groupCtaMessage,
+              parseMode: 'md'
             });
-            sentViaForward = true;
-            methodUsed = 'Native Channel Forward (Auto-Scroll)';
-            console.log(`✓ [Userbot] Successfully FORWARDED post to "${matchedTitle}" (Auto-Scroll Enabled)`);
-          } catch (fwdErr) {
-            console.warn(`⚠️ [Userbot] Forward restricted for "${matchedTitle}" (${fwdErr.message}), falling back to direct HD photo upload...`);
+            sentWithPhoto = true;
+            console.log(`✓ [Userbot] Successfully posted HD BANNER PHOTO + CTA to "${matchedTitle}"`);
+          } catch (fileErr) {
+            console.warn(`⚠️ [Userbot] Photo send failed for "${matchedTitle}" (${fileErr.message}), falling back to text CTA...`);
           }
         }
 
-        // 🖼️ STRATEGY B: Direct HD Banner Poster Upload (If forwards restricted)
-        if (!sentViaForward) {
-          let sentWithPhoto = false;
-          if (uploadedMedia) {
-            try {
-              await client.sendFile(targetEntity, {
-                file: uploadedMedia,
-                caption: groupCtaMessage,
-                parseMode: 'md'
-              });
-              sentWithPhoto = true;
-              methodUsed = 'HD Banner Poster + CTA';
-              console.log(`✓ [Userbot] Successfully posted HD BANNER POSTER + CTA to "${matchedTitle}"`);
-            } catch (fileErr) {
-              console.warn(`⚠️ [Userbot] Media upload failed for "${matchedTitle}" (${fileErr.message}), falling back to text CTA...`);
-            }
-          }
-
-          if (!sentWithPhoto) {
-            await client.sendMessage(targetEntity, {
-              message: groupCtaMessage,
-              parseMode: 'md',
-              linkPreview: true
-            });
-            console.log(`✓ [Userbot] Successfully sent CTA to "${matchedTitle}"`);
-          }
+        if (!sentWithPhoto) {
+          await client.sendMessage(targetEntity, {
+            message: groupCtaMessage,
+            parseMode: 'md',
+            linkPreview: true
+          });
+          console.log(`✓ [Userbot] Successfully sent CTA to "${matchedTitle}"`);
         }
 
         results.push({
           target,
           matchedTitle,
           success: true,
-          method: methodUsed
+          method: sentWithPhoto ? 'HD Banner Poster + Channel CTA' : 'Clean Channel CTA'
         });
 
         // Natural Human Stagger Delay (5 seconds) between groups
