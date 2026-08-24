@@ -28,16 +28,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 let PORT = process.env.PORT || 6060;
 
+// Enforce Strict HTTPS for all incoming crawler and user traffic
+app.use((req, res, next) => {
+  const proto = req.headers['x-forwarded-proto'];
+  const host = req.headers.host || '';
+  if (proto && proto === 'http' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+    return res.redirect(301, `https://${host}${req.url}`);
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(compression());
+
+const BASE_CANONICAL_URL = (process.env.BASE_URL || 'https://primemedia.site').replace(/^http:\/\//i, 'https://').replace(/\/+$/, '');
 
 // SSR Meta Injection for Social Crawlers & SEO
 app.get('/post/:slug', (req, res) => {
   const post = getPostBySlug(req.params.slug);
   if (!post) return res.status(404).sendFile(path.join(__dirname, 'public/index.html'));
   
-  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const baseUrl = BASE_CANONICAL_URL;
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
@@ -239,9 +251,7 @@ function escapeXml(str) {
 // Dynamic Ultra-Clean XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const host = req.get('host');
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+  const baseUrl = BASE_CANONICAL_URL;
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
@@ -276,9 +286,7 @@ app.get('/sitemap.xml', (req, res) => {
 // Dedicated Google News XML Sitemap for Google News Publisher Center (Only recent news < 48 hours)
 app.get('/news-sitemap.xml', (req, res) => {
   const posts = getAllPosts();
-  const host = req.get('host');
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+  const baseUrl = BASE_CANONICAL_URL;
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
@@ -311,9 +319,7 @@ app.get('/news-sitemap.xml', (req, res) => {
 // Official RSS 2.0 Feed Endpoints for IFTTT, Zapier & RSS Auto-Posters
 const handleRssFeed = (req, res) => {
   const posts = getAllPosts();
-  const host = req.get('host');
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+  const baseUrl = BASE_CANONICAL_URL;
 
   let rss = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
   rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n`;
