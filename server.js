@@ -207,7 +207,7 @@ const SETTINGS_FILE = path.join(__dirname, 'data/settings.json');
 let appSettings = {
   adsenseId: 'ca-pub-9492642167600744',
   autoPilotEnabled: true,
-  cronIntervalMinutes: 5,
+  cronIntervalMinutes: 45,
   adminPassword: 'Faiz@1122'
 };
 
