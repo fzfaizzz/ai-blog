@@ -95,8 +95,8 @@ export async function getTrendingTopics() {
     console.warn('⚠️ Serper API fallback:', e.message);
   }
 
-  // Step 2: Fallback to Google News US Tier-1 RSS Feeds
-  return getUsTier1RssNewsFallback();
+  // Step 2: Fallback to Live Google Trends & Google News Realtime RSS Feeds
+  return fetchGoogleTrendsRealtime(targetGl.toUpperCase());
 }
 
 /**
@@ -178,47 +178,63 @@ function getCategoryFromTitle(title) {
   return 'World Breaking News';
 }
 
-function getUsTier1RssNewsFallback() {
+/**
+ * Real-Time Google Trends & Google News RSS Feed Parser
+ */
+export function fetchGoogleTrendsRealtime(geo = 'US') {
   return new Promise((resolve) => {
-    // US Tier-1 Technology News RSS Feed
-    const rssUrl = 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en';
-    
-    https.get(rssUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+    const urls = [
+      `https://trends.google.com/trending/rss?geo=${geo}`,
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // World Breaking
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // Tech & AI
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en'  // Business & Markets
+    ];
+    const targetUrl = urls[Math.floor(Math.random() * urls.length)];
+
+    https.get(targetUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } }, (res) => {
       let xml = '';
       res.on('data', chunk => xml += chunk);
       res.on('end', () => {
         const items = [];
-        const regex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/gi;
+        // Match both standard title and Google Trends news item titles
+        const regex = /<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/gi;
         let match;
         while ((match = regex.exec(xml)) !== null) {
-          const rawTitle = match[1];
-          if (!rawTitle.includes('Google News') && items.length < 10) {
+          const rawTitle = cleanTitleString(match[1]);
+          if (isValidNewsTitle(rawTitle) && !rawTitle.toLowerCase().includes('google news') && !rawTitle.toLowerCase().includes('daily search trends') && items.length < 12) {
             items.push({
               title: rawTitle,
               category: getCategoryFromTitle(rawTitle),
-              snippet: `High eCPM US tech news coverage on ${rawTitle}.`,
-              source: 'US Press Wire',
-              date: 'Recently Published',
+              snippet: `Real-time trending news reporting on ${rawTitle}.`,
+              source: 'Google Trends & Wire',
+              date: 'Trending Now',
               link: '#'
             });
           }
         }
-        resolve(items.length > 0 ? items : [{
-          title: 'NVIDIA Unveils Next-Gen Enterprise AI Architecture in US Keynote',
-          category: 'AI & Technology (High eCPM)',
-          snippet: 'Major technological and financial shift reported in US enterprise markets.',
-          source: 'Wall Street Tech Desk',
-          date: 'Today',
-          link: '#'
-        }]);
+        resolve(items.length > 0 ? items : getUsTier1RssNewsFallback());
       });
-    }).on('error', () => resolve([{
-      title: 'Global High-Value Tech & Markets Breakthrough 2026',
-      category: 'Business & Finance (High eCPM)',
-      snippet: 'High CPM commercial market reporting.',
-      source: 'Bloomberg Media',
+    }).on('error', () => resolve(getUsTier1RssNewsFallback()));
+  });
+}
+
+function getUsTier1RssNewsFallback() {
+  return [
+    {
+      title: 'OpenAI and Google Unveil Next-Gen Autonomous AI Models for 2026',
+      category: 'AI & Next-Gen Tech',
+      snippet: 'Major breakthrough in self-reasoning AI and multi-agent systems.',
+      source: 'Wall Street Tech Desk',
       date: 'Today',
       link: '#'
-    }]));
-  });
+    },
+    {
+      title: 'SpaceX Starship Prepares for Orbital Heavy Launch with NASA Moon Landers',
+      category: 'Space & Cosmos',
+      snippet: 'Next-generation orbital spacecraft flight milestones and payload tests.',
+      source: 'Aerospace Wire',
+      date: 'Today',
+      link: '#'
+    }
+  ];
 }
