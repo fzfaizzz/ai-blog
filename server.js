@@ -38,6 +38,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// 301 Redirect /index.html to clean root / (Clean Technical SEO)
+app.get('/index.html', (req, res) => {
+  res.redirect(301, '/');
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(compression());
