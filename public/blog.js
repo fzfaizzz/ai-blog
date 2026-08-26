@@ -88,7 +88,7 @@ async function loadHomepagePosts(category = null, page = null) {
 
       if (filtered.length === 0) {
         postsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 2.5rem; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
-          🔍 No articles found matching "<strong>${escapeHtml(currentSearchQuery || currentCategory)}</strong>".
+          No articles found matching "<strong>${escapeHtml(currentSearchQuery || currentCategory)}</strong>".
         </div>`;
         if (paginationContainer) paginationContainer.innerHTML = '';
         return;
@@ -103,6 +103,13 @@ async function loadHomepagePosts(category = null, page = null) {
         const author = HUMAN_AUTHORS[0];
         const categoryTag = (currentCategory !== 'ALL') ? currentCategory : (lead.category || 'TOP STORY');
         
+        // Update Red Breaking News Ticker
+        const breakingLink = document.getElementById('breakingHeadlineLink');
+        if (breakingLink) {
+          breakingLink.innerText = lead.title;
+          breakingLink.href = `/post/${lead.slug}`;
+        }
+
         featuredStory.innerHTML = `
           <span class="featured-badge">${escapeHtml(categoryTag.toUpperCase())}</span>
           <a href="/post/${lead.slug}">
@@ -123,25 +130,83 @@ async function loadHomepagePosts(category = null, page = null) {
           const div = document.createElement('div');
           div.className = 'trending-sidebar-item';
           div.innerHTML = `
-            <span style="font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
+            <span style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
             <h4><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h4>
           `;
           trendingSidebarList.appendChild(div);
         });
       }
 
-function getPostsPerPage() {
-  const width = window.innerWidth;
-  if (width < 768) {
-    return 6;  // Phone: 6 articles (1 col x 6 rows)
-  } else if (width <= 1024) {
-    return 9;  // Tablet: 9 articles (2 col x 4.5 rows)
-  } else {
-    return 12; // PC / Laptop: 12 articles (3 col x 4 rows)
-  }
-}
+      // 4. Render Layout Type 1: Visual Spotlight 4-Card Grid (Image #1 Style)
+      const spotlightGrid = document.getElementById('spotlightGrid');
+      if (spotlightGrid) {
+        spotlightGrid.innerHTML = '';
+        const spotlightItems = filtered.length > 4 ? filtered.slice(1, 5) : filtered.slice(0, Math.min(4, filtered.length));
+        spotlightItems.forEach((post, i) => {
+          const author = HUMAN_AUTHORS[i % HUMAN_AUTHORS.length];
+          const sCard = document.createElement('div');
+          sCard.className = 'spotlight-card';
+          sCard.innerHTML = `
+            <div class="spotlight-img-wrap">
+              <a href="/post/${post.slug}">
+                <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
+              </a>
+            </div>
+            <div class="spotlight-body">
+              <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL')}</div>
+              <h4 class="spotlight-title">
+                <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
+              </h4>
+              <div class="spotlight-meta">
+                <span>By ${author.name}</span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              </div>
+            </div>
+          `;
+          spotlightGrid.appendChild(sCard);
+        });
+      }
 
-      // 4. Calculate Dynamic Device-Based Pagination Slices
+      // 5. Render Ranked Most Read Sidebar (Right Column)
+      const mostReadList = document.getElementById('mostReadList');
+      if (mostReadList) {
+        mostReadList.innerHTML = '';
+        const rankedItems = filtered.slice(0, Math.min(5, filtered.length));
+        rankedItems.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'most-read-item';
+          div.innerHTML = `
+            <div class="rank-badge ${idx === 0 ? 'top-rank' : ''}">${idx + 1}</div>
+            <h5><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h5>
+          `;
+          mostReadList.appendChild(div);
+        });
+      }
+
+      // Initialize Trending Topic Pills Click Listeners
+      document.querySelectorAll('.topic-pill').forEach(pill => {
+        pill.onclick = (e) => {
+          e.preventDefault();
+          const query = pill.getAttribute('data-query');
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput) searchInput.value = query;
+          currentSearchQuery = query;
+          currentPage = 1;
+          loadHomepagePosts();
+        };
+      });
+
+      function getPostsPerPage() {
+        const width = window.innerWidth;
+        if (width < 768) {
+          return 8;  // Phone: 8 articles in sleek row feed
+        } else if (width <= 1024) {
+          return 10;
+        } else {
+          return 12;
+        }
+      }
+
+      // 6. Calculate Dynamic Device-Based Pagination Slices
       const postsPerPage = getPostsPerPage();
       const totalPages = Math.ceil(filtered.length / postsPerPage) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
@@ -149,7 +214,7 @@ function getPostsPerPage() {
       const startIndex = (currentPage - 1) * postsPerPage;
       const paginatedPosts = filtered.slice(startIndex, startIndex + postsPerPage);
 
-      // 5. Render Main Grid
+      // 7. Render Layout Type 2: News Stream (Aaj Tak Row Format)
       postsGrid.innerHTML = '';
       paginatedPosts.forEach((post, index) => {
         const author = HUMAN_AUTHORS[(index + startIndex) % HUMAN_AUTHORS.length];
@@ -176,7 +241,7 @@ function getPostsPerPage() {
         postsGrid.appendChild(card);
       });
 
-      // 6. Render Pagination Controls
+      // 8. Render Pagination Controls
       renderPagination(totalPages);
     } else {
       postsGrid.innerHTML = '<div style="color: var(--text-subtle);">No published articles found.</div>';
@@ -253,22 +318,163 @@ function initCategoryFilter() {
 
       // Reset Search & Load Category
       currentSearchQuery = '';
-      const searchInput = document.getElementById('searchInput');
-      if (searchInput) searchInput.value = '';
-
       loadHomepagePosts(targetCat, 1);
     });
   });
+}
 
-  // Bind Search Input Handler
-  const searchInput = document.getElementById('searchInput');
+// 🔍 Global Live Search Modal System
+let cachedAllPosts = [];
+
+async function fetchAllPostsForSearch() {
+  if (cachedAllPosts.length > 0) return cachedAllPosts;
+  try {
+    const res = await fetch('/api/posts');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.posts)) {
+      cachedAllPosts = data.posts;
+      return cachedAllPosts;
+    }
+  } catch (e) {
+    console.error('Error fetching posts for search:', e);
+  }
+  return [];
+}
+
+function initGlobalSearchModal() {
+  // 1. Ensure Search Modal DOM element exists on page
+  let modal = document.getElementById('globalSearchModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'globalSearchModal';
+    modal.className = 'search-modal-backdrop';
+    modal.innerHTML = `
+      <div class="search-modal-dialog">
+        <div class="search-modal-header">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="#64748B" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="modalSearchInput" class="search-modal-input" placeholder="Search news, reports, topics..." autocomplete="off" />
+          <button type="button" id="closeSearchModalBtn" class="search-modal-close" aria-label="Close search">✕</button>
+        </div>
+        <div class="search-modal-quick-tags">
+          <span class="search-quick-label">Trending:</span>
+          <span class="search-quick-pill" data-query="Nvidia">Nvidia AI</span>
+          <span class="search-quick-pill" data-query="Stock Market">Stock Market</span>
+          <span class="search-quick-pill" data-query="Artificial Intelligence">AI &amp; Tech</span>
+          <span class="search-quick-pill" data-query="Economy">Global Economy</span>
+          <span class="search-quick-pill" data-query="Crypto">Crypto</span>
+          <span class="search-quick-pill" data-query="Space">Space</span>
+        </div>
+        <div id="modalSearchResults" class="search-modal-results">
+          <!-- Live results populated dynamically -->
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const searchInput = document.getElementById('modalSearchInput');
+  const searchResults = document.getElementById('modalSearchResults');
+  const closeBtn = document.getElementById('closeSearchModalBtn');
+
+  async function renderLiveSearchResults(query) {
+    const posts = await fetchAllPostsForSearch();
+    if (!searchResults) return;
+
+    let matched = posts;
+    const q = (query || '').trim().toLowerCase();
+
+    if (q) {
+      matched = posts.filter(p => 
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.metaDescription || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (matched.length === 0) {
+      searchResults.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: #64748B;">
+          <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 0.25rem;">No stories found</div>
+          <div style="font-size: 0.85rem;">No articles matched "<strong>${escapeHtml(query)}</strong>". Try another keyword.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const displayItems = matched.slice(0, 8);
+    searchResults.innerHTML = `
+      <div style="font-size: 0.72rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; padding-left: 0.2rem;">
+        ${q ? `Search Results (${matched.length})` : 'Top Trending & Latest Stories'}
+      </div>
+      ${displayItems.map(p => `
+        <a href="/post/${p.slug}" class="search-result-row">
+          <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" class="search-result-thumb" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
+          <div class="search-result-info">
+            <div class="search-result-category">${escapeHtml(p.category || 'NEWS')}</div>
+            <h5 class="search-result-title">${escapeHtml(p.title)}</h5>
+            <div class="search-result-date">${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          </div>
+          <span class="search-result-action">Read ➔</span>
+        </a>
+      `).join('')}
+    `;
+  }
+
+  function openSearchModal() {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (searchInput) {
+      searchInput.value = '';
+      setTimeout(() => searchInput.focus(), 80);
+    }
+    renderLiveSearchResults('');
+  }
+
+  function closeSearchModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Bind All Search Trigger Buttons
+  document.querySelectorAll('.global-search-trigger').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      openSearchModal();
+    };
+  });
+
+  if (closeBtn) closeBtn.onclick = closeSearchModal;
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeSearchModal();
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeSearchModal();
+    }
+  });
+
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      currentSearchQuery = e.target.value;
-      currentPage = 1;
-      loadHomepagePosts(null, 1);
+      renderLiveSearchResults(e.target.value);
     });
   }
+
+  // Quick Topic Pills in Modal
+  modal.querySelectorAll('.search-quick-pill').forEach(pill => {
+    pill.onclick = () => {
+      const q = pill.getAttribute('data-query');
+      if (searchInput) {
+        searchInput.value = q;
+        searchInput.focus();
+      }
+      renderLiveSearchResults(q);
+    };
+  });
 }
 
 function setMetaTag(property, content) {
@@ -340,10 +546,21 @@ async function loadSingleArticle() {
       if (document.getElementById('postFeaturedImg')) document.getElementById('postFeaturedImg').src = p.imageUrl;
       if (document.getElementById('postCategoryPill')) document.getElementById('postCategoryPill').innerText = (p.category || 'TECHNOLOGY').toUpperCase();
 
+      // Breadcrumb Dynamic Binding
+      if (document.getElementById('breadcrumbCategory')) {
+        document.getElementById('breadcrumbCategory').innerText = p.category || 'Technology';
+        document.getElementById('breadcrumbCategory').href = `/#category-${(p.category || 'technology').toLowerCase()}`;
+      }
+      if (document.getElementById('breadcrumbCurrent')) {
+        document.getElementById('breadcrumbCurrent').innerText = p.title;
+      }
+
+      // Author Byline & Bio Binding
       if (document.getElementById('authorInitials')) document.getElementById('authorInitials').innerText = author.initials;
-      if (document.getElementById('authorSignoffInitials')) document.getElementById('authorSignoffInitials').innerText = author.initials;
+      if (document.getElementById('bioAvatar')) document.getElementById('bioAvatar').innerText = author.initials;
       if (document.getElementById('postAuthorName')) document.getElementById('postAuthorName').innerText = `By ${author.name}`;
-      if (document.getElementById('signoffAuthorTitle')) document.getElementById('signoffAuthorTitle').innerText = `Written by ${author.name}`;
+      if (document.getElementById('bioAuthorName')) document.getElementById('bioAuthorName').innerText = author.name;
+      if (document.getElementById('bioAuthorRole')) document.getElementById('bioAuthorRole').innerText = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA.`;
       if (document.getElementById('postPublishDate')) document.getElementById('postPublishDate').innerText = `${author.role} • Published ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
       if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
 
@@ -407,24 +624,20 @@ async function loadRecommendedArticles(currentSlug, category) {
       if (midPlaceholder) {
         const midPosts = otherPosts.slice(0, 2);
         midPlaceholder.innerHTML = `
-          <div class="in-article-recommended" style="margin: 2.5rem 0; padding: 1.5rem 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;">
-            <h4 style="font-family: var(--font-heading); font-size: 1.05rem; font-weight: 800; color: #0F172A; margin: 0 0 1.25rem 0; text-transform: uppercase; letter-spacing: 0.04em;">
-              Related Stories
+          <div class="in-article-recommended" style="margin: 2rem 0; padding: 1.25rem 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;">
+            <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0 0 1rem 0; text-transform: uppercase; letter-spacing: 0.04em;">
+              Related Analysis
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
               ${midPosts.map(p => `
-                <div class="article-card" style="display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
-                  <a href="/post/${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
-                    <div style="width: 100%; height: 140px; overflow: hidden; background: #0F172A; position: relative;">
-                      <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
-                    </div>
-                    <div style="padding: 0.9rem; display: flex; flex-direction: column; flex-grow: 1;">
-                      <span style="font-size: 0.675rem; font-weight: 800; color: #2563EB; text-transform: uppercase; margin-bottom: 0.35rem;">${escapeHtml(p.category || 'NEWS')}</span>
-                      <h5 style="font-family: var(--font-heading); font-size: 0.925rem; font-weight: 700; line-height: 1.35; color: #0F172A; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${escapeHtml(p.title)}
-                      </h5>
-                    </div>
-                  </a>
+                <div style="display: flex; gap: 0.75rem; align-items: center; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.6rem;">
+                  <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
+                  <div style="flex: 1; min-width: 0;">
+                    <span style="font-size: 0.65rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'NEWS')}</span>
+                    <h5 style="font-family: var(--font-heading); font-size: 0.825rem; font-weight: 700; line-height: 1.3; margin: 0.2rem 0 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
+                    </h5>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -432,29 +645,24 @@ async function loadRecommendedArticles(currentSlug, category) {
         `;
       }
 
-      // 2. Render Bottom Grid (3 Posts)
+      // 2. Render Bottom Grid (3 Posts in Sleek News Row / Card Format)
       if (bottomGrid) {
         const bottomPosts = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
         bottomGrid.innerHTML = bottomPosts.map(p => `
-          <article class="article-card" style="display: flex; flex-direction: column; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;">
-            <a href="/post/${p.slug}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
-              <div style="width: 100%; height: 160px; overflow: hidden; background: #000; position: relative;">
-                <img src="${p.imageUrl}" alt="${p.title}" style="width: 100%; height: 100%; object-fit: contain; background: #0F172A;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
-              </div>
-              <div style="padding: 1.15rem; display: flex; flex-direction: column; flex-grow: 1;">
-                <div style="font-size: 0.725rem; font-weight: 800; color: #2563EB; letter-spacing: 0.05em; margin-bottom: 0.4rem; text-transform: uppercase;">
-                  ${p.category || 'WORLD NEWS'}
-                </div>
-                <h4 style="font-family: var(--font-heading); font-size: 1.05rem; line-height: 1.35; color: var(--text-main); margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                  ${p.title}
-                </h4>
-                <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: auto; display: flex; justify-content: space-between; align-items: center;">
-                  <span>⏱️ ${p.readTimeMinutes || 5} min read</span>
-                  <span style="color: #2563EB; font-weight: 700;">Read ➔</span>
-                </div>
-              </div>
+          <div style="display: flex; gap: 0.85rem; align-items: center; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; transition: transform 0.2s, box-shadow 0.2s;">
+            <a href="/post/${p.slug}" style="flex-shrink: 0; display: block;">
+              <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 95px; height: 70px; object-fit: cover; border-radius: 6px; display: block;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
             </a>
-          </article>
+            <div style="flex: 1; min-width: 0;">
+              <span style="font-size: 0.68rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'WORLD NEWS')}</span>
+              <h4 style="font-family: var(--font-heading); font-size: 0.88rem; font-weight: 700; line-height: 1.35; margin: 0.25rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
+              </h4>
+              <div style="font-size: 0.72rem; color: #64748B;">
+                <span>${p.readTimeMinutes || 5} min read</span>
+              </div>
+            </div>
+          </div>
         `).join('');
       }
     }
@@ -1706,6 +1914,9 @@ window.togglePassVisibility = function(inputId, btnEl) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Always initialize Global Live Search Modal on all pages
+  initGlobalSearchModal();
+
   if (document.getElementById('postsGrid')) {
     loadHomepagePosts();
     initCategoryFilter();

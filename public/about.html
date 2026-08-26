@@ -17,9 +17,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About Us — PRIME MEDIA</title>
   <link rel="stylesheet" href="/style.css">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="shortcut icon" href="/favicon.ico">
@@ -27,49 +26,146 @@
   <meta name="theme-color" content="#0F172A">
 </head>
 <body>
-  <header>
-    <div class="container navbar">
-      <a href="/" class="logo" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;"><img src="/logo.png" alt="Prime Media" style="height: 32px; width: 32px; object-fit: contain; border-radius: 4px;" /><span style="font-weight: 800; font-size: 1.1rem; color: #FFF;">PRIME MEDIA</span></a>
-      <ul class="nav-links">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About Us</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms of Service</a></li>
-        <li><a href="contact.html">Contact Us</a></li>
-      </ul>
-    </div>
-  </header>
-  <div class="container" style="max-width: 800px; margin: 3rem auto; padding: 0 1rem;">
-    <div class="admin-card">
-      <h1 style="font-family: var(--font-heading); font-size: 2rem; margin-bottom: 1.5rem; color: #0F172A;">About Prime Media & Editorial Standards</h1>
-      <p style="margin-bottom: 1.5rem;">Welcome to <strong>Prime Media</strong> (https://primemedia.site)! We are a premier independent digital media publication dedicated to delivering high-impact, analytical, and real-time coverage on Hollywood, Movies, High-Tech, Artificial Intelligence, and Global Financial Trends.</p>
-      
-      <h2 style="font-size: 1.3rem; margin-top: 2rem; margin-bottom: 0.75rem;">Our Mission</h2>
-      <p>At Prime Media, our mission is to provide global readers with clear, fact-checked, and in-depth reporting. We combine automated real-time wire monitoring with rigorous journalistic standards to produce comprehensive stories that keep you ahead of the curve.</p>
-
-      <h2 style="font-size: 1.3rem; margin-top: 2rem; margin-bottom: 0.75rem;">Editorial Integrity & Fact-Checking</h2>
-      <p>Every story published on Prime Media undergoes automated and human fact-checking protocols against verified wire sources, official press releases, and reputable primary reporting desks worldwide.</p>
-
-      <h2 style="font-size: 1.3rem; margin-top: 2rem; margin-bottom: 0.75rem;">Contact Information</h2>
-      <p>Have questions, press releases, or editorial feedback? Reach out to our editorial desk:</p>
-      <p style="font-weight: 600; color: #2563EB;">Email: contact@primemedia.site</p>
+  <!-- 🌟 Top Thin Utility Bar -->
+  <div class="top-utility-bar">
+    <div class="container">
+      <span class="top-brand-text">Prime Media</span>
+      <div class="top-utility-links">
+        <a href="/about.html">About</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/privacy.html">Privacy</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/terms.html">Terms</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/contact.html">Contact</a>
+      </div>
     </div>
   </div>
-  <footer>
-    <div class="container footer-content">
-      <div>
-        <h4 style="color: #FFF; font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 0.25rem;">PRIME MEDIA</h4>
-        <div style="font-size: 0.825rem; color: #64748B; margin-bottom: 0.5rem;">🗓️ Global Digital Edition • Independent Daily Journalism</div>
-        <p>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</p>
+
+  <!-- 🌟 Main 1-Line News Navigation Header -->
+  <header class="main-news-header">
+    <div class="container header-flex-row">
+      <!-- 1. Left 3D Pop-out Logo Badge -->
+      <div class="header-logo-3d-wrap">
+        <a href="/" class="logo-3d-badge" title="Prime Media Home">
+          <img src="/logo2.png" alt="Prime Media Logo" />
+        </a>
       </div>
-      <div class="footer-links">
-        <a href="index.html">Home</a>
-        <a href="about.html">About Us</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms of Service</a>
-        <a href="contact.html">Contact Us</a>
+
+      <!-- 2. Center Categories in same row -->
+      <nav class="header-nav-center">
+        <ul class="category-nav-bar">
+          <li><a href="/#category-technology">Technology</a></li>
+          <li><a href="/#category-business">Business &amp; Markets</a></li>
+          <li><a href="/#category-ai">AI &amp; Tech</a></li>
+          <li><a href="/#category-world">World News</a></li>
+          <li><a href="/#category-science">Science &amp; Space</a></li>
+        </ul>
+      </nav>
+
+      <!-- 3. Right Search in same row -->
+      <div class="header-right-tools">
+        <button type="button" class="global-search-trigger" id="globalSearchBtn" aria-label="Search Prime Media" title="Search News">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
       </div>
     </div>
+  </header>
+  <div class="container" style="max-width: 860px; margin: 2.5rem auto; padding: 0 1rem;">
+    <div class="admin-card" style="padding: 2.5rem 2rem;">
+      <span style="display: inline-block; color: #DC2626; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">ABOUT PRIME MEDIA</span>
+      <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; margin-bottom: 1.25rem; color: #0F172A; line-height: 1.25;">Editorial Standards, Mission &amp; Ethics</h1>
+      
+      <p style="font-size: 1.05rem; line-height: 1.7; color: #334155; margin-bottom: 1.5rem;">
+        <strong>PRIME MEDIA</strong> is an independent digital news organization committed to delivering authoritative, real-time reporting on technology breakthroughs, artificial intelligence developments, financial market dynamics, and global geopolitics.
+      </p>
+      
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #0F172A; margin-top: 2rem; margin-bottom: 0.75rem; border-left: 4px solid #DC2626; padding-left: 0.65rem;">Our Journalistic Mission</h2>
+      <p style="line-height: 1.7; color: #475569;">
+        Our mission is to empower global readers, industry executives, and engineers with accurate, verified, and contextualized reporting. In an era of rapid information flow and misinformation, Prime Media serves as a trusted filter, offering deep analytical journalism across five specialized news desks:
+      </p>
+      <ul style="margin: 0.75rem 0 1.5rem 1.5rem; line-height: 1.8; color: #334155;">
+        <li><strong>Technology &amp; Innovation:</strong> Deep dives into enterprise computing, semiconductor advances, and consumer technology.</li>
+        <li><strong>Artificial Intelligence:</strong> Critical reporting on LLM models, autonomous systems, ethics, and regulatory policy.</li>
+        <li><strong>Business &amp; Global Markets:</strong> Real-time financial analysis, macroeconomic indicators, and corporate earnings.</li>
+        <li><strong>World Affairs &amp; Geopolitics:</strong> Unbiased global coverage of international developments and policy shifts.</li>
+        <li><strong>Science &amp; Space Exploration:</strong> Discoveries in astrophysics, clean energy research, and space missions.</li>
+      </ul>
+
+      <h2 id="ethics" style="font-size: 1.35rem; font-weight: 800; color: #0F172A; margin-top: 2rem; margin-bottom: 0.75rem; border-left: 4px solid #DC2626; padding-left: 0.65rem;">Fact-Checking &amp; Sourcing Policy</h2>
+      <p style="line-height: 1.7; color: #475569;">
+        Accuracy is the cornerstone of Prime Media. Every article published across our network must satisfy our three-tier verification protocol:
+      </p>
+      <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1.25rem; margin: 1rem 0 1.5rem 0;">
+        <ul style="margin: 0 0 0 1.25rem; line-height: 1.8; color: #334155;">
+          <li><strong>Primary Sourcing:</strong> Direct attribution to verified official statements, research papers, or primary wire dispatches.</li>
+          <li><strong>Multi-Source Verification:</strong> Critical claims require corroboration from independent credible records prior to publication.</li>
+          <li><strong>Zero Paid Editorial:</strong> All sponsored and native advertising content is strictly segregated and clearly marked with "SPONSORED" labels.</li>
+        </ul>
+      </div>
+
+      <h2 id="standards" style="font-size: 1.35rem; font-weight: 800; color: #0F172A; margin-top: 2rem; margin-bottom: 0.75rem; border-left: 4px solid #DC2626; padding-left: 0.65rem;">Corrections &amp; Accountability</h2>
+      <p style="line-height: 1.7; color: #475569;">
+        We strive for 100% accuracy. When an error of fact occurs, we promptly correct the text and append an explicit editorial correction notice at the bottom of the article detailing what was modified and when.
+      </p>
+
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #0F172A; margin-top: 2rem; margin-bottom: 0.75rem; border-left: 4px solid #DC2626; padding-left: 0.65rem;">Editorial Bureau Contact</h2>
+      <p style="line-height: 1.7; color: #475569;">
+        For press inquiries, news tips, corrections, or syndication permissions, reach out to our primary desk:
+      </p>
+      <p style="font-weight: 700; color: #0A1938; font-size: 1.05rem;">
+        📧 Newsroom Desk: <a href="mailto:contact@primemedia.site" style="color: #2563EB;">contact@primemedia.site</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- 🏛️ Prestigious 4-Column Newsroom Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <h4 style="color: #FFFFFF; font-size: 1.1rem; letter-spacing: 1px;">PRIME MEDIA</h4>
+        <p>Prime Media is an independent digital news organization delivering real-time reporting on technology breakthroughs, global market movements, artificial intelligence, and world affairs.</p>
+        <div style="font-size: 0.78rem; color: #64748B;">Global Bureau Network • Fact-Checked Journalism</div>
+      </div>
+      <div class="footer-col">
+        <h4>News Desks</h4>
+        <ul class="footer-nav-list">
+          <li><a href="/#category-technology">Technology &amp; Gadgets</a></li>
+          <li><a href="/#category-business">Business &amp; Markets</a></li>
+          <li><a href="/#category-ai">Artificial Intelligence</a></li>
+          <li><a href="/#category-world">World &amp; Geopolitics</a></li>
+          <li><a href="/#category-science">Science &amp; Space</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Editorial Standards</h4>
+        <ul class="footer-nav-list">
+          <li><a href="about.html">About Prime Media</a></li>
+          <li><a href="about.html#ethics">Fact-Checking Policy</a></li>
+          <li><a href="about.html#standards">Editorial Guidelines</a></li>
+          <li><a href="contact.html#corrections">Corrections Desk</a></li>
+          <li><a href="contact.html#tips">Send News Tips</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Trust &amp; Legal</h4>
+        <ul class="footer-nav-list">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="contact.html">Contact Newsroom</a></li>
+          <li><a href="sitemap.xml">XML Sitemap</a></li>
+          <li><a href="/feed.xml">RSS Wire Feed</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom-bar">
+      <div>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</div>
+      <div>Independent Digital Journalism • Encrypted &amp; Secure</div>
+    </div>
   </footer>
+  <script src="/blog.js"></script>
 </body>
 </html>

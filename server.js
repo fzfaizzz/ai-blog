@@ -83,7 +83,7 @@ app.get('/post/:slug', (req, res) => {
         "datePublished": "${post.publishedAt}",
         "dateModified": "${post.publishedAt}",
         "author": {"@type": "Organization", "name": "Prime Media"},
-        "publisher": {"@type": "Organization", "name": "Prime Media", "logo": {"@type": "ImageObject", "url": "${baseUrl}/og-cover.png"}},
+        "publisher": {"@type": "Organization", "name": "Prime Media", "logo": {"@type": "ImageObject", "url": "${baseUrl}/logo2.png"}},
         "description": "${escapeHtml(post.metaDescription)}",
         "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
       },

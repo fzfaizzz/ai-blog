@@ -23,9 +23,8 @@
   <link rel="stylesheet" href="/style.css">
   
   <!-- Official Favicons & Google Search Branding -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="shortcut icon" href="/favicon.ico">
@@ -57,7 +56,7 @@
     "@type": "NewsMediaOrganization",
     "name": "Prime Media",
     "url": "https://primemedia.site",
-    "logo": "https://primemedia.site/logo.png",
+    "logo": "https://primemedia.site/logo2.png",
     "sameAs": ["https://twitter.com/PrimeMedia"],
     "publishingPrinciples": "https://primemedia.site/about.html",
     "knowsAbout": ["Movies", "Entertainment", "Artificial Intelligence", "SpaceX", "Billionaires", "Global Politics", "Stock Markets"]
@@ -68,115 +67,113 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9492642167600744" crossorigin="anonymous"></script>
 </head>
 <body>
-  <!-- Header -->
-  <header>
+  <!-- 🌟 Top Thin Utility Bar -->
+  <div class="top-utility-bar">
     <div class="container">
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border-light); font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
-        <div>🗓️ Global Digital Edition • Prime Media Daily Journalism</div>
-        <div style="display: flex; gap: 1rem;">
-          <a href="about.html" style="color: var(--text-muted); text-decoration: none;">About Us</a>
-          <a href="privacy.html" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
-          <a href="terms.html" style="color: var(--text-muted); text-decoration: none;">Terms of Service</a>
-          <a href="contact.html" style="color: var(--text-muted); text-decoration: none;">Contact Us</a>
-        </div>
+      <span class="top-brand-text">Prime Media</span>
+      <div class="top-utility-links">
+        <a href="about.html">About</a>
+        <span class="top-utility-divider">|</span>
+        <a href="privacy.html">Privacy</a>
+        <span class="top-utility-divider">|</span>
+        <a href="terms.html">Terms</a>
+        <span class="top-utility-divider">|</span>
+        <a href="contact.html">Contact</a>
       </div>
-      <div class="brand-header">
-        <div>
-          <h1 class="brand-logo">
-            <a href="/" style="display: inline-flex; align-items: center; gap: 0.65rem; text-decoration: none; color: inherit;">
-              <img src="/logo.png" alt="Prime Media Logo" style="height: 42px; width: 42px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" />
-              PRIME <span>MEDIA</span>
-            </a>
-          </h1>
-        </div>
+    </div>
+  </div>
 
-        <!-- 🔍 Top Live Search Bar -->
-        <div class="header-search-bar" style="position: relative; width: 100%; max-width: 360px; margin-top: 0.5rem;">
-          <input type="text" id="searchInput" placeholder="Search news, topics, or keywords..." style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.4rem; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 20px; color: var(--text-main); font-size: 0.875rem; outline: none; transition: border-color 0.2s;" />
-          <span style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; pointer-events: none;">🔍</span>
-        </div>
+  <!-- 🌟 Main 1-Line News Navigation Header (Aaj Tak inspired) -->
+  <header class="main-news-header">
+    <div class="container header-flex-row">
+      <!-- 1. Left 3D Pop-out Logo Badge -->
+      <div class="header-logo-3d-wrap">
+        <a href="/" class="logo-3d-badge" title="Prime Media Home">
+          <img src="/logo2.png" alt="Prime Media Logo" />
+        </a>
       </div>
-      
-      <!-- Interactive Category Navigation Pills -->
-      <ul class="category-nav" id="categoryNav">
-        <li><a href="#" data-category="ALL" class="category-btn active" style="color: #2563EB;">All Headlines</a></li>
-        <li><a href="#" data-category="Technology" class="category-btn">Technology</a></li>
-        <li><a href="#" data-category="Business" class="category-btn">Business & Markets</a></li>
-        <li><a href="#" data-category="AI" class="category-btn">AI & Innovation</a></li>
-        <li><a href="#" data-category="World" class="category-btn">World News</a></li>
-        <li><a href="#" data-category="Science" class="category-btn">Science & Culture</a></li>
-      </ul>
+
+      <!-- 2. Center Categories in same row -->
+      <nav class="header-nav-center">
+        <ul class="category-nav-bar" id="categoryNav">
+          <li><a href="#" data-category="Technology" class="category-btn">Technology</a></li>
+          <li><a href="#" data-category="Business" class="category-btn">Business &amp; Markets</a></li>
+          <li><a href="#" data-category="AI" class="category-btn">AI &amp; Tech</a></li>
+          <li><a href="#" data-category="World" class="category-btn">World News</a></li>
+          <li><a href="#" data-category="Science" class="category-btn">Science &amp; Space</a></li>
+        </ul>
+      </nav>
+
+      <!-- 3. Right Search in same row -->
+      <div class="header-right-tools">
+        <button type="button" class="global-search-trigger" id="globalSearchBtn" aria-label="Search Prime Media" title="Search News">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
+  <!-- 🔴 Red Breaking News Bar (Aaj Tak Style) -->
+  <div class="breaking-news-bar">
+    <div class="container breaking-news-flex">
+      <span class="breaking-badge">BREAKING NEWS</span>
+      <div class="breaking-headline-ticker" id="breakingHeadlineTicker">
+        <a href="#" id="breakingHeadlineLink">Loading live global breaking wire updates...</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏷️ Horizontal Trending Topics Pill Strip (Aaj Tak Style) -->
+  <div class="trending-topics-strip">
+    <div class="container trending-topics-flex">
+      <span class="trending-label">TRENDING</span>
+      <div class="trending-pills-carousel" id="trendingPillsCarousel">
+        <a href="#" class="topic-pill" data-query="Nvidia">Nvidia AI</a>
+        <a href="#" class="topic-pill" data-query="Stock Market">Stock Market</a>
+        <a href="#" class="topic-pill" data-query="Artificial Intelligence">AI &amp; Tech</a>
+        <a href="#" class="topic-pill" data-query="Economy">Global Economy</a>
+        <a href="#" class="topic-pill" data-query="Crypto">Crypto &amp; Bitcoin</a>
+        <a href="#" class="topic-pill" data-query="Space">Space Exploration</a>
+        <a href="#" class="topic-pill" data-query="Cybersecurity">Cybersecurity</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Container -->
-  <div class="container" style="padding-top: 1.5rem;">
+  <div class="container" style="padding-top: 1.25rem;">
     <!-- Main Content Area -->
     <main class="main-content-area" style="width: 100%; max-width: 100%;">
-      <!-- Magazine Hero Layout -->
+      
+      <!-- 🌟 Section 1: Hero Magazine Lead & Top Stories -->
       <section id="heroSection" class="hero-magazine">
         <div id="featuredStory" class="featured-story">
           <div style="color: var(--text-subtle);">Loading lead headline...</div>
         </div>
         <div class="trending-sidebar-list">
-          <h3 style="font-family: var(--font-heading); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-red); border-bottom: 2px solid var(--accent-red); padding-bottom: 0.4rem; margin-bottom: 1rem;">🔥 TOP STORIES</h3>
+          <h3 style="font-family: var(--font-heading); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-red); border-bottom: 2px solid var(--accent-red); padding-bottom: 0.4rem; margin-bottom: 1rem;">TOP STORIES</h3>
           <div id="trendingSidebarList">
             <!-- Sidebar trending stories -->
           </div>
         </div>
       </section>
 
-      <!-- 💡 Homepage Featured Native Ad Unit: 1 Single Outer Box with 3 Inner Column Dividers -->
-      <div class="sponsored-single-row-box">
-        <div class="sponsored-column">
-          <div class="ad-label">SPONSORED STORY</div>
-          <ins class="adsbygoogle"
-               style="display:block; width:100%; text-align:center;"
-               data-ad-layout="in-article"
-               data-ad-format="fluid"
-               data-full-width-responsive="true"
-               data-ad-client="ca-pub-9492642167600744"
-               data-ad-slot="4359866610"></ins>
-          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      <!-- 🌟 Layout Type 1: Special Reports & Visual Spotlight Grid (Image #1 Style) -->
+      <section style="margin-top: 2rem;">
+        <div class="section-heading-bar">
+          <h3 class="section-heading-title">
+            SPECIAL REPORTS &amp; SPOTLIGHT
+          </h3>
+          <span class="section-heading-badge">EDITOR'S PICKS</span>
         </div>
-        <div class="sponsored-column">
-          <div class="ad-label">SPONSORED STORY</div>
-          <ins class="adsbygoogle"
-               style="display:block; width:100%; text-align:center;"
-               data-ad-layout="in-article"
-               data-ad-format="fluid"
-               data-full-width-responsive="true"
-               data-ad-client="ca-pub-9492642167600744"
-               data-ad-slot="4359866610"></ins>
-          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        </div>
-        <div class="sponsored-column">
-          <div class="ad-label">SPONSORED STORY</div>
-          <ins class="adsbygoogle"
-               style="display:block; width:100%; text-align:center;"
-               data-ad-layout="in-article"
-               data-ad-format="fluid"
-               data-full-width-responsive="true"
-               data-ad-client="ca-pub-9492642167600744"
-               data-ad-slot="4359866610"></ins>
-          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        </div>
-      </div>
-
-      <!-- Recent Articles Grid -->
-      <section style="margin-top: 1.5rem;">
-        <h3 id="reportingHeaderTitle" style="font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">LATEST REPORTING — ALL HEADLINES</h3>
-        <div id="postsGrid" class="posts-grid">
-          <div style="color: var(--text-subtle);">Loading articles...</div>
-        </div>
-
-        <!-- 📄 Bottom Pagination Bar -->
-        <div id="paginationContainer" style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-          <!-- Pagination buttons rendered by JS -->
+        <div id="spotlightGrid" class="spotlight-grid">
+          <!-- 4 Visual Spotlight Cards populated by JavaScript -->
         </div>
       </section>
 
-      <!-- Mid-Page Native Ad Unit: 1 Single Outer Box with 3 Inner Column Dividers -->
+      <!-- 💡 Native In-Article Ad Unit -->
       <div class="sponsored-single-row-box">
         <div class="sponsored-column">
           <div class="ad-label">SPONSORED STORY</div>
@@ -213,33 +210,107 @@
         </div>
       </div>
 
-      <!-- Newsletter Subscription Box -->
-      <div class="newsletter-box" style="margin-top: 2rem; margin-bottom: 1rem;">
-        <h3>Stay Informed Every Morning</h3>
-        <p>Get our top analytical reporting and breaking technology updates directly in your inbox.</p>
-        <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Thank you for subscribing to PRIME MEDIA Daily Newsletter!');">
-          <input type="email" placeholder="Enter your work email address" required />
-          <button type="submit">Subscribe Free</button>
-        </form>
-      </div>
+      <!-- 🌟 Layout Type 2: Latest News Stream & Ranked Most Read (Image #2 Style) -->
+      <section style="margin-top: 1.5rem;">
+        <div class="section-heading-bar">
+          <h3 id="reportingHeaderTitle" class="section-heading-title">
+            LATEST NEWS WIRE &amp; REPORTING
+          </h3>
+          <span class="section-heading-badge">LIVE FEED</span>
+        </div>
+
+        <div class="news-stream-container">
+          <!-- Left Column: News Rows Stream -->
+          <div class="news-stream-main">
+            <div id="postsGrid" class="posts-grid">
+              <div style="color: var(--text-subtle);">Loading articles...</div>
+            </div>
+
+            <!-- 📄 Bottom Pagination Bar -->
+            <div id="paginationContainer" style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+              <!-- Pagination buttons rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Right Column: Sidebar (Most Read + Trust Box + Newsletter) -->
+          <aside class="news-stream-sidebar">
+            <!-- 📈 Most Read Ranked Widget -->
+            <div class="most-read-box">
+              <h4>Most Read</h4>
+              <div id="mostReadList" class="most-read-list">
+                <!-- Ranked #1 to #5 stories rendered by JS -->
+              </div>
+            </div>
+
+            <!-- 🛡️ Editorial Trust & Standards Box -->
+            <div class="trust-card">
+              <h4>Editorial Standards</h4>
+              <ul class="trust-list">
+                <li><svg viewBox="0 0 24 24" width="14" height="14" stroke="#10B981" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> Independent Journalism</li>
+                <li><svg viewBox="0 0 24 24" width="14" height="14" stroke="#10B981" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> Rigorous Fact-Checking</li>
+                <li><svg viewBox="0 0 24 24" width="14" height="14" stroke="#10B981" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> Direct Wire Verification</li>
+                <li><svg viewBox="0 0 24 24" width="14" height="14" stroke="#10B981" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> Transparent Sourcing</li>
+              </ul>
+            </div>
+
+            <!-- Newsletter Subscription Box -->
+            <div class="newsletter-box" style="margin-top: 1.5rem; padding: 1.5rem 1.25rem;">
+              <h3 style="font-size: 1.2rem; margin-bottom: 0.35rem;">Daily Briefing</h3>
+              <p style="font-size: 0.825rem; margin-bottom: 1rem;">Get top morning analysis directly in your inbox.</p>
+              <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Thank you for subscribing to PRIME MEDIA Daily Newsletter!');">
+                <input type="email" placeholder="Your email address" style="padding: 0.55rem 0.75rem; font-size: 0.82rem;" required />
+                <button type="submit" style="padding: 0.55rem 1rem; font-size: 0.82rem;">Subscribe</button>
+              </form>
+            </div>
+          </aside>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <!-- Footer -->
+  <!-- 🏛️ Prestigious 4-Column Newsroom Footer -->
   <footer>
-    <div class="container footer-content">
-      <div>
-        <h4 style="color: #FFF; font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 0.25rem;">PRIME MEDIA</h4>
-        <div style="font-size: 0.825rem; color: #64748B; margin-bottom: 0.5rem;">🗓️ Global Digital Edition • Independent Daily Journalism</div>
-        <p>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</p>
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <h4 style="color: #FFFFFF; font-size: 1.1rem; letter-spacing: 1px;">PRIME MEDIA</h4>
+        <p>Prime Media is an independent digital news organization delivering real-time reporting on technology breakthroughs, global market movements, artificial intelligence, and world affairs.</p>
+        <div style="font-size: 0.78rem; color: #64748B;">Global Bureau Network • Fact-Checked Journalism</div>
       </div>
-      <div class="footer-links">
-        <a href="index.html">Home</a>
-        <a href="about.html">About Us</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms of Service</a>
-        <a href="contact.html">Contact Us</a>
+      <div class="footer-col">
+        <h4>News Desks</h4>
+        <ul class="footer-nav-list">
+          <li><a href="/#category-technology">Technology &amp; Gadgets</a></li>
+          <li><a href="/#category-business">Business &amp; Markets</a></li>
+          <li><a href="/#category-ai">Artificial Intelligence</a></li>
+          <li><a href="/#category-world">World &amp; Geopolitics</a></li>
+          <li><a href="/#category-science">Science &amp; Space</a></li>
+        </ul>
       </div>
+      <div class="footer-col">
+        <h4>Editorial Standards</h4>
+        <ul class="footer-nav-list">
+          <li><a href="about.html">About Prime Media</a></li>
+          <li><a href="about.html#ethics">Fact-Checking Policy</a></li>
+          <li><a href="about.html#standards">Editorial Guidelines</a></li>
+          <li><a href="contact.html#corrections">Corrections Desk</a></li>
+          <li><a href="contact.html#tips">Send News Tips</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Trust &amp; Legal</h4>
+        <ul class="footer-nav-list">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="contact.html">Contact Newsroom</a></li>
+          <li><a href="sitemap.xml">XML Sitemap</a></li>
+          <li><a href="/feed.xml">RSS Wire Feed</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom-bar">
+      <div>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</div>
+      <div>Independent Digital Journalism • Encrypted &amp; Secure</div>
     </div>
   </footer>
 
