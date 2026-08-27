@@ -28,10 +28,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 let PORT = process.env.PORT || 6060;
 
-// Enforce Strict HTTPS for all incoming crawler and user traffic
+// Enforce Strict HTTPS and canonical non-www domain for all crawlers & users
 app.use((req, res, next) => {
   const proto = req.headers['x-forwarded-proto'];
   const host = req.headers.host || '';
+  if (host.startsWith('www.')) {
+    return res.redirect(301, `https://${host.slice(4)}${req.url}`);
+  }
   if (proto && proto === 'http' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
     return res.redirect(301, `https://${host}${req.url}`);
   }
@@ -185,6 +188,12 @@ Disallow: /admin.html
 Disallow: /api/
 
 User-agent: Googlebot-News
+Allow: /
+
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-AdSense-Bot
 Allow: /
 
 Sitemap: ${baseUrl}/sitemap.xml
