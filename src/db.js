@@ -123,15 +123,21 @@ export async function dbGetAllPosts() {
 export async function dbSavePost(post) {
   try {
     if (!isConnected) await connectDB();
-    if (!db) return false;
-    await db.collection('posts').updateOne(
-      { slug: post.slug },
-      { $set: post },
+    if (!db) {
+      console.warn('⚠️ [MongoDB] Cannot save post: DB not connected');
+      return false;
+    }
+    const cleanPost = { ...post };
+    delete cleanPost._id;
+    const res = await db.collection('posts').updateOne(
+      { slug: cleanPost.slug },
+      { $set: cleanPost },
       { upsert: true }
     );
+    console.log(`🍃 [MongoDB] Saved post to cloud: "${cleanPost.title}" (upserted: ${res.upsertedId || res.modifiedCount > 0 || res.matchedCount > 0})`);
     return true;
   } catch (err) {
-    console.error('dbSavePost error:', err);
+    console.error('❌ dbSavePost error:', err.message);
     return false;
   }
 }

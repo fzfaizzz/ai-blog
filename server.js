@@ -672,6 +672,22 @@ app.post('/api/trigger-autoblog', async (req, res) => {
   }
 });
 
+// 🩺 Live Database Health & Diagnostics Endpoint
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const dbHandle = await connectDB();
+    if (!dbHandle) {
+      return res.json({ connected: false, error: 'Database handle is null' });
+    }
+    const ping = await dbHandle.command({ ping: 1 });
+    const count = await dbHandle.collection('posts').countDocuments();
+    const settingsCount = await dbHandle.collection('settings').countDocuments();
+    res.json({ connected: true, ping, postsCount: count, settingsCount });
+  } catch (e) {
+    res.status(500).json({ connected: false, error: e.message });
+  }
+});
+
 // 🛡️ Middleware: Require Admin Authentication Token for Sensitive Admin Endpoints
 function requireAdminAuth(req, res, next) {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
