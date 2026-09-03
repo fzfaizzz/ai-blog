@@ -16,41 +16,12 @@ if (!fs.existsSync(dataDir)) {
 
 let cachedPosts = [];
 
-// Initial default seed posts if database is empty
-const INITIAL_POSTS = [
-  {
-    id: 1,
-    slug: 'ultimate-guide-to-ai-tools-2026',
-    title: 'The Ultimate Guide to AI Tools in 2026: Boost Your Daily Productivity',
-    metaDescription: 'Discover the top AI tools that are changing how we work, write, and create in 2026.',
-    contentHtml: `
-      <div class="human-article">
-        <p class="lead-para">AI tools are evolving faster than ever. If you're looking to streamline your workflow and save hours of manual work every week, you're in the right place.</p>
-        <h2>1. Why Smart AI Tools Matter Today</h2>
-        <p>Instead of doing repetitive tasks manually, modern AI utilities help you automate writing, research, coding, and design in seconds.</p>
-        <h2>2. Key Benefits</h2>
-        <ul>
-          <li>Faster Execution Speed</li>
-          <li>Lower Operating Costs</li>
-          <li>Higher Quality Outputs</li>
-        </ul>
-      </div>
-    `,
-    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
-    imageCredit: 'Unsplash / Tech Visuals',
-    category: 'Technology',
-    readTimeMinutes: 4,
-    views: 0,
-    publishedAt: new Date(Date.now() - 86400000).toISOString()
-  }
-];
-
 function loadLocalPosts() {
   try {
     if (fs.existsSync(POSTS_FILE)) {
       const data = fs.readFileSync(POSTS_FILE, 'utf8');
       const posts = JSON.parse(data);
-      if (Array.isArray(posts) && posts.length > 0) {
+      if (Array.isArray(posts)) {
         cachedPosts = posts;
       }
     }
@@ -62,17 +33,12 @@ export async function syncPostsFromDB() {
   try {
     await connectDB();
     const dbPosts = await dbGetAllPosts();
-    if (Array.isArray(dbPosts) && dbPosts.length > 0) {
+    if (Array.isArray(dbPosts)) {
       cachedPosts = dbPosts;
       try {
         fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2));
       } catch (e) {}
-      console.log(`📦 [MongoDB] Loaded and synchronized ${cachedPosts.length} persistent articles.`);
-    } else if (cachedPosts.length > 0) {
-      // Seed DB with local cache
-      for (const p of cachedPosts) {
-        await dbSavePost(p);
-      }
+      console.log(`📦 [MongoDB] Synchronized ${cachedPosts.length} persistent articles from database.`);
     }
   } catch (e) {
     console.error('Error syncing posts from DB:', e);
@@ -95,12 +61,6 @@ if (!fs.existsSync(ANALYTICS_FILE)) {
  * @param {boolean} [includeHidden=false] - Set true for Admin Panel to see hidden posts
  */
 export function getAllPosts(includeHidden = false) {
-  if (cachedPosts.length === 0) {
-    loadLocalPosts();
-  }
-  if (cachedPosts.length === 0) {
-    return INITIAL_POSTS;
-  }
   if (includeHidden) return cachedPosts;
   return cachedPosts.filter(p => !p.hidden);
 }
@@ -225,8 +185,7 @@ import { sendPostToReddit } from './redditManager.js';
 /**
  * Publishes a new article to the blog.
  */
-export function publishPost(postData) {
-  getAllPosts(); // Ensure cache is ready
+export async function publishPost(postData) {
   const slug = postData.title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -249,9 +208,9 @@ export function publishPost(postData) {
 
   cachedPosts.unshift(newPost);
   try { fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2)); } catch (e) {}
-  dbSavePost(newPost).catch(e => console.error('Error saving post to MongoDB:', e));
+  await dbSavePost(newPost);
 
-  console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
+  console.log(`✅ Auto-Published Post to MongoDB & Cache: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
   // Asynchronously broadcast to Telegram Bot, Telegram Userbot, Twitter API, Custom Twitter & Reddit
   sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));

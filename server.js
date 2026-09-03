@@ -649,7 +649,7 @@ app.post('/api/trigger-autoblog', async (req, res) => {
 
     // Step 4: Auto-Publish to Live Blog
     console.log('4. Auto-publishing post to live blog database...');
-    const publishedPost = publishPost({
+    const publishedPost = await publishPost({
       title: article.title,
       contentHtml: article.contentHtml,
       metaDescription: article.metaDescription,

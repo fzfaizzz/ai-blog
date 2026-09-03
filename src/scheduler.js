@@ -56,7 +56,7 @@ export async function runAutopilotCycle() {
     const article = await generateHumanArticle(targetItem, images);
 
     // Auto Publish
-    const post = publishPost({
+    const post = await publishPost({
       title: article.title,
       contentHtml: article.contentHtml,
       metaDescription: article.metaDescription,

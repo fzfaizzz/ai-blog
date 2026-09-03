@@ -52,23 +52,8 @@ export async function connectDB() {
 async function autoSeedFromLocalFiles() {
   try {
     if (!db) return;
-    const postsCollection = db.collection('posts');
-    const count = await postsCollection.countDocuments();
     
-    if (count === 0 && fs.existsSync(POSTS_FILE)) {
-      try {
-        const localPosts = JSON.parse(fs.readFileSync(POSTS_FILE, 'utf8'));
-        if (Array.isArray(localPosts) && localPosts.length > 0) {
-          console.log(`🌱 [MongoDB Atlas] Seeding ${localPosts.length} initial articles from local posts.json...`);
-          await postsCollection.insertMany(localPosts, { ordered: false }).catch(() => {});
-          console.log(`✅ [MongoDB Atlas] Successfully seeded ${localPosts.length} articles to cloud database!`);
-        }
-      } catch (e) {
-        console.error('Seeding posts error:', e);
-      }
-    }
-
-    // Seed Settings & Keys if missing in DB
+    // Seed Settings & Keys only if missing in DB
     const settingsCollection = db.collection('settings');
 
     // 1. App Settings
