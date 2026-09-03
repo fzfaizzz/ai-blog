@@ -132,9 +132,9 @@ app.get('/post/:slug', (req, res) => {
   html = html.replace(/<span id="postCategoryPill"[^>]*>.*?<\/span>/i, `<span id="postCategoryPill" class="article-category-pill">${escapeHtml(post.category || 'TECHNOLOGY').toUpperCase()}</span>`);
   html = html.replace(/<h1 id="postTitle"[^>]*>.*?<\/h1>/i, `<h1 id="postTitle" class="article-title" style="margin-top: 0.5rem; margin-bottom: 1rem;">${escapeHtml(post.title)}</h1>`);
   html = html.replace(/<p id="postLeadDesc"[^>]*>.*?<\/p>/i, `<p id="postLeadDesc" style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; margin-bottom: 1.5rem;">${escapeHtml(post.metaDescription || '')}</p>`);
-  if (post.imageUrl) {
-    html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="featured-img" referrerpolicy="no-referrer" />`);
-  }
+  const fallbackHero = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+  const heroImgUrl = post.imageUrl || fallbackHero;
+  html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${heroImgUrl}" alt="${escapeHtml(post.title)}" class="featured-img" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackHero}';" />`);
   html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate">Senior Editorial Staff • Published ${formattedDate}</span>`);
   html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 4} min read</span>`);
   if (post.contentHtml) {

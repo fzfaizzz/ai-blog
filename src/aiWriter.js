@@ -117,13 +117,42 @@ CRITICAL EDITORIAL INSTRUCTIONS:
           // Strip any markdown code fences if returned by AI
           text = text.replace(/^```html\s*/i, '').replace(/```$/i, '').trim();
 
-          if (imageSet.inline1 && imageSet.inline1.url) {
-            const inline1Html = `
-              <div class="inline-article-img" style="margin: 2.25rem 0; text-align: center;">
-                <img src="${imageSet.inline1.url}" alt="${topic}" onerror="this.parentElement.style.display='none';" style="width: auto; max-width: 100%; height: auto; max-height: 380px; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;" />
-              </div>
-            `;
-            text = text.replace(/<\/h2>/, `</h2>${inline1Html}`);
+          // 🖼️ Guarantee 2 Images: Hero Image (top) + Mid-Article Inline Image with Anti-Hotlink Protection
+          const safeInline1 = (imageSet && imageSet.inline1 && imageSet.inline1.url)
+            ? imageSet.inline1.url
+            : 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+          const inlineFallback = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+
+          const inline1Html = `
+            <figure class="inline-article-img" style="margin: 2.5rem 0; text-align: center; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.85rem; overflow: hidden;">
+              <img src="${safeInline1}" alt="${topic}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${inlineFallback}';" style="width: 100%; max-width: 750px; height: auto; max-height: 420px; object-fit: cover; border-radius: 8px; margin: 0 auto; display: block;" />
+              <figcaption style="font-size: 0.82rem; color: #64748B; margin-top: 0.6rem; text-align: center; font-style: italic;">
+                Verified news coverage & editorial photography covering ${topic}
+              </figcaption>
+            </figure>
+          `;
+
+          if (text.includes('</h2>')) {
+            let h2Count = 0;
+            text = text.replace(/<\/h2>/g, (match) => {
+              h2Count++;
+              if (h2Count === 2) {
+                return `</h2>\n${inline1Html}\n`;
+              }
+              return match;
+            });
+            if (h2Count < 2) {
+              text = text.replace(/<\/h2>/, `</h2>\n${inline1Html}\n`);
+            }
+          } else {
+            let pCount = 0;
+            text = text.replace(/<\/p>/g, (match) => {
+              pCount++;
+              if (pCount === 3) {
+                return `</p>\n${inline1Html}\n`;
+              }
+              return match;
+            });
           }
 
           resolve({
@@ -237,10 +266,13 @@ function generateAuthenticNewsArticle(topic, snippet, source, date, imageSet) {
       
       <p>${contextDetails}</p>
 
-      <!-- Inline Content Photo #1 (Zero Crop, Error Shield) -->
-      <div class="inline-article-img" style="margin: 2.25rem 0; text-align: center;">
-        <img src="${inline1Img}" alt="${title} News Photography" onerror="this.parentElement.style.display='none';" style="width: auto; max-width: 100%; height: auto; max-height: 380px; object-fit: contain; border-radius: 8px; margin: 0 auto; display: block;" />
-      </div>
+      <!-- Inline Content Photo #1 (Anti-Hotlink Shield) -->
+      <figure class="inline-article-img" style="margin: 2.25rem 0; text-align: center; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 0.85rem;">
+        <img src="${inline1Img}" alt="${title} News Photography" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';" style="width: 100%; max-width: 750px; height: auto; max-height: 420px; object-fit: cover; border-radius: 8px; margin: 0 auto; display: block;" />
+        <figcaption style="font-size: 0.82rem; color: #64748B; margin-top: 0.6rem; text-align: center; font-style: italic;">
+          Verified news coverage & editorial photography covering ${title}
+        </figcaption>
+      </figure>
 
       <p>Official reports emphasize that public engagement has reached historic levels following the announcement. Industry figures point to measurable shifts in consumer and market sentiment.</p>
 

@@ -543,7 +543,15 @@ async function loadSingleArticle() {
       setCanonicalTag(postUrl);
       if (document.getElementById('postTitle')) document.getElementById('postTitle').innerText = p.title;
       if (document.getElementById('postLeadDesc')) document.getElementById('postLeadDesc').innerText = p.metaDescription;
-      if (document.getElementById('postFeaturedImg')) document.getElementById('postFeaturedImg').src = p.imageUrl;
+      if (document.getElementById('postFeaturedImg')) {
+        const featImg = document.getElementById('postFeaturedImg');
+        featImg.referrerPolicy = 'no-referrer';
+        featImg.onerror = function() {
+          this.onerror = null;
+          this.src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+        };
+        featImg.src = p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+      }
       if (document.getElementById('postCategoryPill')) document.getElementById('postCategoryPill').innerText = (p.category || 'TECHNOLOGY').toUpperCase();
 
       // Breadcrumb Dynamic Binding
@@ -596,7 +604,19 @@ async function loadSingleArticle() {
         return match;
       });
 
-      if (document.getElementById('postContent')) document.getElementById('postContent').innerHTML = html;
+      if (document.getElementById('postContent')) {
+        const postContainer = document.getElementById('postContent');
+        postContainer.innerHTML = html;
+        // Shield all in-article photos from hotlink protection and broken links
+        const inImgs = postContainer.querySelectorAll('img');
+        inImgs.forEach(img => {
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function() {
+            this.onerror = null;
+            this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+          };
+        });
+      }
 
       // Load Recommended & Suggested Stories (Both Mid-Article & Bottom Grid)
       loadRecommendedArticles(p.slug, p.category);
