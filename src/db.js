@@ -36,7 +36,8 @@ export async function connectDB() {
   try {
     client = new MongoClient(MONGO_URI, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      tls: true
     });
     await client.connect();
     db = client.db('primemedia');
