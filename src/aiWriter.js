@@ -24,10 +24,13 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
   if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
 
   const models = [
+    { name: 'gemini-flash-latest', apiVersion: 'v1beta' },
+    { name: 'gemini-3.5-flash', apiVersion: 'v1beta' },
+    { name: 'gemini-3.5-flash-lite', apiVersion: 'v1beta' },
     { name: 'gemini-2.5-flash', apiVersion: 'v1beta' },
-    { name: 'gemini-2.0-flash-exp', apiVersion: 'v1beta' },
-    { name: 'gemini-1.5-flash-latest', apiVersion: 'v1beta' },
-    { name: 'gemini-1.5-pro-latest', apiVersion: 'v1beta' }
+    { name: 'gemini-flash-lite-latest', apiVersion: 'v1beta' },
+    { name: 'gemini-2.5-pro', apiVersion: 'v1beta' },
+    { name: 'gemini-pro-latest', apiVersion: 'v1beta' }
   ];
 
   if (keys.length === 0) {
@@ -62,7 +65,7 @@ export async function generateHumanArticle(newsObj, imageSet = {}, apiKey = null
   throw new Error(`❌ Gemini AI Error: ${lastError ? lastError.message : 'Unable to generate article. Check your Gemini API key in Admin Settings!'}`);
 }
 
-function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-1.5-flash', apiVersion = 'v1') {
+function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-flash-latest', apiVersion = 'v1beta') {
   return new Promise((resolve, reject) => {
     const topic = newsObj.title;
     const source = newsObj.source || 'Global News Wire';
