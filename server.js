@@ -13,7 +13,10 @@ import { getUserbotConfig, saveUserbotConfig, sendUserbotAuthCode, verifyUserbot
 import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
 import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
 import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
-import { getGeminiKeys, saveGeminiKeys } from './src/geminiManager.js';
+import { getGeminiKeys, saveGeminiKeys, syncGeminiKeysFromDB } from './src/geminiManager.js';
+import { connectDB, dbGetSetting, dbSaveSetting } from './src/db.js';
+import { syncPostsFromDB } from './src/publisher.js';
+import { syncSerperKeysFromDB } from './src/serperManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -228,10 +231,23 @@ try {
   }
 } catch (e) {}
 
+async function syncAppSettingsFromDB() {
+  try {
+    await connectDB();
+    const doc = await dbGetSetting('app_settings');
+    if (doc && typeof doc === 'object') {
+      appSettings = { ...appSettings, ...doc };
+      try { fs.writeFileSync(SETTINGS_FILE, JSON.stringify(appSettings, null, 2)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+syncAppSettingsFromDB();
+
 function saveAppSettings(newSettings) {
   try {
     appSettings = { ...appSettings, ...newSettings };
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(appSettings, null, 2));
+    dbSaveSetting('app_settings', appSettings).catch(() => {});
   } catch (e) {
     console.error('Error saving settings to file:', e);
   }

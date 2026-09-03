@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
+import { connectDB, dbGetSetting, dbSaveSetting } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,9 +14,22 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+let cachedSerperKeys = [];
 let activeKeyIndex = 0;
 
 const DEFAULT_SERPER = Buffer.from('MGJlMDk0ZGUwMzY0MDVhZjc4YTlkMjFlOTM5YmVkYjdiNWMzOTc4Mw==', 'base64').toString('utf8');
+
+export async function syncSerperKeysFromDB() {
+  try {
+    await connectDB();
+    const doc = await dbGetSetting('serper_keys');
+    if (doc && Array.isArray(doc.keys) && doc.keys.length > 0) {
+      cachedSerperKeys = doc.keys.map(k => k.trim()).filter(Boolean);
+      try { fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: cachedSerperKeys, activeIndex: 0 }, null, 2)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+syncSerperKeysFromDB();
 
 export function getSerperKeys() {
   const envKeys = process.env.SERPER_API_KEY 
@@ -33,7 +47,7 @@ export function getSerperKeys() {
     }
   } catch (e) {}
 
-  const combined = [...new Set([...fileKeys, ...envKeys])];
+  const combined = [...new Set([...cachedSerperKeys, ...fileKeys, ...envKeys])];
   if (combined.length === 0) {
     return [DEFAULT_SERPER];
   }
@@ -58,9 +72,11 @@ export function saveSerperKeys(keysList) {
   });
 
   const uniqueKeys = [...new Set(resolvedKeys)];
-  fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: uniqueKeys, activeIndex: 0 }, null, 2));
+  cachedSerperKeys = uniqueKeys;
+  try { fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: uniqueKeys, activeIndex: 0 }, null, 2)); } catch (e) {}
+  dbSaveSetting('serper_keys', { keys: uniqueKeys, activeIndex: 0 }).catch(() => {});
   activeKeyIndex = 0;
-  console.log(`✅ Saved ${uniqueKeys.length} Serper API Keys to pool.`);
+  console.log(`✅ Saved ${uniqueKeys.length} Serper API Keys to MongoDB cloud & local pool.`);
   return uniqueKeys;
 }
 

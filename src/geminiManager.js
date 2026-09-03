@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectDB, dbGetSetting, dbSaveSetting } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +13,20 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+let cachedGeminiKeys = [];
 let activeKeyIndex = 0;
+
+export async function syncGeminiKeysFromDB() {
+  try {
+    await connectDB();
+    const doc = await dbGetSetting('gemini_keys');
+    if (doc && Array.isArray(doc.keys) && doc.keys.length > 0) {
+      cachedGeminiKeys = doc.keys.map(k => k.trim()).filter(Boolean);
+      try { fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: cachedGeminiKeys, activeIndex: 0 }, null, 2)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+syncGeminiKeysFromDB();
 
 export function getGeminiKeys() {
   const envKeys = process.env.GEMINI_API_KEY 
@@ -30,7 +44,7 @@ export function getGeminiKeys() {
     }
   } catch (e) {}
 
-  return [...new Set([...fileKeys, ...envKeys])];
+  return [...new Set([...cachedGeminiKeys, ...fileKeys, ...envKeys])];
 }
 
 export function saveGeminiKeys(keysList) {
@@ -49,9 +63,11 @@ export function saveGeminiKeys(keysList) {
   });
 
   const uniqueKeys = [...new Set(resolvedKeys)];
-  fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: uniqueKeys, activeIndex: 0 }, null, 2));
+  cachedGeminiKeys = uniqueKeys;
+  try { fs.writeFileSync(KEYS_FILE, JSON.stringify({ keys: uniqueKeys, activeIndex: 0 }, null, 2)); } catch (e) {}
+  dbSaveSetting('gemini_keys', { keys: uniqueKeys, activeIndex: 0 }).catch(() => {});
   activeKeyIndex = 0;
-  console.log(`✅ Saved ${uniqueKeys.length} Gemini AI API Keys to pool.`);
+  console.log(`✅ Saved ${uniqueKeys.length} Gemini AI API Keys to MongoDB cloud & local pool.`);
   return uniqueKeys;
 }
 

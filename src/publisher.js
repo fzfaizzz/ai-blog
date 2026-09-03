@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectDB, dbGetAllPosts, dbSavePost, dbDeletePost, dbTogglePostVisibility, dbIncrementViews } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +13,8 @@ const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
+
+let cachedPosts = [];
 
 // Initial default seed posts if database is empty
 const INITIAL_POSTS = [
@@ -42,30 +45,42 @@ const INITIAL_POSTS = [
   }
 ];
 
-const SEED_FILE = path.join(__dirname, 'seed_posts.json');
-
-function initializePostsFile() {
+function loadLocalPosts() {
   try {
-    if (!fs.existsSync(POSTS_FILE)) {
-      if (fs.existsSync(SEED_FILE)) {
-        fs.copyFileSync(SEED_FILE, POSTS_FILE);
-      } else {
-        fs.writeFileSync(POSTS_FILE, JSON.stringify(INITIAL_POSTS, null, 2));
+    if (fs.existsSync(POSTS_FILE)) {
+      const data = fs.readFileSync(POSTS_FILE, 'utf8');
+      const posts = JSON.parse(data);
+      if (Array.isArray(posts) && posts.length > 0) {
+        cachedPosts = posts;
       }
-    } else {
-      const current = JSON.parse(fs.readFileSync(POSTS_FILE, 'utf8'));
-      if (!Array.isArray(current) || current.length <= 1) {
-        if (fs.existsSync(SEED_FILE)) {
-          fs.copyFileSync(SEED_FILE, POSTS_FILE);
-        }
+    }
+  } catch (e) {}
+}
+loadLocalPosts();
+
+export async function syncPostsFromDB() {
+  try {
+    await connectDB();
+    const dbPosts = await dbGetAllPosts();
+    if (Array.isArray(dbPosts) && dbPosts.length > 0) {
+      cachedPosts = dbPosts;
+      try {
+        fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2));
+      } catch (e) {}
+      console.log(`📦 [MongoDB] Loaded and synchronized ${cachedPosts.length} persistent articles.`);
+    } else if (cachedPosts.length > 0) {
+      // Seed DB with local cache
+      for (const p of cachedPosts) {
+        await dbSavePost(p);
       }
     }
   } catch (e) {
-    console.error('Error initializing posts file:', e);
+    console.error('Error syncing posts from DB:', e);
   }
 }
 
-initializePostsFile();
+// Background sync on startup
+syncPostsFromDB();
 
 const INITIAL_ANALYTICS = {
   countryViews: {}
@@ -76,18 +91,18 @@ if (!fs.existsSync(ANALYTICS_FILE)) {
 }
 
 /**
- * Gets all published blog posts.
+ * Gets all published blog posts (instant 0ms response from synchronized cache).
  * @param {boolean} [includeHidden=false] - Set true for Admin Panel to see hidden posts
  */
 export function getAllPosts(includeHidden = false) {
-  try {
-    const data = fs.readFileSync(POSTS_FILE, 'utf8');
-    const posts = JSON.parse(data);
-    if (includeHidden) return posts;
-    return posts.filter(p => !p.hidden);
-  } catch (e) {
+  if (cachedPosts.length === 0) {
+    loadLocalPosts();
+  }
+  if (cachedPosts.length === 0) {
     return INITIAL_POSTS;
   }
+  if (includeHidden) return cachedPosts;
+  return cachedPosts.filter(p => !p.hidden);
 }
 
 /**
@@ -106,7 +121,8 @@ export function togglePostVisibility(identifier) {
   const post = posts.find(p => p.id == identifier || p.slug === identifier);
   if (post) {
     post.hidden = !post.hidden;
-    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+    try { fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2)); } catch (e) {}
+    dbTogglePostVisibility(identifier, post.hidden).catch(() => {});
     console.log(`👁️ Post "${post.title}" visibility toggled: hidden = ${post.hidden}`);
     return post;
   }
@@ -119,10 +135,11 @@ export function togglePostVisibility(identifier) {
 export function deletePost(identifier) {
   let posts = getAllPosts(true);
   const initialLength = posts.length;
-  posts = posts.filter(p => p.id != identifier && p.slug !== identifier);
+  cachedPosts = posts.filter(p => p.id != identifier && p.slug !== identifier);
   
-  if (posts.length < initialLength) {
-    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+  if (cachedPosts.length < initialLength) {
+    try { fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2)); } catch (e) {}
+    dbDeletePost(identifier).catch(() => {});
     console.log(`🗑️ Post deleted: ${identifier}`);
     return true;
   }
@@ -134,11 +151,11 @@ export function deletePost(identifier) {
  */
 export function recordRealView(slug, countryName = '🇺🇸 United States') {
   try {
-    const posts = getAllPosts();
-    const post = posts.find(p => p.slug === slug);
+    const post = cachedPosts.find(p => p.slug === slug);
     if (post) {
       post.views = (post.views || 0) + 1;
-      fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+      try { fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2)); } catch (e) {}
+      dbIncrementViews(slug).catch(() => {});
     }
 
     let analytics = INITIAL_ANALYTICS;
@@ -209,7 +226,7 @@ import { sendPostToReddit } from './redditManager.js';
  * Publishes a new article to the blog.
  */
 export function publishPost(postData) {
-  const posts = getAllPosts();
+  getAllPosts(); // Ensure cache is ready
   const slug = postData.title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -230,8 +247,9 @@ export function publishPost(postData) {
     publishedAt: new Date().toISOString()
   };
 
-  posts.unshift(newPost);
-  fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
+  cachedPosts.unshift(newPost);
+  try { fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2)); } catch (e) {}
+  dbSavePost(newPost).catch(e => console.error('Error saving post to MongoDB:', e));
 
   console.log(`✅ Auto-Published Post: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
