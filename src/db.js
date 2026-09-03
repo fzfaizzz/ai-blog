@@ -20,6 +20,17 @@ const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const GEMINI_FILE = path.join(DATA_DIR, 'gemini_keys.json');
 const SERPER_FILE = path.join(DATA_DIR, 'serper_keys.json');
 
+let lastConnectionError = null;
+
+export function getConnectionStatus() {
+  return {
+    isConnected,
+    hasDb: !!db,
+    lastError: lastConnectionError,
+    uriMasked: MONGO_URI ? MONGO_URI.replace(/:([^@]+)@/, ':****@') : ''
+  };
+}
+
 export async function connectDB() {
   if (isConnected && db) return db;
   try {
@@ -30,6 +41,7 @@ export async function connectDB() {
     await client.connect();
     db = client.db('primemedia');
     isConnected = true;
+    lastConnectionError = null;
     console.log('🍃 [MongoDB Atlas] Connected successfully to cloud database!');
 
     // Ensure indexes
@@ -43,6 +55,7 @@ export async function connectDB() {
 
     return db;
   } catch (err) {
+    lastConnectionError = err.message;
     console.error('⚠️ [MongoDB Atlas] Connection error (falling back to local JSON):', err.message);
     isConnected = false;
     return null;

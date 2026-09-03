@@ -14,7 +14,7 @@ import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/tw
 import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
 import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
 import { getGeminiKeys, saveGeminiKeys, syncGeminiKeysFromDB } from './src/geminiManager.js';
-import { connectDB, dbGetSetting, dbSaveSetting } from './src/db.js';
+import { connectDB, dbGetSetting, dbSaveSetting, getConnectionStatus } from './src/db.js';
 import { syncPostsFromDB } from './src/publisher.js';
 import { syncSerperKeysFromDB } from './src/serperManager.js';
 
@@ -675,16 +675,17 @@ app.post('/api/trigger-autoblog', async (req, res) => {
 // 🩺 Live Database Health & Diagnostics Endpoint
 app.get('/api/db-status', async (req, res) => {
   try {
+    const status = getConnectionStatus();
     const dbHandle = await connectDB();
     if (!dbHandle) {
-      return res.json({ connected: false, error: 'Database handle is null' });
+      return res.json({ connected: false, ...status });
     }
-    const ping = await dbHandle.command({ ping: 1 });
-    const count = await dbHandle.collection('posts').countDocuments();
-    const settingsCount = await dbHandle.collection('settings').countDocuments();
-    res.json({ connected: true, ping, postsCount: count, settingsCount });
+    const ping = await dbHandle.command({ ping: 1 }).catch(e => ({ pingError: e.message }));
+    const count = await dbHandle.collection('posts').countDocuments().catch(() => 0);
+    const settingsCount = await dbHandle.collection('settings').countDocuments().catch(() => 0);
+    res.json({ connected: true, ...status, ping, postsCount: count, settingsCount });
   } catch (e) {
-    res.status(500).json({ connected: false, error: e.message });
+    res.status(500).json({ connected: false, error: e.message, ...getConnectionStatus() });
   }
 });
 
