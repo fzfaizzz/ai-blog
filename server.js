@@ -55,7 +55,7 @@ const BASE_CANONICAL_URL = (process.env.BASE_URL || 'https://primemedia.site').r
 // SSR Meta Injection for Social Crawlers & SEO
 app.get('/post/:slug', (req, res) => {
   const post = getPostBySlug(req.params.slug);
-  if (!post) return res.status(404).sendFile(path.join(__dirname, 'public/index.html'));
+  if (!post) return res.status(404).sendFile(path.join(__dirname, 'public/404.html'));
   
   const baseUrl = BASE_CANONICAL_URL;
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
@@ -816,6 +816,11 @@ app.post('/api/admin/change-password', (req, res) => {
   console.log(`🔐 Admin password successfully updated to: "${targetPassword}"`);
 
   res.json({ success: true, newPassword: targetPassword, message: `Admin password updated and saved successfully to: "${targetPassword}"` });
+});
+
+// Clean 404 Handler for Unmapped Routes (Eliminates Soft 404 Errors in Google Search Console)
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public/404.html'));
 });
 
 // Start Server with Automatic Port Fallback & Start 24/7 Autopilot Scheduler
