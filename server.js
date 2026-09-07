@@ -41,9 +41,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// 301 Redirect /index.html to clean root / (Clean Technical SEO)
+// 301 Redirect /index.html and redundant query params to clean root / (Clean Technical SEO)
 app.get('/index.html', (req, res) => {
   res.redirect(301, '/');
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/' && (req.query.page === '1' || req.query.page === '0')) {
+    return res.redirect(301, '/');
+  }
+  next();
 });
 
 app.use(cors());
