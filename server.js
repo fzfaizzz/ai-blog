@@ -53,6 +53,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Clean Aliases & Defensive Navigation Redirects for Policy Pages
+const POLICY_PAGES = ['about', 'privacy', 'terms', 'disclaimer', 'contact'];
+POLICY_PAGES.forEach((page) => {
+  app.get(`/${page}`, (req, res) => res.redirect(301, `/${page}.html`));
+  app.get(`/post/${page}.html`, (req, res) => res.redirect(301, `/${page}.html`));
+  app.get(`/post/${page}`, (req, res) => res.redirect(301, `/${page}.html`));
+});
+app.get('/post/sitemap.xml', (req, res) => res.redirect(301, '/sitemap.xml'));
+
 app.use(cors());
 app.use(express.json());
 app.use(compression());
@@ -298,6 +307,7 @@ app.get('/sitemap.xml', (req, res) => {
   xml += `  <url>\n    <loc>${baseUrl}/privacy.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
   xml += `  <url>\n    <loc>${baseUrl}/terms.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
   xml += `  <url>\n    <loc>${baseUrl}/contact.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${baseUrl}/disclaimer.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
 
   posts.forEach(post => {
     const postDate = new Date(post.publishedAt || Date.now());

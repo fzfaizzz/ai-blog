@@ -1947,4 +1947,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('triggerAutoBlogBtn') || document.getElementById('saveSerperKeysBtn')) {
     initAdminPanel();
   }
+
+  // Gracefully collapse unfilled manual ad slots so pages look 100% complete and editorial
+  setTimeout(() => {
+    document.querySelectorAll('.adsense-container, .sticky-side-ad').forEach(el => {
+      const hasAd = el.querySelector('iframe') || (el.querySelector('ins') && el.querySelector('ins').getAttribute('data-ad-status') === 'filled');
+      if (!hasAd) {
+        el.style.display = 'none';
+      }
+    });
+  }, 2500);
 });
