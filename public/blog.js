@@ -577,29 +577,12 @@ async function loadSingleArticle() {
       // Clean up any old Photo Credit text
       html = html.replace(/<div[^>]*>Photo Credit:.*?<\/div>/gi, '');
 
-      // In-Article Native Ad Unit Template
-      const inArticleAdHtml = `
-        <div class="adsense-container" style="margin: 2.25rem 0;">
-          <div class="ad-label">SPONSORED ARTICLE AD</div>
-          <ins class="adsbygoogle"
-               style="display:block; text-align:center;"
-               data-ad-layout="in-article"
-               data-ad-format="fluid"
-               data-ad-client="ca-pub-9492642167600744"
-               data-ad-slot="4359866610"></ins>
-          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        </div>
-      `;
-
-      // Inject In-Article Native Ad after 1st H2 and In-Article Recommended Widget after 2nd H2
+      // Inject In-Article Recommended Widget after 2nd H2 for deep engagement
       let h2Count = 0;
       html = html.replace(/<h2>/g, (match) => {
         h2Count++;
         if (h2Count === 2) {
           return `<div id="inArticleRecommendedPlaceholder"></div><h2>`;
-        }
-        if (h2Count === 4) {
-          return `${inArticleAdHtml}<h2>`;
         }
         return match;
       });
