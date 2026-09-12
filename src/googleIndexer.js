@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { dbGetSetting } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,23 +16,36 @@ const ROOT_SERVICE_ACCOUNT = path.join(__dirname, '../service_account.json');
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
+let cachedSa = null;
 
-function getServiceAccount() {
+export async function getServiceAccount() {
+  if (cachedSa) return cachedSa;
+
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     try {
-      return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      cachedSa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      return cachedSa;
     } catch (e) {}
   }
   if (fs.existsSync(SERVICE_ACCOUNT_PATH)) {
     try {
-      return JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
+      cachedSa = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
+      return cachedSa;
     } catch (e) {}
   }
   if (fs.existsSync(ROOT_SERVICE_ACCOUNT)) {
     try {
-      return JSON.parse(fs.readFileSync(ROOT_SERVICE_ACCOUNT, 'utf8'));
+      cachedSa = JSON.parse(fs.readFileSync(ROOT_SERVICE_ACCOUNT, 'utf8'));
+      return cachedSa;
     } catch (e) {}
   }
+  try {
+    const doc = await dbGetSetting('google_service_account');
+    if (doc) {
+      cachedSa = doc;
+      return cachedSa;
+    }
+  } catch (e) {}
   return null;
 }
 
@@ -80,7 +94,7 @@ async function getAccessToken(sa) {
  * @returns {Promise<boolean>}
  */
 export async function submitToGoogleIndexing(url, type = 'URL_UPDATED') {
-  const sa = getServiceAccount();
+  const sa = await getServiceAccount();
   if (!sa || !sa.client_email || !sa.private_key) {
     return false;
   }

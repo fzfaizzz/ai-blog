@@ -11,5 +11,8 @@ data/userbot_config.json
 data/userbot_history.json
 data/twitter_config.json
 data/custom_twitter_config.json
+*service_account*.json
+service_account.json
+data/service_account.json
 
 
