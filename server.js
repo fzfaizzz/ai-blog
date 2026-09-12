@@ -17,6 +17,7 @@ import { getGeminiKeys, saveGeminiKeys, syncGeminiKeysFromDB } from './src/gemin
 import { connectDB, dbGetSetting, dbSaveSetting, getConnectionStatus } from './src/db.js';
 import { syncPostsFromDB } from './src/publisher.js';
 import { syncSerperKeysFromDB } from './src/serperManager.js';
+import { submitUrlToIndexNow } from './src/indexNowManager.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -184,6 +185,12 @@ app.get('/post/:slug', (req, res) => {
 app.get('/ads.txt', (req, res) => {
   res.header('Content-Type', 'text/plain');
   res.send('google.com, pub-9492642167600744, DIRECT, f08c47fec0942fa0\n');
+});
+
+// Official Microsoft Bing & Search Engines IndexNow Key Verification Route
+app.get('/77177bd8efd14f0e9f108cc0749674ce.txt', (req, res) => {
+  res.header('Content-Type', 'text/plain; charset=utf-8');
+  res.send('77177bd8efd14f0e9f108cc0749674ce');
 });
 
 // Dynamic robots.txt for Googlebot & Googlebot-News
@@ -806,6 +813,32 @@ app.post('/api/admin/post/delete', requireAdminAuth, (req, res) => {
     return res.json({ success: true, message: 'Article permanently deleted' });
   }
   res.status(404).json({ success: false, error: 'Post not found' });
+});
+
+// 5b. IndexNow Bulk Instant Submission
+app.post('/api/admin/indexnow/submit-all', requireAdminAuth, async (req, res) => {
+  try {
+    const posts = getAllPosts();
+    const baseUrl = BASE_CANONICAL_URL;
+    const urlList = [
+      baseUrl,
+      `${baseUrl}/about.html`,
+      `${baseUrl}/privacy.html`,
+      `${baseUrl}/terms.html`,
+      `${baseUrl}/disclaimer.html`,
+      `${baseUrl}/contact.html`,
+      ...posts.map(p => `${baseUrl}/post/${p.slug}`)
+    ];
+
+    const success = await submitUrlToIndexNow(urlList);
+    res.json({
+      success,
+      count: urlList.length,
+      message: `Successfully submitted ${urlList.length} URLs to IndexNow (Bing, DuckDuckGo, Yandex)!`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 6. Admin Authentication Endpoints

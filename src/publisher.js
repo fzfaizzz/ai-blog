@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB, dbGetAllPosts, dbSavePost, dbDeletePost, dbTogglePostVisibility, dbIncrementViews } from './db.js';
+import { submitUrlToIndexNow } from './indexNowManager.js';
+import { submitToGoogleIndexing } from './googleIndexer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -219,20 +221,29 @@ export async function publishPost(postData) {
   sendTweetViaCookieSession(newPost).catch(e => console.error('Custom Twitter Cookie Bot error:', e));
   sendPostToReddit(newPost).catch(e => console.error('Reddit Auto-Poster error:', e));
 
-  // Asynchronously ping Google Search & Bing IndexNow for instant indexing
-  pingSearchEngines();
+  // Asynchronously submit to IndexNow (Bing, DuckDuckGo, Yandex) & Ping Search Engines
+  const domain = (process.env.BASE_URL || 'https://primemedia.site').replace(/\/+$/, '');
+  const postUrl = `${domain}/post/${newPost.slug}`;
+  pingSearchEngines(postUrl);
 
   return newPost;
 }
 
-async function pingSearchEngines() {
-  const domain = process.env.BASE_URL || 'https://primemedia.site';
+async function pingSearchEngines(postUrl) {
+  const domain = (process.env.BASE_URL || 'https://primemedia.site').replace(/\/+$/, '');
   const sitemapUrl = encodeURIComponent(`${domain}/news-sitemap.xml`);
   const fullSitemapUrl = encodeURIComponent(`${domain}/sitemap.xml`);
+
+  // 1. Official Instant IndexNow Protocol (Bing, DuckDuckGo, Yahoo, Yandex, Seznam, Naver)
+  if (postUrl) {
+    submitUrlToIndexNow(postUrl).catch(e => console.error('IndexNow post error:', e));
+    submitToGoogleIndexing(postUrl, 'URL_UPDATED').catch(e => console.error('Google Indexing API error:', e));
+  }
+
+  // 2. Sitemaps ping fallbacks
   try {
     fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
     fetch(`https://www.google.com/ping?sitemap=${fullSitemapUrl}`).catch(() => {});
     fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
-    console.log(`⚡ Successfully Pinged Google Search & Bing Search with updated Sitemaps (${domain})!`);
   } catch (e) {}
 }
