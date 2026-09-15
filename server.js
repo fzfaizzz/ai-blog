@@ -78,7 +78,8 @@ app.get('/post/:slug', (req, res) => {
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
-    <title>${escapeHtml(post.title)} — Prime Media</title>
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <title>${escapeHtml(post.title)} | Prime Media</title>
     <meta name="description" content="${escapeHtml(post.metaDescription)}">
     <link rel="canonical" href="${baseUrl}/post/${post.slug}">
     <meta property="og:type" content="article">
@@ -178,6 +179,7 @@ app.get('/post/:slug', (req, res) => {
     html = html.replace(/<div id="recommendedGrid"[^>]*>[\s\S]*?<\/div>/i, `<div id="recommendedGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">${recommendedHtml}</div>`);
   } catch (recErr) {}
   
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
 });
 
