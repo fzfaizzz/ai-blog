@@ -135,7 +135,8 @@ app.get('/post/:slug', (req, res) => {
   html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate">Senior Editorial Staff • Published ${formattedDate}</span>`);
   html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 4} min read</span>`);
   if (post.contentHtml) {
-    html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${post.contentHtml}</article>`);
+    const cleanContent = (post.contentHtml || '').replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+    html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${cleanContent}</article>`);
   }
 
   // 🔗 Inject SSR Internal Links (Recommended Stories) for Googlebot Rapid Discovery & Crawling
@@ -191,6 +192,9 @@ User-agent: Mediapartners-Google
 Allow: /
 
 User-agent: Google-AdSense-Bot
+Allow: /
+
+User-agent: Googlebot-Image
 Allow: /
 
 Sitemap: ${baseUrl}/sitemap.xml

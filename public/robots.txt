@@ -18,5 +18,8 @@ Allow: /
 User-agent: Google-AdSense-Bot
 Allow: /
 
+User-agent: Googlebot-Image
+Allow: /
+
 Sitemap: https://primemedia.site/sitemap.xml
 Sitemap: https://primemedia.site/news-sitemap.xml
