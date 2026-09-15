@@ -8,27 +8,261 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="shortcut icon" href="/favicon.ico">
+  <script>
+    // ⚡ Synchronous Anti-Flicker Theme Initializer (Zero White Flash)
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('adminTheme');
+        var systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var activeTheme = savedTheme ? savedTheme : (systemPrefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', activeTheme);
+      } catch(e) {}
+    })();
+  </script>
   <style>
+    /* ========================================================
+       🎨 THEME VARIABLES (LIGHT & DARK DUAL-ENGINE)
+       ======================================================== */
+    :root, html[data-theme="light"] {
+      --admin-body-bg: #F1F5F9;
+      --admin-header-bg: #FFFFFF;
+      --admin-header-border: #E2E8F0;
+      --admin-card-bg: #FFFFFF;
+      --admin-card-border: #CBD5E1;
+      --admin-card-inner: #F8FAFC;
+      --admin-inner-border: #E2E8F0;
+      --admin-text-main: #0F172A;
+      --admin-text-muted: #475569;
+      --admin-text-subtle: #64748B;
+      --admin-input-bg: #FFFFFF;
+      --admin-input-border: #94A3B8;
+      --admin-input-color: #0F172A;
+      --admin-input-placeholder: #94A3B8;
+      --admin-modal-bg: #FFFFFF;
+      --admin-modal-border: #CBD5E1;
+      --admin-modal-overlay: rgba(15, 23, 42, 0.88);
+      --admin-toggle-bg: #F8FAFC;
+      --admin-toggle-border: #CBD5E1;
+      --admin-toggle-color: #334155;
+      --admin-toggle-hover: #E2E8F0;
+      --admin-article-bg: #FFFFFF;
+      --admin-article-border: #F1F5F9;
+      --admin-article-hidden-bg: #FFFBEB;
+      --admin-badge-count-bg: #E2E8F0;
+      --admin-badge-count-color: #0F172A;
+      --admin-code-bg: #F1F5F9;
+      --admin-code-color: #0F172A;
+      --admin-stat-icon-articles: #EFF6FF;
+      --admin-stat-icon-views: #ECFDF5;
+      --admin-stat-icon-auto: #F5F3FF;
+      --admin-userbot-card-bg: #F0F9FF;
+      --admin-userbot-card-border: #0EA5E9;
+      --admin-userbot-inner-bg: #FFFFFF;
+      --admin-userbot-inner-border: #BAE6FD;
+      --badge-hidden-bg: #FEF3C7;
+      --badge-hidden-color: #D97706;
+      --badge-public-bg: #DCFCE7;
+      --badge-public-color: #15803D;
+      --admin-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --admin-shadow-md: 0 15px 30px -5px rgba(0,0,0,0.15);
+    }
+
+    html[data-theme="dark"] {
+      --admin-body-bg: #090D16;
+      --admin-header-bg: #0F172A;
+      --admin-header-border: #1E293B;
+      --admin-card-bg: #131D31;
+      --admin-card-border: #23314D;
+      --admin-card-inner: #0C1322;
+      --admin-inner-border: #1E2C44;
+      --admin-text-main: #F8FAFC;
+      --admin-text-muted: #94A3B8;
+      --admin-text-subtle: #64748B;
+      --admin-input-bg: #0A0F1A;
+      --admin-input-border: #334155;
+      --admin-input-color: #F8FAFC;
+      --admin-input-placeholder: #64748B;
+      --admin-modal-bg: #131D31;
+      --admin-modal-border: #334155;
+      --admin-modal-overlay: rgba(3, 7, 18, 0.94);
+      --admin-toggle-bg: #1E293B;
+      --admin-toggle-border: #334155;
+      --admin-toggle-color: #F8FAFC;
+      --admin-toggle-hover: #2D3D58;
+      --admin-article-bg: #131D31;
+      --admin-article-border: #1E293B;
+      --admin-article-hidden-bg: #2B1D04;
+      --admin-badge-count-bg: #1E293B;
+      --admin-badge-count-color: #F8FAFC;
+      --admin-code-bg: #1E293B;
+      --admin-code-color: #38BDF8;
+      --admin-stat-icon-articles: rgba(37, 99, 235, 0.22);
+      --admin-stat-icon-views: rgba(5, 150, 105, 0.22);
+      --admin-stat-icon-auto: rgba(124, 58, 237, 0.22);
+      --admin-userbot-card-bg: #0C1E33;
+      --admin-userbot-card-border: #0284C7;
+      --admin-userbot-inner-bg: #131D31;
+      --admin-userbot-inner-border: #1E3A5F;
+      --badge-hidden-bg: rgba(245, 158, 11, 0.2);
+      --badge-hidden-color: #FBBF24;
+      --badge-public-bg: rgba(34, 197, 94, 0.2);
+      --badge-public-color: #4ADE80;
+      --admin-shadow-sm: 0 1px 4px rgba(0,0,0,0.5);
+      --admin-shadow-md: 0 15px 35px -5px rgba(0,0,0,0.6);
+    }
+
+    body {
+      background-color: var(--admin-body-bg) !important;
+      color: var(--admin-text-main) !important;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Admin Sticky Header */
+    .admin-header {
+      background: var(--admin-header-bg);
+      border-bottom: 1px solid var(--admin-header-border);
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      box-shadow: var(--admin-shadow-sm);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .admin-header .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.85rem;
+      padding-bottom: 0.85rem;
+    }
+    .brand-logo .brand-text {
+      color: var(--admin-text-main);
+    }
+    .admin-nav-link {
+      color: var(--admin-text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--admin-toggle-border);
+      background: var(--admin-toggle-bg);
+      transition: all 0.2s ease;
+    }
+    .admin-nav-link:hover {
+      color: #2563EB;
+      border-color: #2563EB;
+    }
+
+    /* Modern Theme Toggle Button */
+    .admin-theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.42rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid var(--admin-toggle-border);
+      background: var(--admin-toggle-bg);
+      color: var(--admin-toggle-color);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+    .admin-theme-toggle:hover {
+      background: var(--admin-toggle-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    }
+    .admin-theme-toggle:active {
+      transform: translateY(0);
+    }
+
+    /* Admin Cards */
+    .admin-card {
+      background: var(--admin-card-bg) !important;
+      border: 1px solid var(--admin-card-border) !important;
+      border-radius: 12px !important;
+      padding: 1.75rem 2rem !important;
+      margin-bottom: 1.75rem !important;
+      box-shadow: var(--admin-shadow-sm) !important;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .admin-card h2, .admin-card h3, .admin-card h4 {
+      color: var(--admin-text-main) !important;
+    }
+    .admin-card p {
+      color: var(--admin-text-muted) !important;
+    }
+    .admin-card label {
+      color: var(--admin-text-main) !important;
+    }
+
+    /* Stat Cards */
+    .admin-stat-card {
+      background: var(--admin-card-bg) !important;
+      border: 1px solid var(--admin-card-border) !important;
+      border-radius: 10px;
+      padding: 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: var(--admin-shadow-sm);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .admin-stat-card .stat-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--admin-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .admin-stat-card .stat-val {
+      font-weight: 800;
+      font-size: 1.45rem;
+      color: var(--admin-text-main);
+    }
+
+    /* Universal Input & Select Styling */
+    input[type="text"], input[type="password"], select, textarea {
+      background-color: var(--admin-input-bg) !important;
+      border: 1px solid var(--admin-input-border) !important;
+      color: var(--admin-input-color) !important;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+    input::placeholder, textarea::placeholder {
+      color: var(--admin-input-placeholder) !important;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+      border-color: #3B82F6 !important;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+    }
+
+    /* Dynamic Key Rows */
     .key-row {
       display: flex;
       gap: 0.8rem;
       align-items: center;
       margin-bottom: 0.8rem;
-      background: #F8FAFC;
+      background: var(--admin-card-inner) !important;
       padding: 0.75rem 1rem;
-      border: 1px solid var(--border-light);
+      border: 1px solid var(--admin-inner-border) !important;
       border-radius: 8px;
     }
     .key-input {
       flex: 1;
       font-family: monospace;
       padding: 0.6rem 0.8rem;
-      border: 1px solid var(--border-dark);
+      border: 1px solid var(--admin-input-border) !important;
       border-radius: 6px;
       font-size: 0.85rem;
-      color: var(--text-main);
-      background: #FFF;
+      color: var(--admin-input-color) !important;
+      background: var(--admin-input-bg) !important;
     }
+
+    /* Badges */
     .key-badge {
       font-size: 0.75rem;
       font-weight: 700;
@@ -39,6 +273,19 @@
     .badge-active { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
     .badge-ready { background: #E0F2FE; color: #075985; border: 1px solid #7DD3FC; }
     .badge-exhausted { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+    html[data-theme="dark"] .badge-active { background: rgba(34, 197, 94, 0.18); color: #4ADE80; border-color: rgba(74, 222, 128, 0.4); }
+    html[data-theme="dark"] .badge-ready { background: rgba(56, 189, 248, 0.18); color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); }
+    html[data-theme="dark"] .badge-exhausted { background: rgba(239, 68, 68, 0.18); color: #F87171; border-color: rgba(248, 113, 113, 0.4); }
+
+    /* Inner boxes */
+    .admin-inner-box {
+      background: var(--admin-card-inner) !important;
+      border: 1px solid var(--admin-inner-border) !important;
+      border-radius: 8px;
+    }
+
+    /* Metric Cards */
     .analytics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -46,29 +293,99 @@
       margin-top: 1rem;
     }
     .metric-card {
-      background: #F8FAFC;
-      border: 1px solid var(--border-light);
+      background: var(--admin-card-inner) !important;
+      border: 1px solid var(--admin-inner-border) !important;
       border-radius: 8px;
       padding: 1.25rem;
+    }
+    .metric-card h4 {
+      color: var(--admin-text-main) !important;
+    }
+
+    /* Articles Table / List */
+    #adminArticlesList {
+      background: var(--admin-card-inner) !important;
+      border: 1px solid var(--admin-card-border) !important;
+    }
+    #adminArticlesCountBadge {
+      background: var(--admin-badge-count-bg) !important;
+      color: var(--admin-badge-count-color) !important;
+    }
+    .admin-article-row {
+      transition: background-color 0.15s ease;
+    }
+    .admin-article-row:hover {
+      filter: brightness(0.96);
+    }
+    html[data-theme="dark"] .admin-article-row:hover {
+      filter: brightness(1.15);
+    }
+    .admin-article-row a {
+      color: var(--admin-text-main) !important;
+    }
+
+    /* Modal Card */
+    .admin-modal-card {
+      background: var(--admin-modal-bg) !important;
+      border: 1px solid var(--admin-modal-border) !important;
+      box-shadow: var(--admin-shadow-md) !important;
+    }
+    .admin-modal-card h2 {
+      color: var(--admin-text-main) !important;
+    }
+    .admin-modal-card p {
+      color: var(--admin-text-muted) !important;
+    }
+
+    /* Userbot Card Specific Theme Overrides */
+    .admin-userbot-card {
+      background: var(--admin-userbot-card-bg) !important;
+      border: 2px solid var(--admin-userbot-card-border) !important;
+    }
+    .admin-userbot-inner {
+      background: var(--admin-userbot-inner-bg) !important;
+      border: 1px solid var(--admin-userbot-inner-border) !important;
+    }
+
+    /* Code Tags */
+    code {
+      background: var(--admin-code-bg) !important;
+      color: var(--admin-code-color) !important;
+    }
+
+    /* Dark Mode Scrollbars */
+    html[data-theme="dark"] ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    html[data-theme="dark"] ::-webkit-scrollbar-track {
+      background: #090D16;
+    }
+    html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+      background: #23314D;
+      border-radius: 4px;
+    }
+    html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
     }
   </style>
 </head>
 <body>
   <!-- Admin Password Lock Modal Overlay -->
-  <div id="adminLoginModal" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1.5rem;">
-    <div style="background: #FFFFFF; width: 100%; max-width: 440px; border-radius: 12px; padding: 2.25rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid #CBD5E1; text-align: center;">
+  <div id="adminLoginModal" style="position: fixed; inset: 0; background: var(--admin-modal-overlay); backdrop-filter: blur(8px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1.5rem;">
+    <div class="admin-modal-card" style="width: 100%; max-width: 440px; border-radius: 12px; padding: 2.25rem; text-align: center;">
       <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔒</div>
-      <h2 style="font-family: var(--font-heading); font-size: 1.5rem; color: #0F172A; margin-bottom: 0.4rem;">Staff Admin Authentication</h2>
-      <p style="font-size: 0.875rem; color: #64748B; margin-bottom: 1.5rem; line-height: 1.5;">
+      <h2 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.4rem;">Staff Admin Authentication</h2>
+      <p style="font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5;">
         Enter your Admin Staff Password to manage API Keys, 24/7 Autopilot settings, and view Live Audience Analytics.
       </p>
 
       <form id="adminLoginForm">
         <div style="margin-bottom: 1.25rem; text-align: left;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">ADMIN PASSWORD</label>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.4rem;">ADMIN PASSWORD</label>
           <div style="position: relative;">
-            <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" required style="width: 100%; padding: 0.8rem 2.8rem 0.8rem 1rem; border: 1px solid #94A3B8; border-radius: 6px; font-size: 0.95rem; outline: none;" />
-            <button type="button" class="toggle-pass-btn" onclick="togglePassVisibility('adminPasswordInput', this)" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.15rem; padding: 0.2rem 0.4rem; color: #64748B; z-index: 10;" title="Show / Hide Password">👁️</button>
+            <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" required style="width: 100%; padding: 0.8rem 2.8rem 0.8rem 1rem; border-radius: 6px; font-size: 0.95rem;" />
+            <button type="button" class="toggle-pass-btn" onclick="togglePassVisibility('adminPasswordInput', this)" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 1.15rem; padding: 0.2rem 0.4rem; color: var(--admin-text-muted); z-index: 10;" title="Show / Hide Password">👁️</button>
           </div>
         </div>
 
@@ -82,12 +399,21 @@
   </div>
 
   <!-- Header -->
-  <header>
+  <header class="admin-header">
     <div class="container navbar">
-      <a href="/" class="brand-logo" style="font-size: 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem;"><img src="/logo2.png" alt="Prime Media" style="height: 34px; width: 34px; object-fit: contain; border-radius: 4px;" />PRIME <span>MEDIA</span> STAFF</a>
-      <ul class="nav-links">
-        <li><a href="/">🌐 View Live Website</a></li>
-        <li><a href="#" id="adminLogoutBtn" style="display: inline-block; color: #EF4444; font-weight: 700; text-decoration: none;">🔒 Logout</a></li>
+      <a href="/" class="brand-logo" style="font-size: 1.4rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; font-weight: 800;">
+        <img src="/logo2.png" alt="Prime Media" style="height: 34px; width: 34px; object-fit: contain; border-radius: 4px;" />
+        <span class="brand-text">PRIME <span style="color: #2563EB;">MEDIA</span> <span style="font-size: 0.72rem; background: #2563EB; color: #FFF; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700; vertical-align: middle;">STAFF</span></span>
+      </a>
+      <ul class="nav-links" style="display: flex; align-items: center; gap: 0.75rem; list-style: none; margin: 0; padding: 0;">
+        <li>
+          <button id="adminThemeToggleBtn" type="button" class="admin-theme-toggle" title="Switch Theme (Dark / Light)">
+            <span id="themeToggleIcon">🌙</span>
+            <span id="themeToggleText">Dark Mode</span>
+          </button>
+        </li>
+        <li><a href="/" class="admin-nav-link" target="_blank">🌐 Live Website</a></li>
+        <li><a href="#" id="adminLogoutBtn" style="display: inline-block; color: #EF4444; font-weight: 700; text-decoration: none; font-size: 0.85rem; padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08);">🔒 Logout</a></li>
       </ul>
     </div>
   </header>
@@ -95,26 +421,26 @@
   <div class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 3rem;">
     <!-- 📊 Live Staff Dashboard Overview Stats Banner -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div style="width: 44px; height: 44px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">📚</div>
+      <div class="admin-stat-card">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--admin-stat-icon-articles); color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">📚</div>
         <div>
-          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Published Articles</div>
-          <div id="statTotalArticles" style="font-weight: 800; font-size: 1.4rem; color: #0F172A;">0</div>
+          <div class="stat-label">Total Published Articles</div>
+          <div id="statTotalArticles" class="stat-val">0</div>
         </div>
       </div>
 
-      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div style="width: 44px; height: 44px; border-radius: 8px; background: #ECFDF5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">👁️</div>
+      <div class="admin-stat-card">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--admin-stat-icon-views); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">👁️</div>
         <div>
-          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Total Combined Views</div>
-          <div id="statTotalViews" style="font-weight: 800; font-size: 1.4rem; color: #059669;">0</div>
+          <div class="stat-label">Total Combined Views</div>
+          <div id="statTotalViews" class="stat-val" style="color: #059669;">0</div>
         </div>
       </div>
 
-      <div style="background: #FFF; border: 1px solid var(--border-dark); border-radius: 8px; padding: 1.15rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-        <div style="width: 44px; height: 44px; border-radius: 8px; background: #F5F3FF; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🤖</div>
+      <div class="admin-stat-card">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--admin-stat-icon-auto); color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🤖</div>
         <div>
-          <div style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">24/7 Autopilot Mode</div>
+          <div class="stat-label">24/7 Autopilot Mode</div>
           <div style="font-weight: 800; font-size: 0.95rem; color: #059669; display: flex; align-items: center; gap: 0.3rem;">🟢 ACTIVE</div>
         </div>
       </div>
@@ -277,7 +603,7 @@
         </div>
 
         <!-- 🎯 Category-Smart Routing Section -->
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div class="admin-inner-box" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
           <h4 style="font-size: 0.85rem; font-weight: 800; color: #1E293B; margin-top: 0; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
             🎯 Category-Smart Auto-Routing (Zero Cross-Pollution)
           </h4>
@@ -323,7 +649,7 @@
     </div>
 
     <!-- 🚀 Telegram Userbot (MTProto Account Auto-Poster - Posts to ANY Joined Public Group) -->
-    <div class="admin-card" style="border: 2px solid #0EA5E9; background: #F0F9FF;">
+    <div class="admin-card admin-userbot-card" style="border: 2px solid #0EA5E9; background: #F0F9FF;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
         <h3 style="font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #0369A1;">
           🚀 Telegram Userbot (MTProto User Account Auto-Poster)
@@ -337,7 +663,7 @@
       </p>
 
       <!-- Step 1: Authentication Form -->
-      <div id="userbotAuthSection" style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+      <div id="userbotAuthSection" class="admin-userbot-inner" style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
         <h4 style="font-size: 0.85rem; font-weight: 800; color: #0369A1; margin-top: 0; margin-bottom: 0.75rem;">
           🔐 Step 1: Connect Your Telegram Account (One-Time Setup via my.telegram.org)
         </h4>
@@ -383,7 +709,7 @@
         </div>
 
         <!-- 🎯 Userbot Category-Smart Routing Section -->
-        <div style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div class="admin-userbot-inner" style="background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
           <h4 style="font-size: 0.85rem; font-weight: 800; color: #0369A1; margin-top: 0; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
             🎯 Userbot Category-Smart Auto-Routing (Zero Bot Restrictions)
           </h4>
@@ -567,5 +893,43 @@
   </div>
 
   <script src="/blog.js"></script>
+  <script>
+    // 🌓 Admin Dark / Light Mode Interactive Toggle Logic
+    (function() {
+      const toggleBtn = document.getElementById('adminThemeToggleBtn');
+      const iconSpan = document.getElementById('themeToggleIcon');
+      const textSpan = document.getElementById('themeToggleText');
+
+      function syncUI(theme) {
+        if (!toggleBtn) return;
+        if (theme === 'dark') {
+          if (iconSpan) iconSpan.textContent = '☀️';
+          if (textSpan) textSpan.textContent = 'Light Mode';
+          toggleBtn.setAttribute('title', 'Switch to Light Mode');
+        } else {
+          if (iconSpan) iconSpan.textContent = '🌙';
+          if (textSpan) textSpan.textContent = 'Dark Mode';
+          toggleBtn.setAttribute('title', 'Switch to Dark Mode');
+        }
+      }
+
+      // Initial sync with active data-theme
+      const initialTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      syncUI(initialTheme);
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', newTheme);
+          try {
+            localStorage.setItem('adminTheme', newTheme);
+          } catch(err) {}
+          syncUI(newTheme);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

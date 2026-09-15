@@ -893,14 +893,14 @@ function initAdminPanel() {
     }
 
     container.innerHTML = displayPosts.map(p => `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid #F1F5F9; flex-wrap: wrap; gap: 0.75rem; background: ${p.hidden ? '#FFFBEB' : '#FFFFFF'};">
+      <div class="admin-article-row ${p.hidden ? 'is-hidden' : ''}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--admin-article-border, #F1F5F9); flex-wrap: wrap; gap: 0.75rem; background: ${p.hidden ? 'var(--admin-article-hidden-bg, #FFFBEB)' : 'var(--admin-article-bg, #FFFFFF)'};">
         <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 260px;">
           <img src="${p.imageUrl}" alt="${p.title}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0F172A;" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
           <div>
-            <div style="font-weight: 700; font-size: 0.9rem; color: #0F172A; line-height: 1.3;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--admin-text-main, #0F172A); line-height: 1.3;">
               <a href="/post/${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
             </div>
-            <div style="font-size: 0.75rem; color: #64748B; margin-top: 0.2rem;">
+            <div style="font-size: 0.75rem; color: var(--admin-text-subtle, #64748B); margin-top: 0.2rem;">
               📁 <strong>${p.category || 'News'}</strong> • 👁️ ${p.views || 0} views • 🗓️ ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
@@ -908,7 +908,7 @@ function initAdminPanel() {
 
         <div style="display: flex; align-items: center; gap: 0.65rem;">
           <!-- Status Badge -->
-          <span style="font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 12px; background: ${p.hidden ? '#FEF3C7' : '#DCFCE7'}; color: ${p.hidden ? '#D97706' : '#15803D'};">
+          <span style="font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 12px; background: ${p.hidden ? 'var(--badge-hidden-bg, #FEF3C7)' : 'var(--badge-public-bg, #DCFCE7)'}; color: ${p.hidden ? 'var(--badge-hidden-color, #D97706)' : 'var(--badge-public-color, #15803D)'};">
             ${p.hidden ? '🙈 HIDDEN' : '🟢 PUBLIC'}
           </span>
 
