@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { connectDB, dbGetAllPosts, dbSavePost, dbDeletePost, dbTogglePostVisibility, dbIncrementViews } from './db.js';
+import { connectDB, dbGetAllPosts, dbGetPostBySlug, dbSavePost, dbDeletePost, dbTogglePostVisibility, dbIncrementViews } from './db.js';
 import { submitUrlToIndexNow } from './indexNowManager.js';
 import { submitToGoogleIndexing } from './googleIndexer.js';
 
@@ -74,6 +74,23 @@ export function getPostBySlug(slug) {
   const posts = getAllPosts(true);
   return posts.find(p => p.slug === slug) || null;
 }
+
+/**
+ * Gets a single post by slug asynchronously with MongoDB cloud fallback.
+ */
+export async function getPostBySlugAsync(slug) {
+  let post = getPostBySlug(slug);
+  if (post) return post;
+  try {
+    const dbPost = await dbGetPostBySlug(slug);
+    if (dbPost) {
+      cachedPosts.unshift(dbPost);
+      return dbPost;
+    }
+  } catch (e) {}
+  return null;
+}
+
 
 /**
  * Toggles a post's hidden state (Hide / Show)

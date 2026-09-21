@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { getTrendingTopics, fetchFullStoryDetails } from './src/trendFetcher.js';
 import { generateHumanArticle } from './src/aiWriter.js';
 import { getGoogleMatchingImages } from './src/googleImageFetcher.js';
-import { getAllPosts, getPostBySlug, publishPost, recordRealView, getRealAnalyticsData, togglePostVisibility, deletePost } from './src/publisher.js';
+import { getAllPosts, getPostBySlug, getPostBySlugAsync, publishPost, recordRealView, getRealAnalyticsData, togglePostVisibility, deletePost } from './src/publisher.js';
 import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
@@ -69,10 +69,70 @@ app.use(compression());
 
 const BASE_CANONICAL_URL = (process.env.BASE_URL || 'https://primemedia.site').replace(/^http:\/\//i, 'https://').replace(/\/+$/, '');
 
+// Smart Keyword Relevance Matcher for SEO 301 Redirects (Resolves 404s in Google Search Console)
+function findBestMatchingPost(requestedSlug, allPosts) {
+  if (!requestedSlug || !allPosts || allPosts.length === 0) return null;
+  const stopWords = new Set([
+    'the', 'and', 'of', 'in', 'a', 'to', 'for', 'on', 'with', 'is', 'are',
+    'after', 'whats', 'latest', 'how', 'many', 'no', 'there', 'were', 'as',
+    'at', 'least', 'from', 'this', 'that', 'by', 'an', 'be', 'or', 'it',
+    'about', 'over', 'into', 'who', 'what', 'when', 'where', 'why'
+  ]);
+  const queryWords = requestedSlug
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(w => w.length > 2 && !stopWords.has(w));
+
+  if (queryWords.length === 0) return null;
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const post of allPosts) {
+    if (post.hidden) continue;
+    let score = 0;
+    const postSlugWords = (post.slug || '').toLowerCase();
+    const postTitleWords = (post.title || '').toLowerCase();
+
+    for (const word of queryWords) {
+      if (postSlugWords.includes(word)) score += 2;
+      else if (postTitleWords.includes(word)) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = post;
+    }
+  }
+
+  // Require confidence threshold of at least 2 matching significant words
+  if (bestScore >= 2) {
+    return bestMatch;
+  }
+  return null;
+}
+
 // SSR Meta Injection for Social Crawlers & SEO
-app.get('/post/:slug', (req, res) => {
-  const post = getPostBySlug(req.params.slug);
-  if (!post) return res.status(404).sendFile(path.join(__dirname, 'public/404.html'));
+app.get('/post/:slug', async (req, res) => {
+  let post = getPostBySlug(req.params.slug);
+  if (!post) {
+    post = await getPostBySlugAsync(req.params.slug);
+  }
+
+  // If still not found, trigger the Smart 301 Keyword Redirection Engine
+  if (!post) {
+    const allPosts = getAllPosts(false);
+    const bestMatch = findBestMatchingPost(req.params.slug, allPosts);
+    if (bestMatch && bestMatch.slug && bestMatch.slug !== req.params.slug) {
+      console.log(`🔀 [Smart SEO 301] Redirecting dead slug "${req.params.slug}" -> "/post/${bestMatch.slug}"`);
+      return res.redirect(301, `/post/${bestMatch.slug}`);
+    }
+
+    // Permanent removal signal for unmapped/orphan URLs (HTTP 410 Gone with noindex header)
+    res.status(410);
+    res.setHeader('X-Robots-Tag', 'noindex, follow');
+    return res.sendFile(path.join(__dirname, 'public/404.html'));
+  }
   
   const baseUrl = BASE_CANONICAL_URL;
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
@@ -426,9 +486,12 @@ app.get('/api/posts', (req, res) => {
 });
 
 // 2. Get Single Post by Slug & Record Real Live View & Country Tracking
-app.get('/api/post/:slug', (req, res) => {
+app.get('/api/post/:slug', async (req, res) => {
   const { slug } = req.params;
-  const post = getPostBySlug(slug);
+  let post = getPostBySlug(slug);
+  if (!post) {
+    post = await getPostBySlugAsync(slug);
+  }
   if (!post) {
     return res.status(404).json({ success: false, error: 'Article not found' });
   }

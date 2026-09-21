@@ -134,6 +134,23 @@ export async function dbGetAllPosts() {
   }
 }
 
+export async function dbGetPostBySlug(slug) {
+  try {
+    if (!isConnected) await connectDB();
+    if (!db) return null;
+    const post = await db.collection('posts').findOne({ slug });
+    if (post) {
+      const { _id, ...rest } = post;
+      return rest;
+    }
+    return null;
+  } catch (err) {
+    console.error(`dbGetPostBySlug(${slug}) error:`, err);
+    return null;
+  }
+}
+
+
 export async function dbSavePost(post) {
   try {
     if (!isConnected) await connectDB();
