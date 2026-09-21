@@ -94,12 +94,14 @@ async function loadHomepagePosts(category = null, page = null) {
         return;
       }
 
-      // 3. Dynamic Featured Hero & Trending Sidebar (Updates dynamically on Search & Category Filters)
-      const heroSection = document.querySelector('.hero-layout');
-      if (heroSection) heroSection.style.display = 'grid'; // Ensure hero section is visible
+      // 3. Dynamic Featured Hero & Trending Sidebar with Zero Duplication
+      const featuredSlugs = new Set();
+      const heroSection = document.getElementById('heroSection');
+      if (heroSection) heroSection.style.display = '';
 
       if (featuredStory && filtered.length > 0) {
         const lead = filtered[0];
+        featuredSlugs.add(lead.slug);
         const author = HUMAN_AUTHORS[0];
         const categoryTag = (currentCategory !== 'ALL') ? currentCategory : (lead.category || 'TOP STORY');
         
@@ -125,8 +127,9 @@ async function loadHomepagePosts(category = null, page = null) {
 
       if (trendingSidebarList) {
         trendingSidebarList.innerHTML = '';
-        const sideItems = filtered.length > 1 ? filtered.slice(1, 4) : filtered.slice(0, 3);
+        const sideItems = filtered.filter(p => !featuredSlugs.has(p.slug)).slice(0, 3);
         sideItems.forEach(item => {
+          featuredSlugs.add(item.slug);
           const div = document.createElement('div');
           div.className = 'trending-sidebar-item';
           div.innerHTML = `
@@ -137,40 +140,51 @@ async function loadHomepagePosts(category = null, page = null) {
         });
       }
 
-      // 4. Render Layout Type 1: Visual Spotlight 4-Card Grid (Image #1 Style)
+      // 4. Render Layout Type 1: Visual Spotlight 4-Card Grid (Guaranteed Distinct from Hero & Headlines)
       const spotlightGrid = document.getElementById('spotlightGrid');
+      const spotlightSection = document.getElementById('spotlightSection');
+      const candidateSpotlights = filtered.filter(p => !featuredSlugs.has(p.slug));
+
       if (spotlightGrid) {
         spotlightGrid.innerHTML = '';
-        const spotlightItems = filtered.length > 4 ? filtered.slice(1, 5) : filtered.slice(0, Math.min(4, filtered.length));
-        spotlightItems.forEach((post, i) => {
-          const author = HUMAN_AUTHORS[i % HUMAN_AUTHORS.length];
-          const sCard = document.createElement('div');
-          sCard.className = 'spotlight-card';
-          sCard.innerHTML = `
-            <div class="spotlight-img-wrap">
-              <a href="/post/${post.slug}">
-                <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
-              </a>
-            </div>
-            <div class="spotlight-body">
-              <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL')}</div>
-              <h4 class="spotlight-title">
-                <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
-              </h4>
-              <div class="spotlight-meta">
-                <span>By ${author.name}</span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+        const spotlightItems = candidateSpotlights.slice(0, 4);
+
+        if (spotlightItems.length > 0) {
+          if (spotlightSection) spotlightSection.style.display = '';
+          spotlightItems.forEach((post, i) => {
+            featuredSlugs.add(post.slug);
+            const author = HUMAN_AUTHORS[(i + 4) % HUMAN_AUTHORS.length];
+            const sCard = document.createElement('div');
+            sCard.className = 'spotlight-card';
+            sCard.innerHTML = `
+              <div class="spotlight-img-wrap">
+                <span class="spotlight-tag-overlay">${escapeHtml(post.category || 'SPECIAL REPORT')}</span>
+                <a href="/post/${post.slug}">
+                  <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
+                </a>
               </div>
-            </div>
-          `;
-          spotlightGrid.appendChild(sCard);
-        });
+              <div class="spotlight-body">
+                <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL REPORT')}</div>
+                <h4 class="spotlight-title">
+                  <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
+                </h4>
+                <div class="spotlight-meta">
+                  <span>By ${author.name}</span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              </div>
+            `;
+            spotlightGrid.appendChild(sCard);
+          });
+        } else if (spotlightSection) {
+          spotlightSection.style.display = 'none';
+        }
       }
 
       // 5. Render Ranked Most Read Sidebar (Right Column)
       const mostReadList = document.getElementById('mostReadList');
       if (mostReadList) {
         mostReadList.innerHTML = '';
-        const rankedItems = filtered.slice(0, Math.min(5, filtered.length));
+        const rankedItems = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
         rankedItems.forEach((item, idx) => {
           const div = document.createElement('div');
           div.className = 'most-read-item';
@@ -206,18 +220,22 @@ async function loadHomepagePosts(category = null, page = null) {
         }
       }
 
-      // 6. Calculate Dynamic Device-Based Pagination Slices
+      // 6. News Stream (LATEST REPORTING — ALL HEADLINES)
+      // Exclude all articles already displayed in Hero and Spotlight so there is 100% unique content!
+      const streamPool = filtered.filter(p => !featuredSlugs.has(p.slug));
+      const activeStream = streamPool.length > 0 ? streamPool : filtered;
+
       const postsPerPage = getPostsPerPage();
-      const totalPages = Math.ceil(filtered.length / postsPerPage) || 1;
+      const totalPages = Math.ceil(activeStream.length / postsPerPage) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
 
       const startIndex = (currentPage - 1) * postsPerPage;
-      const paginatedPosts = filtered.slice(startIndex, startIndex + postsPerPage);
+      const paginatedPosts = activeStream.slice(startIndex, startIndex + postsPerPage);
 
       // 7. Render Layout Type 2: News Stream (Aaj Tak Row Format)
       postsGrid.innerHTML = '';
       paginatedPosts.forEach((post, index) => {
-        const author = HUMAN_AUTHORS[(index + startIndex) % HUMAN_AUTHORS.length];
+        const author = HUMAN_AUTHORS[(index + startIndex + 8) % HUMAN_AUTHORS.length];
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
