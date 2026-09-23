@@ -408,16 +408,29 @@ app.get('/robots.txt', (req, res) => {
   res.send(`User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
+Disallow: /*?*
 
 User-agent: Googlebot
 Allow: /
 Disallow: /admin.html
+Disallow: /admin.js
 Disallow: /api/
+Disallow: /data/
+Disallow: /*?*
 
 User-agent: Googlebot-News
 Allow: /
+
+User-agent: bingbot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /api/
+Disallow: /data/
+Disallow: /*?*
 
 User-agent: Mediapartners-Google
 Allow: /
