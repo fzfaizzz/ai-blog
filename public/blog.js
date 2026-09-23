@@ -1,10 +1,10 @@
 // Client JavaScript for Prime Media
 
 const HUMAN_AUTHORS = [
-  { name: 'Sarah Jenkins', role: 'Senior Tech Correspondent', initials: 'SJ' },
-  { name: 'David Chen', role: 'Global Markets Analyst', initials: 'DC' },
-  { name: 'Elena Rostova', role: 'Innovation & Science Editor', initials: 'ER' },
-  { name: 'Marcus Vance', role: 'Executive Editor', initials: 'MV' }
+  { slug: 'sarah-jenkins', name: 'Sarah Jenkins', role: 'Senior Technology & AI Correspondent', initials: 'SJ' },
+  { slug: 'david-chen', name: 'David Chen', role: 'Global Financial & Macro Analyst', initials: 'DC' },
+  { slug: 'elena-rostova', name: 'Elena Rostova', role: 'Aerospace & Deep Science Editor', initials: 'ER' },
+  { slug: 'marcus-vance', name: 'Dr. Marcus Vance', role: 'Executive Editor & Policy Director', initials: 'MV' }
 ];
 
 let currentCategory = 'ALL';
@@ -120,7 +120,7 @@ async function loadHomepagePosts(category = null, page = null) {
           <h2><a href="/post/${lead.slug}">${escapeHtml(lead.title)}</a></h2>
           <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
           <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
-            By <strong>${author.name}</strong> • ${new Date(lead.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;"><strong>${author.name}</strong></a> • ${new Date(lead.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         `;
       }
@@ -169,7 +169,7 @@ async function loadHomepagePosts(category = null, page = null) {
                   <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
                 </h4>
                 <div class="spotlight-meta">
-                  <span>By ${author.name}</span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
               </div>
             `;
@@ -249,9 +249,9 @@ async function loadHomepagePosts(category = null, page = null) {
             </h3>
             <p class="card-desc">${escapeHtml(post.metaDescription)}</p>
             <div class="card-author-meta">
-              <div class="author-avatar">${author.initials}</div>
+              <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-avatar">${author.initials}</div></a>
               <div>
-                <strong>By ${author.name}</strong> • ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <strong>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></strong> • ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
             </div>
           </div>
@@ -581,13 +581,29 @@ async function loadSingleArticle() {
         document.getElementById('breadcrumbCurrent').innerText = p.title;
       }
 
-      // Author Byline & Bio Binding
-      if (document.getElementById('authorInitials')) document.getElementById('authorInitials').innerText = author.initials;
-      if (document.getElementById('bioAvatar')) document.getElementById('bioAvatar').innerText = author.initials;
-      if (document.getElementById('postAuthorName')) document.getElementById('postAuthorName').innerText = `By ${author.name}`;
-      if (document.getElementById('bioAuthorName')) document.getElementById('bioAuthorName').innerText = author.name;
-      if (document.getElementById('bioAuthorRole')) document.getElementById('bioAuthorRole').innerText = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA.`;
-      if (document.getElementById('postPublishDate')) document.getElementById('postPublishDate').innerText = `${author.role} • Published ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+      // Author Byline & Bio Binding with E-E-A-T Links
+      if (document.getElementById('authorInitials')) {
+        const el = document.getElementById('authorInitials');
+        el.innerText = author.initials;
+        if (el.parentElement && el.parentElement.tagName === 'A') el.parentElement.href = `/author/${author.slug}`;
+      }
+      if (document.getElementById('bioAvatar')) {
+        const el = document.getElementById('bioAvatar');
+        el.innerText = author.initials;
+        if (el.parentElement && el.parentElement.tagName === 'A') el.parentElement.href = `/author/${author.slug}`;
+      }
+      if (document.getElementById('postAuthorName')) {
+        document.getElementById('postAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">By ${author.name}</a>`;
+      }
+      if (document.getElementById('bioAuthorName')) {
+        document.getElementById('bioAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: #0F172A; text-decoration: none;">${author.name}</a>`;
+      }
+      if (document.getElementById('bioAuthorRole')) {
+        document.getElementById('bioAuthorRole').innerHTML = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA. <a href="/author/${author.slug}" style="color: #2563EB; font-weight: 700; margin-left: 5px; text-decoration: none;">View Profile &amp; Articles &rarr;</a>`;
+      }
+      if (document.getElementById('postPublishDate')) {
+        document.getElementById('postPublishDate').innerHTML = `<a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${author.role}</a> • Published ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+      }
       if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
 
       let html = p.contentHtml;
@@ -1934,6 +1950,36 @@ window.togglePassVisibility = function(inputId, btnEl) {
   }
 };
 
+async function loadAuthorPage() {
+  const grid = document.getElementById('authorArticlesGrid');
+  if (!grid) return;
+  if (grid.querySelectorAll('.author-post-card').length > 0) return;
+  const pathParts = window.location.pathname.split('/');
+  const authorSlug = pathParts[pathParts.length - 1] || 'sarah-jenkins';
+  try {
+    const res = await fetch(`/api/author/${authorSlug}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.posts && data.posts.length > 0) {
+      grid.innerHTML = data.posts.map(p => `
+        <article class="author-post-card">
+          <a href="/post/${escapeHtml(p.slug)}">
+            <img src="${p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(p.title)}" loading="lazy" />
+          </a>
+          <div class="author-post-content">
+            <span class="author-post-category">${escapeHtml(p.category || 'News')}</span>
+            <h3 class="author-post-title"><a href="/post/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h3>
+            <div class="author-post-meta">
+              <span>${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span>${p.readTimeMinutes || 5} min read</span>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+  } catch (e) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Always initialize Global Live Search Modal on all pages
   initGlobalSearchModal();
@@ -1944,6 +1990,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (document.getElementById('postContent')) {
     loadSingleArticle();
+  }
+  if (document.getElementById('authorArticlesGrid')) {
+    loadAuthorPage();
   }
   if (document.getElementById('triggerAutoBlogBtn') || document.getElementById('saveSerperKeysBtn')) {
     initAdminPanel();

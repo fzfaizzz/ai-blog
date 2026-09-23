@@ -18,6 +18,7 @@ import { connectDB, dbGetSetting, dbSaveSetting, getConnectionStatus } from './s
 import { syncPostsFromDB } from './src/publisher.js';
 import { syncSerperKeysFromDB } from './src/serperManager.js';
 import { submitUrlToIndexNow } from './src/indexNowManager.js';
+import { AUTHORS, AUTHOR_LIST, getAuthorBySlug, getAuthorForPost } from './src/authors.js';
 
 import fs from 'fs';
 import compression from 'compression';
@@ -135,6 +136,7 @@ app.get('/post/:slug', async (req, res) => {
   }
   
   const baseUrl = BASE_CANONICAL_URL;
+  const author = getAuthorForPost(post);
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
   
   const ogTags = `
@@ -150,6 +152,7 @@ app.get('/post/:slug', async (req, res) => {
     <meta property="og:site_name" content="Prime Media">
     <meta property="og:locale" content="en_US">
     <meta property="article:published_time" content="${post.publishedAt}">
+    <meta property="article:author" content="${baseUrl}/author/${author.slug}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(post.title)}">
     <meta name="twitter:description" content="${escapeHtml(post.metaDescription)}">
@@ -163,8 +166,19 @@ app.get('/post/:slug', async (req, res) => {
         "image": ["${post.imageUrl}"],
         "datePublished": "${post.publishedAt}",
         "dateModified": "${post.publishedAt}",
-        "author": {"@type": "Organization", "name": "Prime Media"},
-        "publisher": {"@type": "Organization", "name": "Prime Media", "logo": {"@type": "ImageObject", "url": "${baseUrl}/logo2.png"}},
+        "author": {
+          "@type": "Person",
+          "name": "${escapeHtml(author.name)}",
+          "jobTitle": "${escapeHtml(author.role)}",
+          "url": "${baseUrl}/author/${author.slug}",
+          "sameAs": ["${baseUrl}/author/${author.slug}"]
+        },
+        "publisher": {
+          "@type": "NewsMediaOrganization",
+          "name": "Prime Media",
+          "url": "${baseUrl}",
+          "logo": {"@type": "ImageObject", "url": "${baseUrl}/logo2.png"}
+        },
         "description": "${escapeHtml(post.metaDescription)}",
         "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
       },
@@ -213,8 +227,26 @@ app.get('/post/:slug', async (req, res) => {
   const fallbackHero = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
   const heroImgUrl = post.imageUrl || fallbackHero;
   html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${heroImgUrl}" alt="${escapeHtml(post.title)}" class="featured-img" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackHero}';" />`);
-  html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate">Senior Editorial Staff • Published ${formattedDate}</span>`);
-  html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 4} min read</span>`);
+  
+  // ✍️ Real E-E-A-T Author SSR Binding with Clickable Profile Links
+  html = html.replace(/<div id="authorInitials"[^>]*>.*?<\/div>/i, `<a href="/author/${author.slug}" style="text-decoration: none;"><div id="authorInitials" class="author-avatar">${author.initials}</div></a>`);
+  html = html.replace(/<strong id="postAuthorName"[^>]*>.*?<\/strong>/i, `<strong id="postAuthorName"><a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">By ${escapeHtml(author.name)}</a></strong>`);
+  html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate"><a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${escapeHtml(author.role)}</a> • Published ${formattedDate}</span>`);
+  html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 5} min read</span>`);
+  
+  // SSR Author Bio Card at bottom of article
+  const authorBioCardHtml = `
+    <div class="author-bio-card" id="authorBioCard">
+      <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-bio-avatar" id="bioAvatar">${author.initials}</div></a>
+      <div class="author-bio-info">
+        <h4 id="bioAuthorName"><a href="/author/${author.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(author.name)}</a></h4>
+        <p id="bioAuthorRole" style="margin-bottom: 0.5rem; line-height: 1.5; color: #475569;">${escapeHtml(author.bio)}</p>
+        <a href="/author/${author.slug}" style="color: #2563EB; font-weight: 700; font-size: 0.85rem; text-decoration: none;">View Full Profile &amp; All Articles by ${escapeHtml(author.name)} &rarr;</a>
+      </div>
+    </div>
+  `;
+  html = html.replace(/<div class="author-bio-card" id="authorBioCard">[\s\S]*?<\/div>\s*<\/div>/i, authorBioCardHtml);
+
   if (post.contentHtml) {
     const cleanContent = (post.contentHtml || '').replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
     html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${cleanContent}</article>`);
@@ -241,6 +273,117 @@ app.get('/post/:slug', async (req, res) => {
   
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
+});
+
+// 🧑‍💼 Dedicated SSR Author Profile Route for Google E-E-A-T & Readers
+app.get('/author/:slug', (req, res) => {
+  const author = getAuthorBySlug(req.params.slug);
+  if (!author) {
+    return res.redirect(301, '/about.html');
+  }
+
+  const baseUrl = BASE_CANONICAL_URL;
+  let html = fs.readFileSync(path.join(__dirname, 'public/author.html'), 'utf8');
+
+  const allPosts = getAllPosts(false);
+  const authorPosts = allPosts.filter(p => getAuthorForPost(p).slug === author.slug);
+
+  const ogTags = `
+    <title>${escapeHtml(author.name)} — ${escapeHtml(author.role)} | Prime Media</title>
+    <meta name="description" content="${escapeHtml(author.bio.slice(0, 160))}">
+    <link rel="canonical" href="${baseUrl}/author/${author.slug}">
+    <meta property="og:type" content="profile">
+    <meta property="og:title" content="${escapeHtml(author.name)} — ${escapeHtml(author.role)} | Prime Media">
+    <meta property="og:description" content="${escapeHtml(author.bio.slice(0, 160))}">
+    <meta property="og:url" content="${baseUrl}/author/${author.slug}">
+    <meta property="og:site_name" content="Prime Media">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="${escapeHtml(author.name)} — Prime Media">
+    <meta name="twitter:description" content="${escapeHtml(author.bio.slice(0, 160))}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      "mainEntity": {
+        "@type": "Person",
+        "name": "${escapeHtml(author.name)}",
+        "jobTitle": "${escapeHtml(author.role)}",
+        "description": "${escapeHtml(author.bio)}",
+        "email": "mailto:${author.email}",
+        "url": "${baseUrl}/author/${author.slug}",
+        "worksFor": {
+          "@type": "NewsMediaOrganization",
+          "name": "Prime Media",
+          "url": "${baseUrl}"
+        },
+        "knowsAbout": ${JSON.stringify(author.beats)}
+      }
+    }
+    </script>
+  `;
+
+  // Inject Meta Tags
+  html = html.replace(/<title[^>]*>.*?<\/title>/i, '');
+  html = html.replace(/<meta[^>]*name="description"[^>]*>/i, '');
+  html = html.replace('</head>', `${ogTags}\n</head>`);
+
+  // Inject SSR Author Profile Content
+  html = html.replace(/<div class="author-portrait-badge" id="authorAvatar">.*?<\/div>/i, `<div class="author-portrait-badge" id="authorAvatar">${author.initials}</div>`);
+  html = html.replace(/<h1 class="author-name-title" id="authorName">.*?<\/h1>/i, `<h1 class="author-name-title" id="authorName">${escapeHtml(author.name)}</h1>`);
+  html = html.replace(/<div class="author-role-subtitle" id="authorRole">.*?<\/div>/i, `<div class="author-role-subtitle" id="authorRole">${escapeHtml(author.role)}</div>`);
+  html = html.replace(/<p class="author-bio-text" id="authorBio">[\s\S]*?<\/p>/i, `<p class="author-bio-text" id="authorBio">${escapeHtml(author.bio)}</p>`);
+  html = html.replace(/<span id="authorLocation">.*?<\/span>/i, `<span id="authorLocation">${escapeHtml(author.location)}</span>`);
+  html = html.replace(/<span id="authorEducation">.*?<\/span>/i, `<span id="authorEducation">${escapeHtml(author.education)}</span>`);
+
+  // Inject Beats Tags
+  const beatsHtml = author.beats.map(b => `<span class="beat-tag">${escapeHtml(b)}</span>`).join('');
+  html = html.replace(/<div class="author-beats-tags" id="authorBeats">[\s\S]*?<\/div>/i, `<div class="author-beats-tags" id="authorBeats">${beatsHtml}</div>`);
+
+  // Inject Article Count Badge
+  html = html.replace(/<span[^>]*id="articleCountBadge">.*?<\/span>/i, `<span id="articleCountBadge" style="font-size: 0.85rem; color: #64748B; font-weight: 600;">${authorPosts.length} Published Dispatches</span>`);
+
+  // Inject SSR Author Articles Grid
+  const articlesHtml = authorPosts.length > 0 ? authorPosts.map(p => `
+    <article class="author-post-card">
+      <a href="/post/${escapeHtml(p.slug)}">
+        <img src="${p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(p.title)}" loading="lazy" />
+      </a>
+      <div class="author-post-content">
+        <span class="author-post-category">${escapeHtml(p.category || 'News')}</span>
+        <h3 class="author-post-title"><a href="/post/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h3>
+        <div class="author-post-meta">
+          <span>${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          <span>${p.readTimeMinutes || 5} min read</span>
+        </div>
+      </div>
+    </article>
+  `).join('') : '<p style="color: #64748B; grid-column: 1 / -1;">No dispatches currently assigned to this author.</p>';
+
+  html = html.replace(/<div class="author-article-grid" id="authorArticlesGrid">[\s\S]*?<\/div>/i, `<div class="author-article-grid" id="authorArticlesGrid">${articlesHtml}</div>`);
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
+// JSON API endpoint for Author Profile & Posts
+app.get('/api/author/:slug', (req, res) => {
+  const author = getAuthorBySlug(req.params.slug);
+  if (!author) {
+    return res.status(404).json({ error: 'Author not found' });
+  }
+  const allPosts = getAllPosts(false);
+  const authorPosts = allPosts.filter(p => getAuthorForPost(p).slug === author.slug);
+  res.json({
+    author,
+    posts: authorPosts.map(p => ({
+      slug: p.slug,
+      title: p.title,
+      category: p.category,
+      imageUrl: p.imageUrl,
+      publishedAt: p.publishedAt,
+      readTimeMinutes: p.readTimeMinutes
+    }))
+  });
 });
 
 // Official Google AdSense ads.txt Route
@@ -377,6 +520,15 @@ app.get('/sitemap.xml', (req, res) => {
   xml += `  <url>\n    <loc>${baseUrl}/terms.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
   xml += `  <url>\n    <loc>${baseUrl}/contact.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
   xml += `  <url>\n    <loc>${baseUrl}/disclaimer.html</loc>\n    <priority>0.5</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`;
+
+  // Author Profile Pages (E-E-A-T Signal for Googlebot)
+  AUTHOR_LIST.forEach(author => {
+    xml += `  <url>\n`;
+    xml += `    <loc>${baseUrl}/author/${escapeXml(author.slug)}</loc>\n`;
+    xml += `    <priority>0.7</priority>\n`;
+    xml += `    <changefreq>weekly</changefreq>\n`;
+    xml += `  </url>\n`;
+  });
 
   posts.forEach(post => {
     const postDate = new Date(post.publishedAt || Date.now());
