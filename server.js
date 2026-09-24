@@ -598,29 +598,38 @@ app.get('/news-sitemap.xml', (req, res) => {
   res.send(xml);
 });
 
-// Official RSS 2.0 Feed Endpoints for IFTTT, Zapier & RSS Auto-Posters
+// Official RSS 2.0 Feed Endpoints for Google News, Feedly, Flipboard & RSS Auto-Posters
 const handleRssFeed = (req, res) => {
   const posts = getAllPosts();
   const baseUrl = BASE_CANONICAL_URL;
 
   let rss = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
-  rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n`;
+  rss += `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">\n`;
   rss += `  <channel>\n`;
   rss += `    <title>Prime Media — High-Tech, Movies, Business &amp; Global News</title>\n`;
   rss += `    <link>${baseUrl}</link>\n`;
   rss += `    <description>Prime Media delivers breaking news, movies, AI breakthroughs, and world affairs.</description>\n`;
   rss += `    <language>en-us</language>\n`;
-  rss += `    <atom:link href="${baseUrl}/feed" rel="self" type="application/rss+xml" />\n`;
+  rss += `    <atom:link href="${baseUrl}/feed.xml" rel="self" type="application/rss+xml" />\n`;
 
-  posts.slice(0, 30).forEach(post => {
+  posts.slice(0, 50).forEach(post => {
     const postUrl = `${baseUrl}/post/${post.slug}`;
     const pubDate = new Date(post.publishedAt || post.id).toUTCString();
+    const author = getAuthorForPost(post);
 
     rss += `    <item>\n`;
     rss += `      <title>${escapeXml(post.title)}</title>\n`;
     rss += `      <link>${postUrl}</link>\n`;
     rss += `      <guid isPermaLink="true">${postUrl}</guid>\n`;
     rss += `      <pubDate>${pubDate}</pubDate>\n`;
+    rss += `      <dc:creator><![CDATA[${author.name}]]></dc:creator>\n`;
+    if (post.category) {
+      rss += `      <category><![CDATA[${post.category}]]></category>\n`;
+    }
+    if (post.imageUrl && post.imageUrl.startsWith('http')) {
+      rss += `      <enclosure url="${escapeXml(post.imageUrl)}" type="image/jpeg" length="0" />\n`;
+      rss += `      <media:content url="${escapeXml(post.imageUrl)}" medium="image" />\n`;
+    }
     rss += `      <description>${escapeXml(post.metaDescription || post.title)}</description>\n`;
     rss += `    </item>\n`;
   });
@@ -633,6 +642,7 @@ const handleRssFeed = (req, res) => {
 };
 
 app.get('/rss.xml', handleRssFeed);
+app.get('/feed.xml', handleRssFeed);
 app.get('/feed', handleRssFeed);
 app.get('/rss', handleRssFeed);
 
