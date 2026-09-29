@@ -25,32 +25,33 @@ export async function getTrendingTopics() {
     targetGl = 'in';
   }
 
-  // 1. Worldwide Global High-Demand Queries (Topics readers actively search for & care about)
+  // 1. High-Search-Volume & Google Discover Viral Queries (Topics millions of readers actively search & click)
   const globalViralQueries = [
-    'top world breaking news story today',
-    'major technology breakthroughs artificial intelligence 2026',
-    'global economy business stock markets wall street news',
-    'space exploration discovery NASA SpaceX breakthrough',
-    'trending viral international news story today'
+    'OpenAI ChatGPT Google Gemini DeepSeek new AI update features 2026',
+    'NVIDIA RTX GPU Apple iPhone Samsung Galaxy launch review comparison 2026',
+    'SpaceX Starship NASA James Webb Telescope cosmic discovery news',
+    'Netflix Prime Video Hollywood Box Office top movie release news',
+    'Wall Street NVIDIA Tesla Apple stock market rally forecast news',
+    'Cybersecurity zero-day breach AI technology breakthrough news'
   ];
 
-  // 2. High eCPM & High User Demand Queries
+  // 2. High eCPM & High Search Intent Queries (US/UK/Global)
   const highEcpmQueries = [
-    'AI tech news OpenAI NVIDIA Apple Microsoft 2026',
-    'SpaceX NASA Starship space launch discovery news',
-    'Global financial markets economy stock trends news',
-    'Hollywood blockbuster movie release box office news',
-    'US government national policy breakthrough news',
-    'Tesla EV autonomous AI technology innovation news'
+    'AI chips NVIDIA OpenAI Microsoft cloud data center investment 2026',
+    'SpaceX Falcon 9 Starship orbital launch NASA mission update',
+    'Federal Reserve interest rate stock market S&P 500 tech rally',
+    'Marvel Spider-Man Avengers Hollywood box office record news',
+    'Electric vehicle solid-state battery Tesla autonomous driving update',
+    'Quantum computing semiconductor 2nm chip breakthrough news'
   ];
 
-  // 3. India News Queries
+  // 3. India Viral & Search Queries
   const indiaQueries = [
-    'India Tech Startups Innovation AI 2026',
-    'ISRO Space Mission Satellite Science India',
-    'Indian Politics Government Cabinet Economy News',
-    'Indian Stock Market Sensex Nifty Economy Business News',
-    'Indian Cinema Movies Box Office Bollywood Entertainment'
+    'ISRO Gaganyaan space mission satellite launch India science news',
+    'Sensex Nifty stock market rally RBI economy investment news',
+    'India AI semiconductor startup technology innovation 2026',
+    'Box office collection Indian cinema blockbuster OTT release news',
+    'Smartphone 5G technology launch India price specs comparison'
   ];
 
   let queriesList = globalViralQueries;
@@ -129,29 +130,30 @@ export async function fetchFullStoryDetails(title, source = '') {
 }
 
 /**
- * Sanitizes and cleans raw news headline string
+ * Sanitizes and cleans raw news headline string WITHOUT chopping hyphenated words
  */
 function cleanTitleString(rawTitle) {
   if (!rawTitle) return '';
   let t = rawTitle.trim();
 
-  // Strip publisher trailing suffixes like "- Times of India", "- Reuters"
-  t = t.replace(/\s*[-|–—]\s*[A-Za-z0-9\s.]+$/, '');
+  // Strip publisher trailing suffixes ONLY when surrounded by spaces (e.g. " - Reuters", " | BBC News")
+  // Never match hyphens inside compound words like "All-Time", "High-Tech", "self-driving", "Sub-2nm"!
+  t = t.replace(/\s+[-|–—]\s+[A-Za-z0-9\s.&']+$/, '');
 
-  // Strip trailing truncation artifacts like "... and t", " and...", "..."
-  t = t.replace(/\s*(?:\.\.\.|…|\b(?:and|with|to|in|of)\s+[a-z]{1,2})\s*$/i, '');
+  // Strip trailing truncation ellipsis like "..." or "…"
+  t = t.replace(/\s*(?:\.\.\.|…)\s*$/i, '');
 
-  // Strip trailing dates like "July 31, 2026:" at start
+  // Strip prefix labels like "Live Updates:" or "Breaking News:"
   t = t.replace(/^(?:School Assembly News Headlines|Top News Headlines|Live Updates|Breaking News|\w+ \d{1,2}, \d{4}):\s*/i, '');
 
   return t.trim();
 }
 
 /**
- * Filters out low-quality roundup / assembly news titles
+ * Filters out low-quality roundup / assembly / truncated news titles
  */
 function isValidNewsTitle(title) {
-  if (!title || title.length < 25) return false;
+  if (!title || title.length < 28) return false;
   const lower = title.toLowerCase();
 
   // Reject generic roundup / assembly / briefing headlines
@@ -159,8 +161,13 @@ function isValidNewsTitle(title) {
     return false;
   }
 
-  // Reject titles ending abruptly with single letter or incomplete word
-  if (/\b[a-z]{1}\s*$/i.test(title)) return false;
+  // Reject titles ending abruptly with a dangling preposition, article, or hyphen prefix
+  if (/\b(?:the|a|an|for|to|in|on|with|by|from|of|and|or|at|as|into|self|sub|anti|non|pre|post|multi|inter|bi|contr)\s*$/i.test(title)) {
+    return false;
+  }
+
+  // Reject titles ending abruptly with a single lowercase letter
+  if (/\s[a-z]\s*$/.test(title)) return false;
 
   return true;
 }

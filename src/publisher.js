@@ -248,19 +248,22 @@ export async function publishPost(postData) {
 
 async function pingSearchEngines(postUrl) {
   const domain = (process.env.BASE_URL || 'https://primemedia.site').replace(/\/+$/, '');
-  const sitemapUrl = encodeURIComponent(`${domain}/news-sitemap.xml`);
-  const fullSitemapUrl = encodeURIComponent(`${domain}/sitemap.xml`);
+  const feedUrl = `${domain}/feed.xml`;
+  const rssUrl = `${domain}/rss.xml`;
 
-  // 1. Official Instant IndexNow Protocol (Bing, DuckDuckGo, Yahoo, Yandex, Seznam, Naver)
+  // 1. Official Instant IndexNow Protocol (Bing, DuckDuckGo, Yahoo, Yandex, Seznam, Naver) & Google Indexing API
   if (postUrl) {
     submitUrlToIndexNow(postUrl).catch(e => console.error('IndexNow post error:', e));
     submitToGoogleIndexing(postUrl, 'URL_UPDATED').catch(e => console.error('Google Indexing API error:', e));
   }
 
-  // 2. Sitemaps ping fallbacks
+  // 2. Official Google WebSub / PubSubHubbub Real-Time Push (Instant Google News & Discover Feed Ingestion)
   try {
-    fetch(`https://www.google.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
-    fetch(`https://www.google.com/ping?sitemap=${fullSitemapUrl}`).catch(() => {});
-    fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
+    const body = `hub.mode=publish&hub.url=${encodeURIComponent(feedUrl)}&hub.url=${encodeURIComponent(rssUrl)}`;
+    fetch('https://pubsubhubbub.appspot.com/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    }).catch(() => {});
   } catch (e) {}
 }

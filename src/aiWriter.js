@@ -155,6 +155,16 @@ CRITICAL EDITORIAL INSTRUCTIONS:
             });
           }
 
+          // Extract AI's original High-CTR headline from leading <h1> before stripping it
+          let finalTitle = topic;
+          const h1Match = text.match(/^\s*<h1[^>]*>([\s\S]*?)<\/h1>/i);
+          if (h1Match && h1Match[1]) {
+            const candidateTitle = h1Match[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            if (candidateTitle.length >= 30 && candidateTitle.length <= 135) {
+              finalTitle = candidateTitle;
+            }
+          }
+
           // Strip leading <h1> if AI included one (since post.html already has <h1 id="postTitle">)
           text = text.replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '').replace(/<h1(\b[^>]*)>/gi, '<h2$1>').replace(/<\/h1>/gi, '</h2>').trim();
 
@@ -174,11 +184,11 @@ CRITICAL EDITORIAL INSTRUCTIONS:
             }
           }
           if (!cleanMeta || cleanMeta.length < 50) {
-            cleanMeta = `In-depth analysis and verified reporting on ${topic}, examining key industry, economic, and policy developments.`;
+            cleanMeta = `In-depth analysis and verified reporting on ${finalTitle}, examining key industry, economic, and policy developments.`;
           }
 
           resolve({
-            title: topic,
+            title: finalTitle,
             contentHtml: text,
             metaDescription: cleanMeta,
             readTimeMinutes: 6,

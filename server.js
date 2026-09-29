@@ -264,54 +264,66 @@ app.get('/post/:slug', async (req, res) => {
     <meta name="twitter:description" content="${escapeHtml(post.metaDescription)}">
     <meta name="twitter:image" content="${post.imageUrl}">
     <script type="application/ld+json">
-    [
-      {
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        "headline": "${escapeHtml(post.title)}",
-        "image": ["${post.imageUrl}"],
-        "datePublished": "${post.publishedAt}",
-        "dateModified": "${post.publishedAt}",
-        "author": {
-          "@type": "Person",
-          "name": "${escapeHtml(author.name)}",
-          "jobTitle": "${escapeHtml(author.role)}",
-          "url": "${baseUrl}/author/${author.slug}",
-          "sameAs": ["${baseUrl}/author/${author.slug}"]
-        },
-        "publisher": {
-          "@type": "NewsMediaOrganization",
-          "name": "Prime Media",
-          "url": "${baseUrl}",
-          "logo": {"@type": "ImageObject", "url": "${baseUrl}/logo2.png"}
-        },
-        "description": "${escapeHtml(post.metaDescription)}",
-        "mainEntityOfPage": {"@type": "WebPage", "@id": "${baseUrl}/post/${post.slug}"}
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": "${baseUrl}"
+    ${(() => {
+      const schemaArray = [
+        {
+          "@context": "https://schema.org",
+          "@type": "NewsArticle",
+          "headline": post.title,
+          "image": [post.imageUrl],
+          "datePublished": post.publishedAt,
+          "dateModified": post.updatedAt || post.publishedAt,
+          "author": {
+            "@type": "Person",
+            "name": author.name,
+            "jobTitle": author.role,
+            "url": `${baseUrl}/author/${author.slug}`,
+            "sameAs": [`${baseUrl}/author/${author.slug}`]
           },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "${escapeHtml(post.category || 'News')}",
-            "item": "${baseUrl}/#category-${encodeURIComponent(post.category || 'news')}"
+          "publisher": {
+            "@type": "NewsMediaOrganization",
+            "name": "Prime Media",
+            "url": baseUrl,
+            "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo2.png` }
           },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "${escapeHtml(post.title)}"
-          }
-        ]
+          "description": post.metaDescription,
+          "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/post/${post.slug}` }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": post.category || "News", "item": `${baseUrl}/#category-${encodeURIComponent(post.category || "news")}` },
+            { "@type": "ListItem", "position": 3, "name": post.title }
+          ]
+        }
+      ];
+
+      // Auto-extract FAQ Q&A pairs for Google Rich Results & People Also Ask (PAA)
+      const faqEntries = [];
+      const faqRegex = /<h3[^>]*>(?:Q\d*[:.]?\s*)?([\s\S]*?\?)<\/h3>\s*<p[^>]*>([\s\S]*?)<\/p>/gi;
+      let m;
+      while ((m = faqRegex.exec(post.contentHtml || '')) !== null && faqEntries.length < 5) {
+        const qText = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        const aText = m[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        if (qText.length > 10 && aText.length > 20) {
+          faqEntries.push({
+            "@type": "Question",
+            "name": qText,
+            "acceptedAnswer": { "@type": "Answer", "text": aText }
+          });
+        }
       }
-    ]
+      if (faqEntries.length > 0) {
+        schemaArray.push({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": faqEntries
+        });
+      }
+      return JSON.stringify(schemaArray);
+    })()}
     </script>
   `;
   
@@ -340,8 +352,20 @@ app.get('/post/:slug', async (req, res) => {
   html = html.replace(/<span id="postPublishDate"[^>]*>.*?<\/span>/i, `<span id="postPublishDate"><a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${escapeHtml(author.role)}</a> • Published ${formattedDate}</span>`);
   html = html.replace(/<span id="postReadTime"[^>]*>.*?<\/span>/i, `<span id="postReadTime">${post.readTimeMinutes || 5} min read</span>`);
   
-  // SSR Author Bio Card at bottom of article
+  // SSR Author Bio Card + 1-Click Viral Social Share Bar at bottom of article
+  const encodedUrl = encodeURIComponent(`${baseUrl}/post/${post.slug}`);
+  const encodedTitle = encodeURIComponent(post.title);
   const authorBioCardHtml = `
+    <div class="viral-share-bar" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0.9rem 1.2rem; margin: 1.75rem 0;">
+      <span style="font-weight: 800; font-size: 0.85rem; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em;">🚀 Share This Story:</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <a href="https://api.whatsapp.com/send?text=${encodedTitle}%20-%20${encodedUrl}" target="_blank" rel="noopener noreferrer" style="background: #16A34A; color: #FFF; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">WhatsApp</a>
+        <a href="https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}" target="_blank" rel="noopener noreferrer" style="background: #EA580C; color: #FFF; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">Reddit</a>
+        <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank" rel="noopener noreferrer" style="background: #0F172A; color: #FFF; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">X / Twitter</a>
+        <a href="https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}" target="_blank" rel="noopener noreferrer" style="background: #0284C7; color: #FFF; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">Telegram</a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" rel="noopener noreferrer" style="background: #1D4ED8; color: #FFF; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-decoration: none;">LinkedIn</a>
+      </div>
+    </div>
     <div class="author-bio-card" id="authorBioCard">
       <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-bio-avatar" id="bioAvatar">${author.initials}</div></a>
       <div class="author-bio-info">
@@ -752,6 +776,7 @@ const handleRssFeed = (req, res) => {
   rss += `    <description>Prime Media delivers breaking news, movies, AI breakthroughs, and world affairs.</description>\n`;
   rss += `    <language>en-us</language>\n`;
   rss += `    <atom:link href="${baseUrl}/feed.xml" rel="self" type="application/rss+xml" />\n`;
+  rss += `    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" />\n`;
 
   posts.slice(0, 50).forEach(post => {
     const postUrl = `${baseUrl}/post/${post.slug}`;
