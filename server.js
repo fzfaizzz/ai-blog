@@ -113,6 +113,112 @@ function findBestMatchingPost(requestedSlug, allPosts) {
   return null;
 }
 
+// 🚀 Full Server-Side Rendering (SSR) for Homepage (/) — Critical for Googlebot, Bingbot & Google-AdSense-Bot
+app.get('/', (req, res) => {
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'public/index.html'), 'utf8');
+    const posts = getAllPosts(false);
+    const fallbackImg = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+
+    if (posts && posts.length > 0) {
+      const lead = posts[0];
+      const leadAuthor = getAuthorForPost(lead);
+      const leadDate = new Date(lead.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      const featuredHtml = `
+        <span class="featured-badge">${escapeHtml((lead.category || 'TOP STORY').toUpperCase())}</span>
+        <a href="/post/${escapeHtml(lead.slug)}">
+          <img src="${lead.imageUrl || fallbackImg}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" />
+        </a>
+        <h2><a href="/post/${escapeHtml(lead.slug)}">${escapeHtml(lead.title)}</a></h2>
+        <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription || '')}</p>
+        <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
+          By <a href="/author/${leadAuthor.slug}" style="color: inherit; text-decoration: none;"><strong>${escapeHtml(leadAuthor.name)}</strong></a> • ${leadDate}
+        </div>
+      `;
+      html = html.replace(/<div id="featuredStory" class="featured-story">[\s\S]*?<\/div>\s*<div class="trending-sidebar-list">/i,
+        `<div id="featuredStory" class="featured-story">${featuredHtml}</div>\n        <div class="trending-sidebar-list">`);
+
+      // Top 3 Sidebar Stories
+      const sideItems = posts.slice(1, 4);
+      const sideHtml = sideItems.map(item => `
+        <div class="trending-sidebar-item">
+          <span style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
+          <h4><a href="/post/${escapeHtml(item.slug)}">${escapeHtml(item.title)}</a></h4>
+        </div>
+      `).join('');
+      html = html.replace(/<div id="trendingSidebarList">[\s\S]*?<\/div>/i, `<div id="trendingSidebarList">${sideHtml}</div>`);
+
+      // 4 Spotlight Cards
+      const spotlightItems = posts.slice(4, 8);
+      const spotlightHtml = spotlightItems.map(post => {
+        const a = getAuthorForPost(post);
+        const d = new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `
+          <div class="spotlight-card">
+            <div class="spotlight-img-wrap">
+              <span class="spotlight-tag-overlay">${escapeHtml(post.category || 'SPECIAL REPORT')}</span>
+              <a href="/post/${escapeHtml(post.slug)}">
+                <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" />
+              </a>
+            </div>
+            <div class="spotlight-body">
+              <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL REPORT')}</div>
+              <h4 class="spotlight-title"><a href="/post/${escapeHtml(post.slug)}">${escapeHtml(post.title)}</a></h4>
+              <div class="spotlight-meta">
+                <span>By <a href="/author/${a.slug}" style="color: inherit; text-decoration: none;">${escapeHtml(a.name)}</a></span> • <span>${d}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      html = html.replace(/<div id="spotlightGrid" class="spotlight-grid">[\s\S]*?<\/div>/i, `<div id="spotlightGrid" class="spotlight-grid">${spotlightHtml}</div>`);
+
+      // 12 News Stream Cards
+      const streamItems = posts.slice(8, 20);
+      const streamHtml = streamItems.map(post => {
+        const a = getAuthorForPost(post);
+        const d = new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `
+          <div class="card">
+            <a href="/post/${escapeHtml(post.slug)}">
+              <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" />
+            </a>
+            <div class="card-body">
+              <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
+              <h3 class="card-title"><a href="/post/${escapeHtml(post.slug)}">${escapeHtml(post.title)}</a></h3>
+              <p class="card-desc">${escapeHtml(post.metaDescription || '')}</p>
+              <div class="card-author-meta">
+                <a href="/author/${a.slug}" style="text-decoration: none;"><div class="author-avatar">${a.initials}</div></a>
+                <div>
+                  <strong>By <a href="/author/${a.slug}" style="color: inherit; text-decoration: none;">${escapeHtml(a.name)}</a></strong> • ${d}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      html = html.replace(/<div id="postsGrid" class="posts-grid">[\s\S]*?<\/div>/i, `<div id="postsGrid" class="posts-grid">${streamHtml}</div>`);
+
+      // Top 5 Most Read
+      const rankedItems = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+      const mostReadHtml = rankedItems.map((item, idx) => `
+        <div class="most-read-item">
+          <div class="rank-badge ${idx === 0 ? 'top-rank' : ''}">${idx + 1}</div>
+          <h5><a href="/post/${escapeHtml(item.slug)}">${escapeHtml(item.title)}</a></h5>
+        </div>
+      `).join('');
+      html = html.replace(/<div id="mostReadList" class="most-read-list">[\s\S]*?<\/div>/i, `<div id="mostReadList" class="most-read-list">${mostReadHtml}</div>`);
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.send(html);
+  } catch (e) {
+    return res.sendFile(path.join(__dirname, 'public/index.html'));
+  }
+});
+
 // SSR Meta Injection for Social Crawlers & SEO
 app.get('/post/:slug', async (req, res) => {
   let post = getPostBySlug(req.params.slug);
@@ -248,14 +354,49 @@ app.get('/post/:slug', async (req, res) => {
   html = html.replace(/<div class="author-bio-card" id="authorBioCard">[\s\S]*?<\/div>\s*<\/div>/i, authorBioCardHtml);
 
   if (post.contentHtml) {
-    const cleanContent = (post.contentHtml || '').replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+    const cleanContent = (post.contentHtml || '')
+      .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+      .replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '')
+      .replace(/<h1(\b[^>]*)>/gi, '<h2$1>')
+      .replace(/<\/h1>/gi, '</h2>');
     html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${cleanContent}</article>`);
   }
 
-  // 🔗 Inject SSR Internal Links (Recommended Stories) for Googlebot Rapid Discovery & Crawling
+  // 🔗 Inject SSR Internal Links (Category + Archive Hash-Ring) so all 600+ articles receive strong internal link equity
   try {
-    const allPosts = getAllPosts();
-    const relatedPosts = allPosts.filter(p => p.slug !== post.slug).slice(0, 4);
+    const allPosts = getAllPosts().filter(p => p.slug !== post.slug);
+    let slugHash = 0;
+    for (let i = 0; i < (post.slug || '').length; i++) {
+      slugHash = ((slugHash << 5) - slugHash) + post.slug.charCodeAt(i);
+    }
+    slugHash = Math.abs(slugHash);
+
+    const sameCat = allPosts.filter(p => p.category === post.category);
+    const picked = new Set();
+    const relatedPosts = [];
+
+    // Pick 3 deterministic related articles from same category
+    if (sameCat.length > 0) {
+      for (let k = 0; k < Math.min(3, sameCat.length); k++) {
+        const candidate = sameCat[(slugHash + k * 7) % sameCat.length];
+        if (candidate && !picked.has(candidate.slug)) {
+          picked.add(candidate.slug);
+          relatedPosts.push(candidate);
+        }
+      }
+    }
+
+    // Pick 3 deterministic articles across the full archive ring so older GSC articles are continuously linked
+    if (allPosts.length > 0) {
+      for (let k = 0; relatedPosts.length < 6 && k < allPosts.length; k++) {
+        const candidate = allPosts[(slugHash + k * 13) % allPosts.length];
+        if (candidate && !picked.has(candidate.slug)) {
+          picked.add(candidate.slug);
+          relatedPosts.push(candidate);
+        }
+      }
+    }
+
     const recommendedHtml = relatedPosts.map(r => `
       <div class="recommended-card" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.75rem;">
         <a href="/post/${escapeHtml(r.slug)}" style="text-decoration: none; color: inherit; display: flex; gap: 0.75rem; align-items: center;">

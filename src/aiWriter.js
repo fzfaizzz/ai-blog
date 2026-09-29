@@ -155,10 +155,32 @@ CRITICAL EDITORIAL INSTRUCTIONS:
             });
           }
 
+          // Strip leading <h1> if AI included one (since post.html already has <h1 id="postTitle">)
+          text = text.replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '').replace(/<h1(\b[^>]*)>/gi, '<h2$1>').replace(/<\/h1>/gi, '</h2>').trim();
+
+          // Extract genuine journalistic metaDescription from the opening paragraph
+          let cleanMeta = '';
+          const pMatch = text.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+          if (pMatch && pMatch[1]) {
+            cleanMeta = pMatch[1]
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .replace(/^[A-Z\s\/,\.\-]{2,35}\s*[—–-]\s*/, '');
+            if (cleanMeta.length > 160) {
+              const cut = cleanMeta.slice(0, 157);
+              const lastSp = cut.lastIndexOf(' ');
+              cleanMeta = (lastSp > 100 ? cut.slice(0, lastSp) : cut) + '...';
+            }
+          }
+          if (!cleanMeta || cleanMeta.length < 50) {
+            cleanMeta = `In-depth analysis and verified reporting on ${topic}, examining key industry, economic, and policy developments.`;
+          }
+
           resolve({
             title: topic,
             contentHtml: text,
-            metaDescription: `${topic} — Detailed reporting covered by ${source} (${date}). Verified analysis and comprehensive story breakdown.`,
+            metaDescription: cleanMeta,
             readTimeMinutes: 6,
             source,
             publishTime: date

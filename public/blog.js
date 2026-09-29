@@ -606,7 +606,10 @@ async function loadSingleArticle() {
       }
       if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
 
-      let html = p.contentHtml;
+      let html = (p.contentHtml || '')
+        .replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '')
+        .replace(/<h1(\b[^>]*)>/gi, '<h2$1>')
+        .replace(/<\/h1>/gi, '</h2>');
 
       // Clean up any old Photo Credit text
       html = html.replace(/<div[^>]*>Photo Credit:.*?<\/div>/gi, '');
