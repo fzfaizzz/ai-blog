@@ -1,15 +1,33 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectDB, dbGetSetting, dbSaveSetting } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, '../data/telegram_config.json');
 
+let cachedTelegramConfig = null;
+
+export async function syncTelegramConfigFromDB() {
+  try {
+    await connectDB();
+    const doc = await dbGetSetting('telegram_config');
+    if (doc && typeof doc === 'object') {
+      cachedTelegramConfig = doc;
+      try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(doc, null, 2)); } catch (e) {}
+      console.log('✈️ [Telegram Manager] Synchronized configuration from MongoDB Atlas.');
+    }
+  } catch (e) {}
+}
+syncTelegramConfigFromDB();
+
 /**
  * Gets Telegram Configuration with safe local persistence
  */
 export function getTelegramConfig() {
+  if (cachedTelegramConfig) return cachedTelegramConfig;
+
   let config = {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     channelId: process.env.TELEGRAM_CHANNEL_ID || '',
@@ -26,6 +44,7 @@ export function getTelegramConfig() {
     if (fs.existsSync(CONFIG_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
       config = { ...config, ...saved };
+      cachedTelegramConfig = config;
     }
   } catch (e) {}
 
@@ -45,7 +64,9 @@ export function saveTelegramConfig(config) {
       channelId: (config.channelId && config.channelId.trim()) ? config.channelId.trim() : current.channelId,
       autoPostEnabled: config.autoPostEnabled !== undefined ? config.autoPostEnabled : true
     };
+    cachedTelegramConfig = updated;
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2));
+    dbSaveSetting('telegram_config', updated).catch(e => console.error('Error saving Telegram config to MongoDB:', e));
     return true;
   } catch (e) {
     console.error('Error saving Telegram config:', e);

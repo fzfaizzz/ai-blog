@@ -1,34 +1,91 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectDB, dbGetSetting, dbSaveSetting } from './db.js';
+import { buildTweetText } from './twitterManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CONFIG_FILE = path.join(__dirname, '../data/twitter_config.json');
+const CONFIG_FILE = path.join(__dirname, '../data/custom_twitter_config.json');
+const HISTORY_FILE = path.join(__dirname, '../data/custom_twitter_history.json');
+
+// Ensure data folder exists
+const dataDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
 // Official Twitter Web Public Bearer Token (used by x.com web client)
 const TWITTER_WEB_BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA';
+
+let cachedCustomTwitterConfig = null;
+let lastCustomTwitterPostTimestamp = 0;
+const CUSTOM_TWITTER_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes cooldown
+
+/**
+ * Synchronize Custom Twitter Cookie Bot Configuration with MongoDB Atlas on Boot
+ */
+export async function syncCustomTwitterConfigFromDB() {
+  try {
+    await connectDB();
+    const doc = await dbGetSetting('custom_twitter_config');
+    if (doc && typeof doc === 'object') {
+      cachedCustomTwitterConfig = doc;
+      try {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(doc, null, 2));
+      } catch (e) {}
+      console.log('🤖 [Custom Twitter Bot] Synchronized configuration from MongoDB Atlas.');
+    }
+  } catch (e) {
+    console.warn('⚠️ [Custom Twitter Bot] Could not sync config from MongoDB:', e.message);
+  }
+}
+syncCustomTwitterConfigFromDB();
 
 /**
  * Gets Custom Cookie Twitter Bot Configuration
  */
 export function getCustomTwitterConfig() {
+  if (cachedCustomTwitterConfig) return cachedCustomTwitterConfig;
+
   try {
     if (fs.existsSync(CONFIG_FILE)) {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      cachedCustomTwitterConfig = data;
+      return data;
     }
   } catch (e) {}
+
   return { authToken: '', csrfToken: '', autoPostEnabled: false };
 }
 
 /**
- * Saves Custom Cookie Twitter Bot Configuration
+ * Checks if Custom Twitter Bot is configured
+ */
+export function isCustomTwitterConfigured() {
+  const c = getCustomTwitterConfig();
+  return !!(c.authToken && c.csrfToken);
+}
+
+/**
+ * Saves Custom Cookie Twitter Bot Configuration to Local & MongoDB Cloud
  */
 export function saveCustomTwitterConfig(config) {
   try {
     const current = getCustomTwitterConfig();
-    const updated = { ...current, ...config };
+    const updated = {
+      ...current,
+      ...config,
+      authToken: (config.authToken !== undefined) ? String(config.authToken).trim() : current.authToken,
+      csrfToken: (config.csrfToken !== undefined) ? String(config.csrfToken).trim() : current.csrfToken,
+      autoPostEnabled: (config.autoPostEnabled !== undefined) ? !!config.autoPostEnabled : current.autoPostEnabled
+    };
+
+    cachedCustomTwitterConfig = updated;
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2));
+    dbSaveSetting('custom_twitter_config', updated).catch(e => console.error('Error saving Custom Twitter config to MongoDB:', e));
+
+    console.log('✅ Saved Custom Cookie Twitter Bot Configuration to Local & MongoDB Atlas');
     return true;
   } catch (e) {
     console.error('Error saving Custom Twitter config:', e);
@@ -37,44 +94,56 @@ export function saveCustomTwitterConfig(config) {
 }
 
 /**
- * Sends a tweet automatically via Twitter Web Cookie Session (0 API Fees)
+ * Custom Twitter Posted History Tracker
  */
-export async function sendTweetViaCookieSession(post) {
+export function getCustomTwitterHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return { postedSlugs: [], lastPostedAt: null, totalCount: 0 };
+}
+
+function saveCustomTwitterHistory(history) {
+  try {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+    dbSaveSetting('custom_twitter_history', history).catch(() => {});
+  } catch (e) {}
+}
+
+/**
+ * Sends a tweet automatically via Twitter Web Cookie Session (0 API Fees)
+ * @param {object} post - The article to tweet
+ * @param {boolean} [isManual=false] - Bypass anti-spam cooldown for manual test/button clicks
+ */
+export async function sendTweetViaCookieSession(post, isManual = false) {
   const config = getCustomTwitterConfig();
-  if (!config.authToken || !config.csrfToken || !config.autoPostEnabled) {
-    return { success: false, message: 'Custom Twitter Bot not configured or disabled.' };
+  if (!config.authToken || !config.csrfToken) {
+    return { success: false, message: 'Custom Twitter Bot not configured (missing auth_token or ct0 cookie).' };
   }
 
-  const domain = process.env.BASE_URL || 'https://primemedia.site';
+  if (!isManual && !config.autoPostEnabled) {
+    return { success: false, message: 'Custom Twitter Bot is disabled in settings.' };
+  }
+
+  // Anti-Spam Cooldown Protection
+  const now = Date.now();
+  if (!isManual && (now - lastCustomTwitterPostTimestamp) < CUSTOM_TWITTER_COOLDOWN_MS) {
+    const waitMins = Math.ceil((CUSTOM_TWITTER_COOLDOWN_MS - (now - lastCustomTwitterPostTimestamp)) / 60000);
+    console.log(`⏳ [Custom Twitter Bot Cooldown]: Waiting ${waitMins}m before next tweet.`);
+    return { success: false, message: `Cooldown active. Waiting ${waitMins}m before next tweet.` };
+  }
+
+  // Check Duplicate History
+  const history = getCustomTwitterHistory();
+  if (!isManual && history.postedSlugs && history.postedSlugs.includes(post.slug)) {
+    return { success: false, message: `Article "${post.slug}" has already been tweeted via Custom Bot.` };
+  }
+
+  const domain = (process.env.BASE_URL || 'https://primemedia.site').replace(/\/+$/, '');
   const postUrl = `${domain}/post/${post.slug}`;
-
-  // Dynamic High-Traffic Viral Hashtags Selector
-  const keywordTags = [];
-  const lowerTitle = (post.title + ' ' + (post.metaDescription || '')).toLowerCase();
-
-  if (lowerTitle.includes('movie') || lowerTitle.includes('film') || lowerTitle.includes('cinema') || lowerTitle.includes('trailer') || lowerTitle.includes('box office') || lowerTitle.includes('netflix')) {
-    keywordTags.push('#Movies', '#Cinema', '#Hollywood', '#Bollywood', '#OTT');
-  }
-  if (lowerTitle.includes('ai') || lowerTitle.includes('gpt') || lowerTitle.includes('claude') || lowerTitle.includes('deepseek') || lowerTitle.includes('openai')) {
-    keywordTags.push('#AINews', '#ArtificialIntelligence', '#DeepSeek', '#OpenAI');
-  }
-  if (lowerTitle.includes('spacex') || lowerTitle.includes('musk') || lowerTitle.includes('nasa') || lowerTitle.includes('space')) {
-    keywordTags.push('#SpaceX', '#ElonMusk', '#SpaceNews', '#NASA');
-  }
-  if (lowerTitle.includes('stock') || lowerTitle.includes('market') || lowerTitle.includes('economy')) {
-    keywordTags.push('#StockMarket', '#Markets', '#Economy');
-  }
-  if (lowerTitle.includes('crypto') || lowerTitle.includes('bitcoin')) {
-    keywordTags.push('#Crypto', '#Bitcoin');
-  }
-  if (keywordTags.length === 0) {
-    keywordTags.push('#BreakingNews', '#Trending', '#Movies', '#PrimeMedia');
-  }
-  keywordTags.push('#PrimeMedia', '#Viral');
-  const hashtags = [...new Set(keywordTags)].slice(0, 5).join(' ');
-
-  const shortDesc = post.metaDescription ? post.metaDescription.substring(0, 90) + '...' : '';
-  const tweetText = `🚨 BREAKING: ${post.title}\n\n${shortDesc}\n\n📖 Read full story 👇\n${postUrl}\n\n${hashtags}`;
+  const tweetText = buildTweetText(post, postUrl);
 
   try {
     // 1. Primary: Twitter Web Internal v1.1 Status Update Endpoint
@@ -82,6 +151,7 @@ export async function sendTweetViaCookieSession(post) {
     const bodyParams = new URLSearchParams();
     bodyParams.append('status', tweetText);
 
+    console.log(`🤖 [Custom Twitter Bot] Sending tweet via session cookie...`);
     let response = await fetch(v1Endpoint, {
       method: 'POST',
       headers: {
@@ -102,6 +172,13 @@ export async function sendTweetViaCookieSession(post) {
 
     if (response.ok && (resData.id_str || resData.id)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
+      lastCustomTwitterPostTimestamp = Date.now();
+      if (!history.postedSlugs) history.postedSlugs = [];
+      if (!history.postedSlugs.includes(post.slug)) history.postedSlugs.push(post.slug);
+      history.lastPostedAt = new Date().toISOString();
+      history.totalCount = (history.totalCount || 0) + 1;
+      saveCustomTwitterHistory(history);
+
       return { success: true, message: `Tweet posted successfully! (ID: ${resData.id_str || resData.id})` };
     }
 
@@ -126,10 +203,17 @@ export async function sendTweetViaCookieSession(post) {
 
     if (response.ok && (resData.id_str || resData.id)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
+      lastCustomTwitterPostTimestamp = Date.now();
+      if (!history.postedSlugs) history.postedSlugs = [];
+      if (!history.postedSlugs.includes(post.slug)) history.postedSlugs.push(post.slug);
+      history.lastPostedAt = new Date().toISOString();
+      history.totalCount = (history.totalCount || 0) + 1;
+      saveCustomTwitterHistory(history);
+
       return { success: true, message: `Tweet posted successfully! (ID: ${resData.id_str || resData.id})` };
     }
 
-    // 2. Fallback: GraphQL CreateTweet Endpoint
+    // 3. Fallback: GraphQL CreateTweet Endpoint
     const endpoint = 'https://x.com/i/api/graphql/5V8HGKFYZSimWqTxsnFRbg/CreateTweet';
     const payload = {
       variables: {
@@ -165,16 +249,22 @@ export async function sendTweetViaCookieSession(post) {
     });
 
     rawText = await response.text();
-    resData = {};
     try { resData = JSON.parse(rawText); } catch(e) {}
 
     if (response.ok && (resData.data?.create_tweet || resData.data?.tweet_result)) {
       console.log(`🐥 Custom Cookie Bot successfully tweeted to X: ${post.title}`);
+      lastCustomTwitterPostTimestamp = Date.now();
+      if (!history.postedSlugs) history.postedSlugs = [];
+      if (!history.postedSlugs.includes(post.slug)) history.postedSlugs.push(post.slug);
+      history.lastPostedAt = new Date().toISOString();
+      history.totalCount = (history.totalCount || 0) + 1;
+      saveCustomTwitterHistory(history);
+
       return { success: true, message: 'Tweet posted successfully via Custom Server Bot!' };
     } else {
       console.error('Custom Twitter Bot error:', rawText);
-      const errMsg = resData.errors?.[0]?.message || resData.message || (rawText ? rawText.substring(0, 120) : 'Invalid response');
-      return { success: false, message: `Response Error: ${errMsg}` };
+      const errMsg = resData.errors?.[0]?.message || resData.message || (rawText ? rawText.substring(0, 120) : 'Invalid session cookies');
+      return { success: false, message: `Response Error: ${errMsg}. Check auth_token and ct0 cookies.` };
     }
   } catch (e) {
     console.error('Error in Custom Twitter Bot:', e);

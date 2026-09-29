@@ -10,9 +10,10 @@ import { startAutopilotCron } from './src/scheduler.js';
 import { getSerperKeys, saveSerperKeys, getSerperKeysWithCredits } from './src/serperManager.js';
 import { getTelegramConfig, saveTelegramConfig, sendPostToTelegram } from './src/telegramManager.js';
 import { getUserbotConfig, saveUserbotConfig, sendUserbotAuthCode, verifyUserbotAuthCode, sendPostViaUserbot } from './src/userbotManager.js';
-import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter } from './src/twitterManager.js';
-import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession } from './src/customTwitterBot.js';
-import { getRedditConfig, saveRedditConfig, sendPostToReddit } from './src/redditManager.js';
+import { getTwitterConfig, saveTwitterConfig, sendPostToTwitter, isTwitterConfigured } from './src/twitterManager.js';
+import { getCustomTwitterConfig, saveCustomTwitterConfig, sendTweetViaCookieSession, isCustomTwitterConfigured } from './src/customTwitterBot.js';
+import { getRedditConfig, saveRedditConfig, sendPostToReddit, isRedditConfigured } from './src/redditManager.js';
+import { startSocialScheduler, broadcastArticleToAllSocials } from './src/socialScheduler.js';
 import { getGeminiKeys, saveGeminiKeys, syncGeminiKeysFromDB } from './src/geminiManager.js';
 import { connectDB, dbGetSetting, dbSaveSetting, getConnectionStatus } from './src/db.js';
 import { syncPostsFromDB } from './src/publisher.js';
@@ -993,7 +994,7 @@ app.post('/api/test-twitter-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
-  const result = await sendPostToTwitter(posts[0]);
+  const result = await sendPostToTwitter(posts[0], true);
   res.json(result);
 });
 
@@ -1013,7 +1014,7 @@ app.post('/api/test-custom-twitter-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
-  const result = await sendTweetViaCookieSession(posts[0]);
+  const result = await sendTweetViaCookieSession(posts[0], true);
   res.json(result);
 });
 
@@ -1033,8 +1034,52 @@ app.post('/api/test-reddit-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
-  const result = await sendPostToReddit(posts[0]);
+  const result = await sendPostToReddit(posts[0], true);
   res.json(result);
+});
+
+// 🚀 1-Click Social Syndication: Broadcast any specific article immediately to Reddit & Twitter/X
+app.post('/api/social/broadcast-post', async (req, res) => {
+  try {
+    const { slug, id } = req.body;
+    const posts = getAllPosts(true);
+    const post = posts.find(p => (slug && p.slug === slug) || (id && p.id == id));
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Article not found' });
+    }
+    const results = await broadcastArticleToAllSocials(post);
+    res.json({ success: true, results, title: post.title });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 📊 Live Status of all Social Media Bots
+app.get('/api/social/status', (req, res) => {
+  const redditConfig = getRedditConfig();
+  const twitterConfig = getTwitterConfig();
+  const customTwitterConfig = getCustomTwitterConfig();
+  const telegramConfig = getTelegramConfig();
+
+  res.json({
+    reddit: {
+      configured: isRedditConfigured(),
+      enabled: !!redditConfig.autoPostEnabled,
+      target: redditConfig.subreddit || (redditConfig.username ? `u_${redditConfig.username}` : '')
+    },
+    twitterApi: {
+      configured: isTwitterConfigured(),
+      enabled: !!twitterConfig.autoPostEnabled
+    },
+    customTwitter: {
+      configured: isCustomTwitterConfigured(),
+      enabled: !!customTwitterConfig.autoPostEnabled
+    },
+    telegram: {
+      configured: !!telegramConfig.botToken,
+      enabled: !!telegramConfig.autoPostEnabled
+    }
+  });
 });
 
 // 3. Trigger Auto-Blogging Workflow
@@ -1292,6 +1337,9 @@ function startServer(portToTry) {
 
     // Initialize 24/7 Autopilot Cron Timer (Every 5 minutes for breaking live news)
     startAutopilotCron(appSettings.cronIntervalMinutes || 5);
+
+    // Initialize 24/7 Automated Social Syndication Engine (Every 15 minutes)
+    startSocialScheduler(15);
   });
 
   server.on('error', (err) => {

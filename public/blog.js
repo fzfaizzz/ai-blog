@@ -949,6 +949,11 @@ function initAdminPanel() {
             ${p.hidden ? '🙈 HIDDEN' : '🟢 PUBLIC'}
           </span>
 
+          <!-- 📢 1-Click Social Broadcast Button -->
+          <button class="admin-broadcast-btn" data-slug="${p.slug}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #2563EB; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" title="Post this story immediately to Reddit & Twitter/X">
+            📢 Broadcast
+          </button>
+
           <!-- Hide/Unhide Button -->
           <button class="admin-toggle-btn" data-id="${p.id}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: ${p.hidden ? '#059669' : '#D97706'}; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
             ${p.hidden ? '👁️ Unhide' : '🙈 Hide'}
@@ -963,6 +968,44 @@ function initAdminPanel() {
     `).join('');
 
     // Bind Action Button Handlers
+    container.querySelectorAll('.admin-broadcast-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.getAttribute('data-slug');
+        const title = btn.getAttribute('data-title');
+        btn.disabled = true;
+        btn.innerText = '⌛ Posting...';
+
+        try {
+          const res = await fetch('/api/social/broadcast-post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug })
+          });
+          const data = await res.json();
+          if (data.success && data.results) {
+            const r = data.results;
+            const redditMsg = r.reddit.attempted
+              ? (r.reddit.success ? '✅ Success' : `❌ ${r.reddit.message}`)
+              : `⚪ Not Configured (${r.reddit.message})`;
+            
+            const twMsg = r.customTwitter.attempted
+              ? (r.customTwitter.success ? '✅ Tweeted (Custom Bot)' : `❌ ${r.customTwitter.message}`)
+              : (r.twitterApi.attempted ? (r.twitterApi.success ? '✅ Tweeted (API)' : `❌ ${r.twitterApi.message}`) : `⚪ Not Configured`);
+
+            alert(`🚀 Social Broadcast Results for:\n"${title}"\n\n🔴 Reddit: ${redditMsg}\n🐥 X (Twitter): ${twMsg}`);
+            logMessage(`📢 Social Broadcast for "${title}": Reddit -> ${redditMsg}, X -> ${twMsg}`);
+          } else {
+            alert(`Broadcast failed: ${data.message || 'Unknown error'}`);
+          }
+        } catch (e) {
+          alert(`Broadcast error: ${e.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = '📢 Broadcast';
+        }
+      });
+    });
+
     container.querySelectorAll('.admin-toggle-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
@@ -1684,6 +1727,25 @@ function initAdminPanel() {
         customAuthTokenInput.value = data.config.authToken || '';
         customCsrfTokenInput.value = data.config.csrfToken || '';
         customTwitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        const badge = document.getElementById('customTwitterStatusBadge');
+        if (badge) {
+          if (data.config.authToken && data.config.csrfToken) {
+            if (data.config.autoPostEnabled) {
+              badge.style.background = '#DCFCE7';
+              badge.style.color = '#15803D';
+              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
+            } else {
+              badge.style.background = '#FEF3C7';
+              badge.style.color = '#D97706';
+              badge.innerText = '🟠 READY (AUTO-POST OFF)';
+            }
+          } else {
+            badge.style.background = '#E2E8F0';
+            badge.style.color = '#475569';
+            badge.innerText = '⚪ NOT CONFIGURED';
+          }
+        }
       }
     } catch (e) {
       console.error('Error loading Custom Twitter config:', e);
@@ -1713,6 +1775,7 @@ function initAdminPanel() {
         }
         alert('✓ Custom Twitter Bot Cookies Saved Successfully!');
         logMessage('✓ Custom Twitter Bot cookies saved!');
+        loadCustomTwitterConfig();
       } else {
         if (customTwitterStatus) {
           customTwitterStatus.style.color = '#DC2626';
@@ -1790,6 +1853,25 @@ function initAdminPanel() {
         redditPasswordInput.value = data.config.password || '';
         redditSubredditInput.value = data.config.subreddit || '';
         redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        const badge = document.getElementById('redditStatusBadge');
+        if (badge) {
+          if (data.config.clientId && data.config.clientSecret && data.config.username && data.config.password) {
+            if (data.config.autoPostEnabled) {
+              badge.style.background = '#DCFCE7';
+              badge.style.color = '#15803D';
+              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
+            } else {
+              badge.style.background = '#FEF3C7';
+              badge.style.color = '#D97706';
+              badge.innerText = '🟠 READY (AUTO-POST OFF)';
+            }
+          } else {
+            badge.style.background = '#E2E8F0';
+            badge.style.color = '#475569';
+            badge.innerText = '⚪ NOT CONFIGURED';
+          }
+        }
       }
     } catch (e) {
       console.error('Error loading Reddit config:', e);
@@ -1820,6 +1902,7 @@ function initAdminPanel() {
         }
         alert('✓ Reddit Auto-Poster Settings Saved Successfully!');
         logMessage('✓ Reddit Auto-Poster settings saved!');
+        loadRedditConfig();
       } else {
         if (redditStatus) {
           redditStatus.style.color = '#DC2626';

@@ -754,14 +754,34 @@
       </form>
     </div>
 
-    <!-- 🤖 Custom Direct Cookie Twitter Bot (0 API Fees & Unlimited) -->
+    <!-- 🤖 Direct Custom Cookie Twitter Bot (0 API Fees & Unlimited) -->
     <div class="admin-card" style="border: 2px solid #3B82F6;">
-      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #1D4ED8;">
-        🤖 Direct Custom Cookie Twitter Bot (100% FREE & Unlimited)
-      </h3>
-      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
-        Direct Railway Server Bot — Bypass Twitter API fees! Simply enter your Twitter Web Session Cookies (<code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">auth_token</code> & <code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">ct0</code>) from Chrome DevTools.
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #1D4ED8;">
+          🤖 Direct Custom Cookie Twitter Bot (100% FREE & Unlimited)
+        </h3>
+        <span id="customTwitterStatusBadge" style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; background: #E2E8F0; color: #475569;">
+          ⚪ NOT CONFIGURED
+        </span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+        Direct Server Bot — <strong>Bypass paid Twitter API fees ($100/mo saved)!</strong> Simply copy your Twitter Web Session Cookies (<code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">auth_token</code> & <code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">ct0</code>) from Chrome DevTools.
       </p>
+
+      <!-- 30-Second Quick Setup Guide Box -->
+      <details style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #1E3A8A;">
+        <summary style="font-weight: 800; cursor: pointer; color: #1D4ED8;">
+          📖 How to get Twitter Session Cookies in 30 Seconds (Click to expand)
+        </summary>
+        <ol style="margin: 0.6rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.55;">
+          <li>Open <strong><a href="https://x.com" target="_blank" style="color: #2563EB; font-weight: 700;">x.com</a></strong> in Google Chrome on your computer (make sure you are logged into your account).</li>
+          <li>Press <strong>F12</strong> on your keyboard (or Right-Click anywhere &rarr; <em>Inspect</em>).</li>
+          <li>Go to the <strong>Application</strong> tab at the top &rarr; In the left sidebar, click <strong>Cookies</strong> &rarr; <strong>https://x.com</strong>.</li>
+          <li>In the table, find the cookie named <strong>auth_token</strong> &rarr; copy its <strong>Value</strong> and paste it into the "AUTH_TOKEN" box below.</li>
+          <li>Find the cookie named <strong>ct0</strong> &rarr; copy its <strong>Value</strong> and paste it into the "CT0 (CSRF TOKEN)" box below.</li>
+          <li>Check "Enable Direct Custom Cookie Server Bot" and click <strong>Save Custom Bot Cookies</strong>. Done! 🚀</li>
+        </ol>
+      </details>
 
       <form id="customTwitterConfigForm" style="max-width: 620px;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
@@ -792,22 +812,98 @@
           <span id="customTwitterStatus" style="font-size: 0.85rem; font-weight: 700;"></span>
         </div>
       </form>
+
+      <!-- Optional Collapsible Twitter Official API v2 Form -->
+      <details style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed #CBD5E1;">
+        <summary style="font-size: 0.82rem; font-weight: 700; color: #64748B; cursor: pointer;">
+          ⚙️ Advanced: Use Official Twitter Developer API v2 (Optional)
+        </summary>
+        <form id="twitterConfigForm" style="max-width: 620px; margin-top: 0.75rem;">
+          <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 0.75rem;">
+            If you have a Twitter Developer Account, you can enter OAuth 1.0a credentials from <a href="https://developer.x.com" target="_blank" style="color: #2563EB;">developer.x.com</a> (Free tier: 1,500 tweets/month).
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">API KEY (CONSUMER KEY)</label>
+              <input type="text" id="twitterApiKeyInput" placeholder="API Key" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.82rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">API SECRET</label>
+              <input type="password" id="twitterApiSecretInput" placeholder="API Secret" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.82rem;" />
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">ACCESS TOKEN</label>
+              <input type="text" id="twitterAccessTokenInput" placeholder="Access Token" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.82rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.2rem;">ACCESS SECRET</label>
+              <input type="password" id="twitterAccessSecretInput" placeholder="Access Secret" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.82rem;" />
+            </div>
+          </div>
+          <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="twitterAutoPostToggle" style="width: 16px; height: 16px; cursor: pointer;" />
+            <label for="twitterAutoPostToggle" style="font-size: 0.82rem; font-weight: 700; color: #0F172A; cursor: pointer;">
+              Enable Official Twitter API v2 Auto-Posting
+            </label>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="submit" id="saveTwitterConfigBtn" class="btn btn-primary" style="background: #0284C7; font-size: 0.82rem; padding: 0.4rem 0.8rem;">
+              💾 Save API Keys
+            </button>
+            <button type="button" id="testTwitterPostBtn" class="btn" style="background: #059669; color: #FFF; font-size: 0.82rem; padding: 0.4rem 0.8rem;">
+              🧪 Test API Tweet
+            </button>
+            <span id="twitterStatus" style="font-size: 0.8rem; font-weight: 700;"></span>
+          </div>
+        </form>
+      </details>
     </div>
 
     <!-- 🔴 Reddit Channel / Subreddit Auto-Poster Bot -->
     <div class="admin-card" style="border: 2px solid #FF4500;">
-      <h3 style="font-family: var(--font-heading); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #CC3700;">
-        🔴 Reddit Subreddit Auto-Poster Bot
-      </h3>
-      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="font-family: var(--font-heading); margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #CC3700;">
+          🔴 Reddit Subreddit Auto-Poster Bot
+        </h3>
+        <span id="redditStatusBadge" style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; background: #E2E8F0; color: #475569;">
+          ⚪ NOT CONFIGURED
+        </span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
         Automatically post fresh news articles to your Reddit User Profile (<code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">u_yourusername</code>) or Target Subreddits (e.g. <code style="background: #F1F5F9; padding: 0.1rem 0.4rem; border-radius: 4px;">r/technology</code>)!
       </p>
+
+      <!-- 60-Second Quick Setup Guide Box -->
+      <details style="background: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #9A3412;">
+        <summary style="font-weight: 800; cursor: pointer; color: #EA580C;">
+          📖 How to get Reddit Client ID & Secret in 60 Seconds (100% Free - Click to expand)
+        </summary>
+        <ol style="margin: 0.6rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.55;">
+          <li>Log into Reddit in your browser, then open <strong><a href="https://www.reddit.com/prefs/apps" target="_blank" style="color: #EA580C; font-weight: 700;">reddit.com/prefs/apps</a></strong>.</li>
+          <li>Scroll to the bottom and click <strong>"are you a developer? create an app..."</strong> (or <em>"create another app..."</em>).</li>
+          <li>Fill in the fields:
+            <ul>
+              <li><strong>name:</strong> <code>PrimeMediaBot</code></li>
+              <li>Select radio button: <strong>script</strong> (personal use script)</li>
+              <li><strong>redirect uri:</strong> <code>http://localhost:3000</code></li>
+            </ul>
+          </li>
+          <li>Click <strong>"create app"</strong>.</li>
+          <li>Copy the <strong>Client ID</strong> (the short string of random letters right under "personal use script") and paste it into the <em>Reddit Client ID</em> box below.</li>
+          <li>Copy the <strong>secret</strong> string and paste it into the <em>Reddit Client Secret</em> box below.</li>
+          <li>Enter your Reddit <strong>Username</strong> and <strong>Password</strong>.</li>
+          <li><em>Tip:</em> Leave <strong>Target Subreddit</strong> blank &rarr; The bot will automatically post to your Reddit User Profile (<code>u_yourusername</code>) with zero risk of subreddit auto-moderator blocks!</li>
+          <li>Check <strong>"Enable Automatic Auto-Posting"</strong> and click <strong>Save Reddit Settings</strong>. Done! 🚀</li>
+        </ol>
+      </details>
 
       <form id="redditConfigForm" style="max-width: 620px;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div>
             <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">REDDIT CLIENT ID</label>
-            <input type="text" id="redditClientIdInput" placeholder="Reddit App Client ID" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
+            <input type="text" id="redditClientIdInput" placeholder="e.g. j1A8B_9xKz..." style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
           </div>
           <div>
             <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">REDDIT CLIENT SECRET</label>
@@ -827,7 +923,7 @@
         </div>
 
         <div style="margin-bottom: 1rem;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET SUBREDDIT (Optional - leave blank for u_username)</label>
+          <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">TARGET SUBREDDIT (Optional - leave blank to post to your user profile u_username)</label>
           <input type="text" id="redditSubredditInput" placeholder="e.g. u_yourusername or technology" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 6px; outline: none; font-size: 0.85rem;" />
         </div>
 
