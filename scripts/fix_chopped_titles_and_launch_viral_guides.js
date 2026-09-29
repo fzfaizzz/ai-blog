@@ -174,7 +174,7 @@ const VIRAL_SEARCH_GUIDES = [
       </div>
 
       <h2>Why Quantization (Q4_K_M) Is the Secret to Speed on Consumer Laptops</h2>
-      <p>By default, AI model weights are trained in 16-bit floating-point precision (FP16), meaning an 8-billion-parameter model requires 16 gigabytes of video memory just to load the weights—before accounting for the KV (Key-Value) context cache. Using <strong>GGUF 4-bit quantization (`Q4_K_M`)</strong> compresses those weights to roughly 4.5 bits per parameter, shrinking an 8B model to 4.7 GB while retaining over 98.5% of the original perplexity and coding accuracy.</p>
+      <p>By default, AI model weights are trained in 16-bit floating-point precision (FP16), meaning an 8-billion-parameter model requires 16 gigabytes of video memory just to load the weights—before accounting for the KV (Key-Value) context cache. Using <strong>GGUF 4-bit quantization (<code>Q4_K_M</code>)</strong> compresses those weights to roughly 4.5 bits per parameter, shrinking an 8B model to 4.7 GB while retaining over 98.5% of the original perplexity and coding accuracy.</p>
       <ul>
         <li><strong>Avoid Q2 or Q3 Quantization for Coding:</strong> Dropping below 4-bit precision degrades syntax accuracy and logic reasoning significantly. Stick to <code>Q4_K_M</code> or <code>Q5_K_M</code> as the golden sweet spot.</li>
         <li><strong>Flash Attention &amp; KV Cache Quantization:</strong> Enabling Flash Attention and <code>Q8_0</code> KV cache quantization inside LM Studio or Ollama cuts context memory overhead in half when chatting with 16,000+ token files.</li>
