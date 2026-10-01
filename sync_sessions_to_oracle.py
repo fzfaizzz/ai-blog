@@ -1,11 +1,12 @@
 """
 Sync Social Sessions from Local Chrome to Oracle Cloud Server
 ==============================================================
-1. Opens real Chrome with your automation profile.
-2. Lets you log in to X (Twitter) and Reddit (if not already logged in).
-3. Automatically exports the session (social_auth.json).
-4. Securely uploads it to your Oracle Cloud Server (129.159.201.219).
-5. Starts/Restarts the 24/7 autonomous bot on the server!
+1. Opens real Google Chrome with your profile.
+2. Opens tabs for Twitter (X) and Reddit.
+3. Shows an on-screen button to click when logged in.
+4. Exports storage_state to social_auth.json.
+5. Uploads to Oracle Cloud Server (129.159.201.219).
+6. Restarts 24/7 bot service on Oracle Cloud!
 """
 
 import os
@@ -13,6 +14,8 @@ import sys
 import json
 import subprocess
 import time
+import tkinter as tk
+from tkinter import messagebox
 from playwright.sync_api import sync_playwright
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +27,65 @@ AUTH_LOCAL_PATH = os.path.join(BASE_DIR, "social_auth.json")
 KEY_PATH = os.path.expanduser("~/.ssh/oracle_ai_server.key")
 ORACLE_HOST = "ubuntu@129.159.201.219"
 REMOTE_DIR = "/home/ubuntu/social_bot"
+
+
+def show_sync_popup():
+    """Shows an always-on-top popup for user to click after logging in"""
+    root = tk.Tk()
+    root.title("Prime Media - Social Login Sync")
+    root.geometry("450x260")
+    root.attributes("-topmost", True)
+    root.configure(bg="#1e1e2e")
+
+    confirmed = [False]
+
+    def on_confirm():
+        confirmed[0] = True
+        root.destroy()
+
+    def on_cancel():
+        root.destroy()
+
+    lbl_title = tk.Label(
+        root,
+        text="🔐 Social Login to Oracle Cloud",
+        font=("Segoe UI", 14, "bold"),
+        fg="#a6e3a1",
+        bg="#1e1e2e"
+    )
+    lbl_title.pack(pady=(15, 8))
+
+    instructions = (
+        "1. Chrome window me Twitter (X) aur Reddit par login karein.\n"
+        "2. Login hone ke baad neeche diye button par click karein.\n"
+        "3. Session automatic Oracle Cloud server par sync ho jayega!"
+    )
+    lbl_desc = tk.Label(
+        root,
+        text=instructions,
+        font=("Segoe UI", 10),
+        fg="#cdd6f4",
+        bg="#1e1e2e",
+        justify="left"
+    )
+    lbl_desc.pack(padx=20, pady=5)
+
+    btn_sync = tk.Button(
+        root,
+        text="🚀 Main Login Ho Gaya - Sync Karein!",
+        font=("Segoe UI", 11, "bold"),
+        bg="#89b4fa",
+        fg="#11111b",
+        padx=15,
+        pady=8,
+        cursor="hand2",
+        relief="flat",
+        command=on_confirm
+    )
+    btn_sync.pack(pady=15)
+
+    root.mainloop()
+    return confirmed[0]
 
 
 def main():
@@ -39,9 +101,8 @@ def main():
         print(f"❌ Error: Oracle SSH Key not found at: {KEY_PATH}")
         sys.exit(1)
 
-    print("\n🌐 Step 1: Opening Chrome with your saved automation profile...")
-    print("👉 If you are already logged in to Twitter (X) and Reddit, perfect!")
-    print("👉 If not, please log in now in the browser window.\n")
+    print("\n🌐 Step 1: Opening Google Chrome with your profile...")
+    print("👉 Tabs for X (Twitter) and Reddit are opening right now!")
 
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
@@ -58,9 +119,13 @@ def main():
         p2 = ctx.new_page()
         p2.goto("https://www.reddit.com", wait_until="domcontentloaded")
 
-        print("---------------------------------------------------------------")
-        input("👉 Jab aap X (Twitter) aur Reddit dono me LOGGED IN ho, tab yaha console me ENTER dabayein... ")
-        print("---------------------------------------------------------------")
+        # Show on-screen popup
+        user_confirmed = show_sync_popup()
+
+        if not user_confirmed:
+            print("⚠️ Sync was cancelled by user.")
+            ctx.close()
+            return
 
         print("\n💾 Step 2: Exporting authenticated session state...")
         ctx.storage_state(path=AUTH_LOCAL_PATH)
@@ -68,7 +133,7 @@ def main():
         ctx.close()
 
     # Step 3: Upload files to Oracle Cloud VM
-    print("\n☁️ Step 3: Uploading session and bot scripts to Oracle Cloud Server...")
+    print("\n☁️ Step 3: Uploading session to Oracle Cloud Server...")
     cloud_bot_script = os.path.join(BASE_DIR, "cloud_browser_bot.py")
 
     scp_auth_cmd = [
@@ -84,15 +149,12 @@ def main():
         f"{ORACLE_HOST}:{REMOTE_DIR}/cloud_browser_bot.py"
     ]
 
-    print("Uploading cloud_browser_bot.py...")
     subprocess.run(scp_bot_cmd, check=True)
-
-    print("Uploading social_auth.json (session tokens)...")
     subprocess.run(scp_auth_cmd, check=True)
-    print("✅ Files uploaded successfully!")
+    print("✅ Files uploaded successfully to Oracle Cloud!")
 
     # Step 4: Restart 24/7 service on server
-    print("\n🔄 Step 4: Restarting 24/7 autonomous bot service on Oracle VM...")
+    print("\n🔄 Step 4: Activating 24/7 autonomous bot service on Oracle VM...")
     restart_cmd = [
         "ssh", "-i", KEY_PATH,
         "-o", "StrictHostKeyChecking=no",
@@ -101,12 +163,10 @@ def main():
     ]
     res = subprocess.run(restart_cmd, capture_output=True, text=True)
     print(res.stdout)
-    if res.stderr:
-        print(res.stderr)
 
     print("=" * 65)
     print("🎉 SUCCESS! Your Autonomous Social Bot is now LIVE 24/7 on Oracle Cloud!")
-    print("You can close your PC anytime — Oracle Cloud will post articles automatically!")
+    print("Server will automatically post articles to X & Reddit even when PC is off!")
     print("=" * 65)
 
 
