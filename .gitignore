@@ -16,6 +16,7 @@ data/reddit_history.json
 data/twitter_history.json
 data/custom_twitter_history.json
 scratch/
+__pycache__/
 *service_account*.json
 service_account.json
 data/service_account.json
