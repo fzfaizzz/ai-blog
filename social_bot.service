@@ -1,0 +1,17 @@
+[Unit]
+Description=Prime Media 24/7 Cloud Social Browser Bot
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/social_bot
+ExecStart=/home/ubuntu/miniforge3/envs/ai/bin/python /home/ubuntu/social_bot/cloud_browser_bot.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/home/ubuntu/social_bot/bot.log
+StandardError=append:/home/ubuntu/social_bot/bot.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
