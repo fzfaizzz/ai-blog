@@ -147,35 +147,29 @@ def post_to_twitter(page, post):
 
         tweet_box.click()
         time.sleep(1)
-        # Type naturally with human-like keystroke delays
-        page.keyboard.type(tweet_text, delay=random.randint(12, 28))
-        time.sleep(random.uniform(2.0, 3.5))
+        page.keyboard.insert_text(tweet_text)
+        time.sleep(2)
+
+        # Wait for button to be enabled
+        try:
+            page.wait_for_selector('button[data-testid="tweetButton"]:not([aria-disabled="true"])', timeout=10000)
+        except Exception:
+            pass
 
         # Click post button
-        post_btn_selectors = [
-            'button[data-testid="tweetButton"]',
-            'button[data-testid="tweetButtonInline"]',
-            'button:has-text("Post")'
-        ]
-        post_btn = None
-        for sel in post_btn_selectors:
+        post_btn = page.locator('button[data-testid="tweetButton"], button[data-testid="tweetButtonInline"]').first
+        if post_btn.is_visible(timeout=4000):
             try:
-                btn = page.locator(sel).first
-                if btn.is_visible(timeout=3000):
-                    post_btn = btn
-                    break
-            except Exception:
-                pass
+                post_btn.click(timeout=8000)
+                logging.info("🚀 Clicked 'Post' button on Twitter / X!")
+                time.sleep(5)
+                logging.info("✅ SUCCESS: Article published to Twitter / X!")
+                return True
+            except Exception as ce:
+                logging.warning(f"⚠️ Button click warning: {ce}")
 
-        if not post_btn:
-            logging.error("❌ Could not find Twitter 'Post' button.")
-            return False
-
-        post_btn.click()
-        logging.info("🚀 Clicked 'Post' button on Twitter / X!")
-        time.sleep(5)
-        logging.info("✅ SUCCESS: Article published to Twitter / X!")
-        return True
+        logging.error("❌ Could not click active Twitter 'Post' button.")
+        return False
 
     except Exception as e:
         logging.error(f"❌ Twitter posting error: {e}")

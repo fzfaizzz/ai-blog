@@ -177,26 +177,33 @@ def apply_branding():
             print("🎉 Profile branding saved successfully!")
 
         # Step 8: Post Welcome / Pinned Tweet
-        print("\n🚀 Posting Welcome Tweet...")
-        page.goto("https://x.com/compose/post", wait_until="domcontentloaded", timeout=30000)
-        time.sleep(3)
+        try:
+            print("\n🚀 Posting Welcome Tweet...")
+            page.goto("https://x.com/compose/post", wait_until="domcontentloaded", timeout=25000)
+            time.sleep(3)
 
-        tweet_box = page.locator('div[data-testid="tweetTextarea_0"], div[role="textbox"][contenteditable="true"]').first
-        if tweet_box.is_visible(timeout=4000):
-            tweet_box.click()
-            page.keyboard.type(PINNED_TWEET_TEXT, delay=10)
-            time.sleep(1.5)
+            tweet_box = page.locator('div[data-testid="tweetTextarea_0"], div[role="textbox"][contenteditable="true"]').first
+            if tweet_box.is_visible(timeout=5000):
+                tweet_box.click()
+                time.sleep(1)
+                page.keyboard.insert_text(PINNED_TWEET_TEXT)
+                time.sleep(2)
 
-            post_btn = page.locator('button[data-testid="tweetButton"], button:has-text("Post")').first
-            if post_btn.is_visible(timeout=3000):
-                post_btn.click()
-                print("✅ Welcome tweet published!")
-                time.sleep(4)
+                post_btn = page.locator('button[data-testid="tweetButton"]').first
+                if post_btn.is_visible(timeout=5000):
+                    if post_btn.is_enabled():
+                        post_btn.click()
+                        print("✅ Welcome tweet published!")
+                        time.sleep(3)
+                    else:
+                        print("ℹ️ Post button not ready, tweet will be published by autonomous bot.")
+        except Exception as te:
+            print(f"ℹ️ Welcome tweet note: {te}")
 
         print("=" * 65)
         print("✨ COMPLETE! Your X page branding has been fully applied!")
         print("=" * 65)
-        time.sleep(5)
+        time.sleep(4)
         ctx.close()
         return True
 
