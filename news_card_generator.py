@@ -120,10 +120,9 @@ def generate_news_card(title="", category="NEWS WIRE", cover_image_source=None, 
     footer_y = HEIGHT - 34
     footer_font = get_font(13, bold=True)
 
-    # Active pulse dot
+    # Active pulse dot & site branding watermark
     draw.ellipse([(36, footer_y + 4), (44, footer_y + 12)], fill=(0, 229, 255))
     draw.text((52, footer_y), "primemedia.site", font=footer_font, fill=(0, 229, 255))
-    draw.text((205, footer_y), "VERIFIED WIRE INTELLIGENCE", font=footer_font, fill=(180, 195, 215))
 
     # Save output
     output_path = os.path.join(OUTPUT_DIR, output_filename)
