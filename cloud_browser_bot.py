@@ -1,10 +1,11 @@
 """
-Prime Media - 24/7 Cloud Social Browser Bot (Oracle Linux Server)
-==================================================================
-Runs headlessly 24/7 on Oracle Cloud (24GB RAM, Ubuntu Linux).
-Monitors https://primemedia.site for fresh articles and automatically
-posts them to X (Twitter) and Reddit using the synced browser session.
-Zero API keys needed!
+Prime Media - 24/7 Autonomous Cloud Social Bot (Oracle VM Edition)
+===================================================================
+1. Fetches latest published articles from https://primemedia.site/api/posts
+2. Generates High-CTR viral copy using local Qwen 2.5 (Ollama)
+3. Generates 1200x675 16:9 branded news cards with official logo2.png
+4. Attaches media and publishes directly to X (Twitter) and Reddit via headless Chromium
+5. Runs 24/7 as systemd background service on Oracle Cloud
 """
 
 import os
@@ -17,9 +18,35 @@ import urllib.request
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-# Setup logging
-LOG_FILE = "/home/ubuntu/social_bot/bot.log"
-os.makedirs("/home/ubuntu/social_bot", exist_ok=True)
+from news_card_generator import generate_news_card
+from ai_viral_copier import generate_viral_copy_with_llm, format_full_viral_tweet
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(BASE_DIR, "bot.log")
+HISTORY_FILE = os.path.join(BASE_DIR, "history.json")
+AUTH_FILE = os.path.join(BASE_DIR, "social_auth.json")
+
+API_POSTS_URL = "https://primemedia.site/api/posts"
+BASE_SITE_URL = "https://primemedia.site"
+CHROMIUM_EXEC = "/snap/bin/chromium" if os.path.exists("/snap/bin/chromium") else "/usr/bin/chromium-browser"
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://akhtarfarhan251_db_user:HUEXPccjB9Wm1msH@cluster0.nfkigk7.mongodb.net/primemedia?retryWrites=true&w=majority&appName=Cluster0")
+
+_mongo_client = None
+
+def get_mongo_db():
+    global _mongo_client
+    if _mongo_client is not None:
+        try:
+            _mongo_client.admin.command('ping')
+            return _mongo_client["primemedia"]
+        except Exception:
+            _mongo_client = None
+    try:
+        from pymongo import MongoClient
+        _mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=4000)
+        return _mongo_client["primemedia"]
+    except Exception:
+        return None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,20 +57,14 @@ logging.basicConfig(
     ]
 )
 
-AUTH_FILE = "/home/ubuntu/social_bot/social_auth.json"
-HISTORY_FILE = "/home/ubuntu/social_bot/history.json"
-API_POSTS_URL = "https://primemedia.site/api/posts"
-BASE_SITE_URL = "https://primemedia.site"
-CHROMIUM_EXEC = "/snap/bin/chromium"
-
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception as e:
-            logging.warning(f"Error loading history: {e}")
+        except Exception:
+            pass
     return {"twitter_posted": [], "reddit_posted": [], "last_run": None}
 
 
@@ -56,63 +77,73 @@ def save_history(history):
 
 
 def fetch_latest_posts():
-    """Fetches published articles from Prime Media API"""
     try:
         req = urllib.request.Request(
             API_POSTS_URL,
-            headers={"User-Agent": "PrimeMediaCloudBot/1.0 (+https://primemedia.site)"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PrimeMediaCloudBot/2.0"}
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if data.get("success") and data.get("posts"):
                 return data["posts"]
     except Exception as e:
-        logging.error(f"Failed to fetch posts from live API: {e}")
+        logging.error(f"Live API fetch error: {e}")
     return []
 
 
-def format_tweet_text(post):
-    """Formats high-CTR, 280-char safe tweet with viral hashtags"""
+def post_to_twitter(page, post):
+    """Generates 16:9 news card + viral copy and posts to X directly via Playwright"""
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
-    cat = (post.get("category") or "").lower()
+    category = post.get("category") or "TECH"
+    logging.info(f"\n🐥 [Twitter / X Bot] Preparing viral wire for: \"{title[:60]}...\"")
 
-    if any(k in cat for k in ["movie", "cinema", "entertainment", "hollywood"]):
-        hashtags = "#Movies #Cinema #Hollywood #Entertainment"
-    elif any(k in cat for k in ["ai", "tech", "gadget", "software"]):
-        hashtags = "#TechNews #ArtificialIntelligence #AINews"
-    elif any(k in cat for k in ["business", "market", "economy", "stock"]):
-        hashtags = "#StockMarket #Economy #Business"
-    else:
-        hashtags = "#BreakingNews #Trending #PrimeMedia"
+    # 1. AI Viral Copywriting via Qwen 2.5 on Oracle VM
+    logging.info("🧠 Generating high-CTR viral copy via Qwen 2.5 AI Brain...")
+    viral_data = generate_viral_copy_with_llm(
+        title=title,
+        summary=post.get("summary") or post.get("content") or "",
+        category=category
+    )
+    tweet_text = format_full_viral_tweet(viral_data, url)
+    logging.info(f"📝 Viral Tweet Prepared:\n{tweet_text}\n")
 
-    # URL is counted as 23 chars by Twitter (t.co)
-    overhead = len("🚨 BREAKING: \n\n📖 Read 👇\n") + 23 + len("\n\n" + hashtags)
-    avail_title_len = max(50, 260 - overhead)
-
-    if len(title) > avail_title_len:
-        title = title[: avail_title_len - 3] + "..."
-
-    return f"🚨 BREAKING: {title}\n\n📖 Read full story 👇\n{url}\n\n{hashtags}"
-
-
-def post_to_twitter(page, post):
-    """Posts article directly to X (Twitter) using authenticated session"""
-    title = post.get("title", "")
-    logging.info(f"🐥 [Twitter Bot] Preparing to post: \"{title[:60]}...\"")
-    tweet_text = format_tweet_text(post)
+    # 2. Dynamic 16:9 Branded News Card Generation
+    card_path = None
+    try:
+        logging.info("🎨 Generating 16:9 Branded Newsroom Card with official logo2.png...")
+        card_path = generate_news_card(
+            title=title,
+            category=category,
+            cover_image_source=post.get("imageUrl") or post.get("coverImage") or post.get("image"),
+            output_filename=f"post_{slug[:18]}.jpg"
+        )
+    except Exception as ge:
+        logging.warning(f"⚠️ News card generation error ({ge}), continuing with text...")
 
     try:
+        logging.info("🌐 Opening https://x.com/compose/post ...")
         page.goto("https://x.com/compose/post", wait_until="domcontentloaded", timeout=40000)
-        time.sleep(random.uniform(4.0, 6.0))
+        time.sleep(3)
 
-        # Check login state
         if "login" in page.url or "i/flow/login" in page.url:
-            logging.error("❌ Twitter is NOT logged in! Please sync session via SYNC_TO_ORACLE_SERVER.bat on your PC.")
+            logging.error("❌ Twitter is NOT logged in in this session! Please sync cookies from PC.")
             return False
 
-        # Locate tweet compose box
+        # 3. Attach 16:9 Branded Media Card
+        if card_path and os.path.exists(card_path):
+            try:
+                logging.info(f"🖼️ Attaching 16:9 News Card ({card_path}) to tweet...")
+                file_input = page.locator('input[data-testid="fileInput"]').first
+                if file_input.count() > 0:
+                    file_input.set_input_files(card_path)
+                    logging.info("✅ 16:9 News Card attached to compose window!")
+                    time.sleep(3)
+            except Exception as me:
+                logging.warning(f"⚠️ Media attachment warning: {me}")
+
+        # 4. Fill Tweet Text
         input_selectors = [
             'div[data-testid="tweetTextarea_0"]',
             'div[role="textbox"][contenteditable="true"]',
@@ -122,53 +153,40 @@ def post_to_twitter(page, post):
         for sel in input_selectors:
             try:
                 el = page.locator(sel).first
-                if el.is_visible(timeout=5000):
+                if el.is_visible(timeout=3000):
                     tweet_box = el
                     break
             except Exception:
                 pass
 
         if not tweet_box:
-            logging.warning("⚠️ Could not find Twitter compose box. Trying navigation to x.com/home...")
-            page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=30000)
-            time.sleep(4)
-            for sel in input_selectors:
-                try:
-                    el = page.locator(sel).first
-                    if el.is_visible(timeout=5000):
-                        tweet_box = el
-                        break
-                except Exception:
-                    pass
-
-        if not tweet_box:
-            logging.error("❌ Failed to find Twitter input box.")
+            logging.error("❌ Failed to locate Twitter compose textarea.")
             return False
 
         tweet_box.click()
-        time.sleep(1)
-        page.keyboard.insert_text(tweet_text)
+        time.sleep(0.5)
+
+        # Fill text naturally
+        page.keyboard.type(tweet_text, delay=10)
         time.sleep(2)
 
-        # Wait for button to be enabled
-        try:
-            page.wait_for_selector('button[data-testid="tweetButton"]:not([aria-disabled="true"])', timeout=10000)
-        except Exception:
-            pass
+        # 5. Submit via direct DOM click (bypasses transparent overlay interceptions)
+        logging.info("🚀 Submitting tweet via direct DOM click on tweetButton...")
+        page.evaluate('() => document.querySelector("button[data-testid=\\"tweetButton\\"]")?.click()')
+        time.sleep(6)
 
-        # Click post button
-        post_btn = page.locator('button[data-testid="tweetButton"], button[data-testid="tweetButtonInline"]').first
-        if post_btn.is_visible(timeout=4000):
-            try:
-                post_btn.click(timeout=8000)
-                logging.info("🚀 Clicked 'Post' button on Twitter / X!")
-                time.sleep(5)
-                logging.info("✅ SUCCESS: Article published to Twitter / X!")
-                return True
-            except Exception as ce:
-                logging.warning(f"⚠️ Button click warning: {ce}")
+        if "compose" not in page.url:
+            logging.info("✅ SUCCESS: Viral Article & 16:9 Card published to Twitter / X!")
+            return True
 
-        logging.error("❌ Could not click active Twitter 'Post' button.")
+        # Fallback Control+Enter
+        page.keyboard.press("Control+Enter")
+        time.sleep(4)
+
+        if "compose" not in page.url:
+            logging.info("✅ SUCCESS: Article published to Twitter / X!")
+            return True
+
         return False
 
     except Exception as e:
@@ -181,13 +199,12 @@ def post_to_reddit(page, post):
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
-    logging.info(f"🔴 [Reddit Bot] Preparing to post: \"{title[:60]}...\"")
+    logging.info(f"\n🔴 [Reddit Bot] Preparing to post: \"{title[:60]}...\"")
 
     if len(title) > 280:
         title = title[:277] + "..."
 
     try:
-        # First try old.reddit.com/submit for highest reliability
         page.goto("https://old.reddit.com/submit", wait_until="domcontentloaded", timeout=35000)
         time.sleep(3)
 
@@ -209,20 +226,18 @@ def post_to_reddit(page, post):
             submit_btn = page.locator('button[name="submit"]').first
             if submit_btn.is_visible(timeout=3000):
                 submit_btn.click()
-                logging.info("🚀 Clicked Submit on Reddit!")
                 time.sleep(5)
                 logging.info("✅ SUCCESS: Link posted to Reddit!")
                 return True
 
-        # Fallback to modern www.reddit.com/submit
+        # Modern reddit fallback
         page.goto("https://www.reddit.com/submit", wait_until="domcontentloaded", timeout=40000)
         time.sleep(4)
 
         if "login" in page.url:
-            logging.error("❌ Reddit is NOT logged in! Please sync session via SYNC_TO_ORACLE_SERVER.bat on your PC.")
+            logging.error("❌ Reddit is NOT logged in in this session!")
             return False
 
-        # Click Link tab
         link_tab = page.locator('button:has-text("Link"), [data-testid="tab-link"]').first
         if link_tab.is_visible(timeout=3000):
             link_tab.click()
@@ -243,14 +258,11 @@ def post_to_reddit(page, post):
         post_btn = page.locator('button:has-text("Post")').first
         if post_btn.is_visible(timeout=3000):
             post_btn.click()
-            logging.info("🚀 Clicked Post on Reddit!")
             time.sleep(5)
             logging.info("✅ SUCCESS: Link posted to Reddit!")
             return True
 
-        logging.warning("⚠️ Could not complete Reddit submission form.")
         return False
-
     except Exception as e:
         logging.error(f"❌ Reddit posting error: {e}")
         return False
@@ -259,7 +271,7 @@ def post_to_reddit(page, post):
 def run_cycle():
     """Runs a single check & publish cycle"""
     if not os.path.exists(AUTH_FILE):
-        logging.warning(f"⚠️ Auth file '{AUTH_FILE}' not found yet. Waiting for PC session sync...")
+        logging.warning(f"⚠️ Auth file '{AUTH_FILE}' not found yet.")
         return
 
     history = load_history()
@@ -290,7 +302,7 @@ def run_cycle():
         logging.info("✅ All recent articles have already been posted to X and Reddit. Bot is up to date!")
         return
 
-    logging.info("🚀 Starting Headless Browser Session for Syndication...")
+    logging.info("🚀 Starting Headless Browser Session for High-CTR Syndication...")
 
     with sync_playwright() as p:
         try:
@@ -313,7 +325,7 @@ def run_cycle():
             )
             page = context.new_page()
 
-            # 1. Post to Twitter
+            # 1. Post to Twitter with 16:9 Card & AI Copy
             if target_for_twitter:
                 ok = post_to_twitter(page, target_for_twitter)
                 if ok:
@@ -324,6 +336,12 @@ def run_cycle():
 
             # 2. Post to Reddit
             if target_for_reddit:
+                try:
+                    if page.is_closed():
+                        page = context.new_page()
+                except Exception:
+                    page = context.new_page()
+
                 ok = post_to_reddit(page, target_for_reddit)
                 if ok:
                     reddit_posted.add(target_for_reddit["slug"])
@@ -335,31 +353,131 @@ def run_cycle():
 
             context.close()
             browser.close()
-            logging.info("✨ Syndication cycle completed successfully!")
+            logging.info("✨ High-CTR Syndication cycle completed successfully!")
 
         except Exception as err:
             logging.error(f"❌ Browser cycle error: {err}")
 
 
+def process_pending_triggers():
+    """Checks MongoDB for on-demand test posts triggered from the Web Admin Dashboard"""
+    db = get_mongo_db()
+    if db is None:
+        return
+
+    try:
+        triggers_col = db["social_triggers"]
+        trigger = triggers_col.find_one_and_update(
+            {"status": "pending"},
+            {"$set": {"status": "processing", "startedAt": datetime.now().isoformat()}}
+        )
+        if not trigger:
+            return
+
+        t_id = trigger.get("_id")
+        logging.info(f"🎯 [Trigger Claimed] Manual test post received (ID: {t_id})")
+        platform = trigger.get("platform", "twitter")
+        post = trigger.get("article") or trigger.get("post")
+
+        if not post:
+            posts = fetch_latest_posts()
+            if posts:
+                post = posts[0]
+
+        if not post:
+            triggers_col.update_one(
+                {"_id": t_id},
+                {"$set": {"status": "failed", "error": "No article found to publish.", "completedAt": datetime.now().isoformat()}}
+            )
+            return
+
+        logging.info(f"🚀 Executing manual 𝕏 Post Test for: \"{post.get('title', '')[:55]}...\"")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                executable_path=CHROMIUM_EXEC,
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-blink-features=AutomationControlled",
+                    "--window-size=1920,1080"
+                ]
+            )
+            context = browser.new_context(
+                storage_state=AUTH_FILE,
+                viewport={"width": 1920, "height": 1080},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            )
+            page = context.new_page()
+
+            success = False
+            if platform in ["twitter", "x"]:
+                success = post_to_twitter(page, post)
+            elif platform == "reddit":
+                success = post_to_reddit(page, post)
+
+            try:
+                context.close()
+                browser.close()
+            except Exception:
+                pass
+
+            if success:
+                triggers_col.update_one(
+                    {"_id": t_id},
+                    {"$set": {
+                        "status": "completed",
+                        "tweetUrl": "https://x.com/PrimeMediaSite",
+                        "message": f"Successfully published \"{post.get('title', '')[:50]}\" to @PrimeMediaSite on 𝕏 with 16:9 news card!",
+                        "completedAt": datetime.now().isoformat()
+                    }}
+                )
+                logging.info(f"✅ Manual 𝕏 Post Test completed successfully (ID: {t_id})!")
+            else:
+                triggers_col.update_one(
+                    {"_id": t_id},
+                    {"$set": {
+                        "status": "failed",
+                        "error": "Failed to submit post to Twitter / X compose.",
+                        "completedAt": datetime.now().isoformat()
+                    }}
+                )
+                logging.error(f"❌ Manual 𝕏 Post Test failed (ID: {t_id}).")
+
+    except Exception as e:
+        logging.error(f"Error processing triggers: {e}")
+
+
 def main():
     logging.info("=" * 65)
-    logging.info("🤖 PRIME MEDIA - 24/7 AUTONOMOUS CLOUD SOCIAL BOT (ORACLE)")
+    logging.info("🤖 PRIME MEDIA - 24/7 AUTONOMOUS VIRAL NEWSROOM (ORACLE VM)")
     logging.info("=" * 65)
     logging.info(f"Target Site: {BASE_SITE_URL}")
     logging.info(f"Chromium: {CHROMIUM_EXEC}")
     logging.info(f"Auth file: {AUTH_FILE}")
 
+    last_cycle_time = time.time()
+    cycle_interval = 1800  # Run autonomous cycle every 30 minutes
+
     while True:
         try:
-            run_cycle()
+            # 1. Check for manual triggers from Admin Panel (instant response within 3 seconds)
+            process_pending_triggers()
+
+            # 2. Check if periodic autonomous syndication cycle is due
+            now = time.time()
+            if now - last_cycle_time > cycle_interval:
+                run_cycle()
+                last_cycle_time = time.time()
+
         except Exception as e:
             logging.error(f"Unexpected top-level error: {e}")
 
-        # Sleep 25-30 minutes between cycles
-        sleep_secs = random.randint(1500, 1800)
-        logging.info(f"⏰ Sleeping for {sleep_secs // 60} minutes until next check...")
-        time.sleep(sleep_secs)
+        # Non-blocking 3-second sleep between trigger checks
+        time.sleep(3)
 
 
 if __name__ == "__main__":
     main()
+

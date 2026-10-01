@@ -460,9 +460,15 @@
         <button id="triggerAutoBlogBtn" class="btn btn-primary">
           🚀 Auto-Generate & Publish Story Now
         </button>
+        <button id="triggerXPostTestBtn" class="btn" style="background: #000000; color: #FFFFFF; font-weight: 700; border: 1px solid #334155; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.25rem; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+          <span style="font-size: 1.15rem; font-weight: 900; line-height: 1;">𝕏</span> Post Test to X
+        </button>
       </div>
 
-      <div id="triggerStatus" style="font-weight: 600; color: #2563EB;">Ready. Click button above to auto-generate news story.</div>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div id="triggerStatus" style="font-weight: 600; color: #2563EB;">Ready. Click button above to auto-generate news story.</div>
+        <div id="xTestStatus" style="font-weight: 600; font-size: 0.9rem; display: none; padding: 0.6rem 0.9rem; border-radius: 6px; background: rgba(37, 99, 235, 0.08);"></div>
+      </div>
     </div>
 
     <!-- 🤖 Google Gemini AI 1,500-Word Story Writer Key Card -->
@@ -806,8 +812,8 @@
           <button type="button" id="saveCustomTwitterConfigBtn" class="btn btn-primary" style="background: #2563EB;">
             💾 Save Custom Bot Cookies
           </button>
-          <button type="button" id="testCustomTwitterPostBtn" class="btn" style="background: #059669; color: #FFF; font-weight: 600;">
-            🧪 Send Test Custom Tweet
+          <button type="button" id="testCustomTwitterPostBtn" class="btn" style="background: #000000; color: #FFF; font-weight: 700; border: 1px solid #334155; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 1.05rem; font-weight: 900;">𝕏</span> Post Test to X
           </button>
           <span id="customTwitterStatus" style="font-size: 0.85rem; font-weight: 700;"></span>
         </div>

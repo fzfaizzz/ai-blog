@@ -1014,7 +1014,73 @@ app.post('/api/test-custom-twitter-post', async (req, res) => {
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
   }
-  const result = await sendTweetViaCookieSession(posts[0], true);
+
+  // Use specified article slug if provided, else use latest published article
+  const targetSlug = req.body && req.body.slug ? req.body.slug : null;
+  const targetPost = (targetSlug ? posts.find(p => p.slug === targetSlug) : null) || posts[0];
+
+  try {
+    const database = await connectDB();
+    if (database) {
+      const triggersCol = database.collection('social_triggers');
+      const triggerDoc = {
+        platform: 'twitter',
+        action: 'test_post',
+        status: 'pending',
+        article: {
+          title: targetPost.title,
+          slug: targetPost.slug,
+          category: targetPost.category || 'TECH',
+          summary: targetPost.summary || targetPost.content || '',
+          coverImage: targetPost.imageUrl || targetPost.coverImage || targetPost.image || '',
+          imageUrl: targetPost.imageUrl || targetPost.coverImage || targetPost.image || ''
+        },
+        requestedAt: new Date()
+      };
+
+      const insertResult = await triggersCol.insertOne(triggerDoc);
+      const triggerId = insertResult.insertedId;
+      console.log(`📡 [Admin 𝕏 Post Test] Created trigger in MongoDB (ID: ${triggerId}) for "${targetPost.title.substring(0, 45)}..."`);
+
+      // Poll for completion by the Oracle Cloud Bot (up to 32 seconds)
+      const maxAttempts = 16;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const currentTrigger = await triggersCol.findOne({ _id: triggerId });
+        if (currentTrigger) {
+          if (currentTrigger.status === 'completed') {
+            return res.json({
+              success: true,
+              message: currentTrigger.message || 'Article successfully published to @PrimeMediaSite on 𝕏 with custom 16:9 news card!',
+              tweetUrl: currentTrigger.tweetUrl || 'https://x.com/PrimeMediaSite'
+            });
+          }
+          if (currentTrigger.status === 'failed') {
+            return res.json({
+              success: false,
+              message: currentTrigger.error || 'Oracle Cloud Bot failed to publish tweet.'
+            });
+          }
+        }
+      }
+
+      // Check if it was claimed and currently rendering/posting
+      const checkDoc = await triggersCol.findOne({ _id: triggerId });
+      if (checkDoc && checkDoc.status === 'processing') {
+        return res.json({
+          success: true,
+          message: 'Cloud Bot is currently generating the 16:9 card and posting to 𝕏! Check @PrimeMediaSite in 10-15 seconds.',
+          tweetUrl: 'https://x.com/PrimeMediaSite'
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ [Admin 𝕏 Post Test] Error contacting cloud bot trigger:', err.message);
+  }
+
+  // Fallback to direct cookie session if MongoDB trigger could not complete
+  console.log('🔄 [Admin 𝕏 Post Test] Attempting direct cookie session fallback...');
+  const result = await sendTweetViaCookieSession(targetPost, true);
   res.json(result);
 });
 

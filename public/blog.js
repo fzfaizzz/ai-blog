@@ -1798,33 +1798,63 @@ function initAdminPanel() {
     customTwitterConfigForm.addEventListener('submit', handleSaveCustomTwitterConfig);
   }
 
-  if (testCustomTwitterPostBtn) {
-    testCustomTwitterPostBtn.addEventListener('click', async () => {
-      if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Sending test tweet via Custom Bot...';
-      try {
-        const res = await fetch('/api/test-custom-twitter-post', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          if (customTwitterStatus) {
-            customTwitterStatus.style.color = '#059669';
-            customTwitterStatus.innerText = '✓ Test Tweet Sent via Custom Bot!';
-          }
-          alert(`✓ Test Tweet successfully posted via Custom Server Bot!\n${data.message}`);
-          logMessage('✓ Test Tweet sent via Custom Bot!');
-        } else {
-          if (customTwitterStatus) {
-            customTwitterStatus.style.color = '#DC2626';
-            customTwitterStatus.innerText = `❌ ${data.message}`;
-          }
-          alert(`❌ Custom Twitter Bot Test Failed: ${data.message}`);
+  const triggerXPostTestBtn = document.getElementById('triggerXPostTestBtn');
+  const xTestStatus = document.getElementById('xTestStatus');
+
+  async function executeXPostTest(sourceBtn, statusDisplay) {
+    if (sourceBtn) sourceBtn.disabled = true;
+    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
+    if (sourceBtn) {
+      sourceBtn.innerHTML = '⌛ <span style="font-size:0.85rem;">Posting to 𝕏...</span>';
+    }
+    if (statusDisplay) {
+      statusDisplay.style.display = 'block';
+      statusDisplay.style.color = '#2563EB';
+      statusDisplay.innerText = '⌛ Connecting to Cloud Bot, rendering 16:9 news card & publishing to @PrimeMediaSite on 𝕏...';
+    }
+
+    try {
+      const res = await fetch('/api/test-custom-twitter-post', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const liveUrl = data.tweetUrl || 'https://x.com/PrimeMediaSite';
+        if (statusDisplay) {
+          statusDisplay.style.color = '#059669';
+          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message || 'Article published to 𝕏!'} <a href="${liveUrl}" target="_blank" style="color: #0284C7; font-weight: 700; text-decoration: underline; margin-left: 0.5rem;">View on 𝕏 &rarr;</a>`;
         }
-      } catch (err) {
-        if (customTwitterStatus) {
-          customTwitterStatus.style.color = '#DC2626';
-          customTwitterStatus.innerText = `❌ Error: ${err.message}`;
+        if (customTwitterStatus && statusDisplay !== customTwitterStatus) {
+          customTwitterStatus.style.color = '#059669';
+          customTwitterStatus.innerText = '✓ Test Tweet Sent to 𝕏!';
         }
+        alert(`✅ 𝕏 Post Test Succeeded!\n\n${data.message || 'Article published to @PrimeMediaSite on X!'}\n\nView live on X: ${liveUrl}`);
+        logMessage('✓ Test Tweet sent to X!');
+      } else {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#DC2626';
+          statusDisplay.innerText = `❌ ${data.message || 'Posting failed'}`;
+        }
+        alert(`❌ 𝕏 Post Test Failed: ${data.message}`);
       }
-    });
+    } catch (err) {
+      if (statusDisplay) {
+        statusDisplay.style.color = '#DC2626';
+        statusDisplay.innerText = `❌ Error: ${err.message}`;
+      }
+      alert(`❌ Connection error: ${err.message}`);
+    } finally {
+      if (sourceBtn) {
+        sourceBtn.disabled = false;
+        sourceBtn.innerHTML = prevBtnHtml;
+      }
+    }
+  }
+
+  if (triggerXPostTestBtn) {
+    triggerXPostTestBtn.addEventListener('click', () => executeXPostTest(triggerXPostTestBtn, xTestStatus));
+  }
+
+  if (testCustomTwitterPostBtn) {
+    testCustomTwitterPostBtn.addEventListener('click', () => executeXPostTest(testCustomTwitterPostBtn, customTwitterStatus));
   }
 
   loadCustomTwitterConfig();

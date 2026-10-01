@@ -20,5 +20,23 @@ __pycache__/
 *service_account*.json
 service_account.json
 data/service_account.json
+social_auth.json
+*.png
+generated_cards/
+test_*.py
+apply_*.py
+capture_*.py
+clear_*.py
+complete_*.py
+debug_*.py
+diagnostic_*.py
+execute_*.py
+fix_*.py
+inspect_*.py
+run_*.py
+update_*.py
+upload_*.py
+verify_*.py
+auto_*.py
 
 
