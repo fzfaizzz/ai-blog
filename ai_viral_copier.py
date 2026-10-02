@@ -124,24 +124,75 @@ def generate_editorial_fallback(title, summary, category):
     }
 
 
-def format_full_viral_tweet(viral_data, article_url):
+def format_hook_tweet(viral_data):
     """
-    Formats the final tweet text:
-    - Alert Hook
-    - Rich Context Description (NO pin emojis)
-    - Clean CTA + Link
-    - Hashtags
-    Accurately accounts for Twitter's 23-char t.co URL shortening rule to keep
-    total weighted characters safely <= 260 (well within Twitter's 280-char limit).
+    Formats Post 1 (The Hook):
+    - Visual Hook & Curiosity context
+    - Strictly NO external link to avoid X's ~75% link suppression penalty
+    - Curiosity pointer to thread reply
+    - High-volume hashtags & cashtags
+    Maximizes 'For You' recommendation distribution score.
     """
     hook = viral_data.get("hook", "").strip()
-    # Support both 'description' and legacy 'bullets'
     desc = viral_data.get("description", "")
     if not desc and viral_data.get("bullets"):
         desc = " ".join([b.strip().lstrip('•-📌 ') for b in viral_data.get("bullets", [])[:2]])
     desc = desc.strip().lstrip("📌•- ")
 
-    # Clean hashtags
+    raw_tags = viral_data.get("hashtags", "").strip()
+    tag_list = []
+    for t in raw_tags.replace(",", " ").split():
+        t = t.strip()
+        if not t:
+            continue
+        if not t.startswith("#") and not t.startswith("$"):
+            t = f"#{t}"
+        tag_list.append(t)
+    if "#PrimeMedia" not in tag_list:
+        tag_list.append("#PrimeMedia")
+    hashtags = " ".join(tag_list[:3])
+
+    pointer = "🧵 Full investigation & metrics below 👇"
+
+    if len(hook) > 75:
+        hook = hook[:72] + "..."
+
+    fixed_len = len(hook) + 2 + len(pointer) + 2 + len(hashtags)
+    avail_desc = 250 - fixed_len
+
+    if len(desc) > avail_desc:
+        desc = desc[:max(0, avail_desc - 3)].rstrip() + "..."
+
+    if desc and len(desc) > 15:
+        return f"{hook}\n\n{desc}\n\n{pointer}\n\n{hashtags}"
+    else:
+        return f"{hook}\n\n{pointer}\n\n{hashtags}"
+
+
+def format_reply_tweet(title, article_url):
+    """
+    Formats Post 2 (Connected Thread Reply):
+    - Carries the clickable backlink to Prime Media
+    - Direct call to action and brand follow recommendation
+    """
+    return f"📖 Read the complete story & analysis on Prime Media:\n👉 {article_url}\n\nFollow @PrimeMediaSite for daily verified intel ⚡"
+
+
+def format_full_viral_tweet(viral_data, article_url):
+    """
+    Formats single tweet text (Fallback mode):
+    - Alert Hook
+    - Rich Context Description (NO pin emojis)
+    - Clean CTA + Link
+    - Hashtags
+    Accurately accounts for Twitter's 23-char t.co URL shortening rule.
+    """
+    hook = viral_data.get("hook", "").strip()
+    desc = viral_data.get("description", "")
+    if not desc and viral_data.get("bullets"):
+        desc = " ".join([b.strip().lstrip('•-📌 ') for b in viral_data.get("bullets", [])[:2]])
+    desc = desc.strip().lstrip("📌•- ")
+
     raw_tags = viral_data.get("hashtags", "").strip()
     tag_list = []
     for t in raw_tags.replace(",", " ").split():
@@ -157,13 +208,11 @@ def format_full_viral_tweet(viral_data, article_url):
 
     cta = "📖 Read Full Story 👇"
 
-    # Twitter counts any URL as 23 characters regardless of raw URL length
-    # Target maximum weighted length: 260 (Twitter limit is 280)
     if len(hook) > 75:
         hook = hook[:72] + "..."
 
     fixed_weight = len(hook) + 2 + len(cta) + 1 + 23 + 2 + len(hashtags)
-    avail_desc_weight = 260 - fixed_weight - 2  # -2 for \n\n before CTA
+    avail_desc_weight = 260 - fixed_weight - 2
 
     if len(desc) > avail_desc_weight:
         desc = desc[:max(0, avail_desc_weight - 3)].rstrip() + "..."
@@ -181,8 +230,8 @@ if __name__ == "__main__":
     test_url = "https://primemedia.site/post/the-silicon-shift-why-the-2026-gaming-laptop-market"
     test_summary = "Cloud hyperscalers are pouring over $80 billion into custom AI compute clusters to break legacy chip monopolies and disrupt enterprise data center economics."
     res = generate_viral_copy_with_llm(test_title, summary=test_summary, category="TECH NEWS")
-    formatted = format_full_viral_tweet(res, test_url)
-    print("=" * 60)
-    print(formatted)
-    print("=" * 60)
-    print(f"Total Length: {len(formatted)} chars")
+    print("=== THREAD POST 1 (MAIN HOOK - NO LINK) ===")
+    print(format_hook_tweet(res))
+    print("\n=== THREAD POST 2 (CONNECTED REPLY LINK) ===")
+    print(format_reply_tweet(test_title, test_url))
+

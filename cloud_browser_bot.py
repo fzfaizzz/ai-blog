@@ -19,7 +19,7 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 from news_card_generator import generate_news_card
-from ai_viral_copier import generate_viral_copy_with_llm, format_full_viral_tweet
+from ai_viral_copier import generate_viral_copy_with_llm, format_full_viral_tweet, format_hook_tweet, format_reply_tweet
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(BASE_DIR, "bot.log")
@@ -92,7 +92,7 @@ def fetch_latest_posts():
 
 
 def post_to_twitter(page, post):
-    """Generates 16:9 news card + viral copy and posts to X directly via Playwright"""
+    """Generates 16:9 news card + viral copy and posts to X using Thread Strategy (Zero Link Suppression)"""
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
@@ -106,8 +106,10 @@ def post_to_twitter(page, post):
         summary=post.get("summary") or post.get("content") or "",
         category=category
     )
-    tweet_text = format_full_viral_tweet(viral_data, url)
-    logging.info(f"📝 Viral Tweet Prepared:\n{tweet_text}\n")
+    hook_tweet = format_hook_tweet(viral_data)
+    reply_tweet = format_reply_tweet(title, url)
+    logging.info(f"📝 Post 1 (Hook - 0 Link):\n{hook_tweet}\n")
+    logging.info(f"📝 Post 2 (Connected Reply):\n{reply_tweet}\n")
 
     # 2. Dynamic 16:9 Branded News Card Generation
     card_path = None
@@ -131,7 +133,7 @@ def post_to_twitter(page, post):
             logging.error("❌ Twitter is NOT logged in in this session! Please sync cookies from PC.")
             return False
 
-        # 3. Attach 16:9 Branded Media Card
+        # 3. Attach 16:9 Branded Media Card to first tweet
         if card_path and os.path.exists(card_path):
             try:
                 logging.info(f"🖼️ Attaching 16:9 News Card ({card_path}) to tweet...")
@@ -143,40 +145,65 @@ def post_to_twitter(page, post):
             except Exception as me:
                 logging.warning(f"⚠️ Media attachment warning: {me}")
 
-        # 4. Fill Tweet Text
+        # 4. Fill Post 1 (Main Hook)
         input_selectors = [
             'div[data-testid="tweetTextarea_0"]',
             'div[role="textbox"][contenteditable="true"]',
             'div[aria-label="Post text"]'
         ]
-        tweet_box = None
+        tweet_box_0 = None
         for sel in input_selectors:
             try:
                 el = page.locator(sel).first
                 if el.is_visible(timeout=3000):
-                    tweet_box = el
+                    tweet_box_0 = el
                     break
             except Exception:
                 pass
 
-        if not tweet_box:
+        if not tweet_box_0:
             logging.error("❌ Failed to locate Twitter compose textarea.")
             return False
 
-        tweet_box.click()
+        tweet_box_0.click()
         time.sleep(0.5)
+        page.keyboard.type(hook_tweet, delay=10)
+        time.sleep(1.5)
 
-        # Fill text naturally
-        page.keyboard.type(tweet_text, delay=10)
-        time.sleep(2)
+        # 5. Attempt High-Reach Thread Creation (Add Post button)
+        thread_created = False
+        try:
+            add_btn = page.locator('button[data-testid="addButton"], button[aria-label="Add post"], button[aria-label="Add Tweet"]').first
+            if add_btn.is_visible(timeout=2500):
+                add_btn.click()
+                time.sleep(1.5)
+                tweet_box_1 = page.locator('div[data-testid="tweetTextarea_1"]').first
+                if tweet_box_1.is_visible(timeout=2500):
+                    tweet_box_1.click()
+                    time.sleep(0.5)
+                    page.keyboard.type(reply_tweet, delay=10)
+                    time.sleep(1)
+                    thread_created = True
+                    logging.info("🧵 Thread connection successful: Post 1 (Hook) + Post 2 (Direct Link) ready!")
+        except Exception as te:
+            logging.warning(f"⚠️ Thread creation skipped: {te}")
 
-        # 5. Submit via direct DOM click (bypasses transparent overlay interceptions)
-        logging.info("🚀 Submitting tweet via direct DOM click on tweetButton...")
+        # If thread could not be created, fallback to appending link in tweet 0
+        if not thread_created:
+            logging.info("ℹ️ Thread button not active, appending CTA + link directly...")
+            tweet_box_0.click()
+            time.sleep(0.5)
+            page.keyboard.press("End")
+            page.keyboard.type(f"\n\n📖 Read Full Story 👇\n{url}", delay=10)
+            time.sleep(1)
+
+        # 6. Submit via direct DOM click (handles both "Post" and "Post all")
+        logging.info("🚀 Submitting post via direct DOM click on tweetButton...")
         page.evaluate('() => document.querySelector("button[data-testid=\\"tweetButton\\"]")?.click()')
         time.sleep(6)
 
         if "compose" not in page.url:
-            logging.info("✅ SUCCESS: Viral Article & 16:9 Card published to Twitter / X!")
+            logging.info("✅ SUCCESS: Viral Post & 16:9 Card published to Twitter / X!")
             return True
 
         # Fallback Control+Enter
@@ -184,7 +211,7 @@ def post_to_twitter(page, post):
         time.sleep(4)
 
         if "compose" not in page.url:
-            logging.info("✅ SUCCESS: Article published to Twitter / X!")
+            logging.info("✅ SUCCESS: Post published to Twitter / X!")
             return True
 
         return False
@@ -195,7 +222,7 @@ def post_to_twitter(page, post):
 
 
 def post_to_reddit(page, post):
-    """Submits link directly to Reddit using authenticated session"""
+    """Submits link directly to Reddit using authenticated session and detected user/subreddit"""
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
@@ -205,11 +232,27 @@ def post_to_reddit(page, post):
         title = title[:277] + "..."
 
     try:
+        # Check classic interface first (faster and very reliable)
         page.goto("https://old.reddit.com/submit", wait_until="domcontentloaded", timeout=35000)
         time.sleep(3)
 
+        # Detect logged-in status
+        user_elem = page.locator('span.user a, .user a').first
+        username = None
+        if user_elem.count() > 0 and user_elem.is_visible():
+            username = (user_elem.inner_text() or "").strip()
+            logging.info(f"👤 Logged in as Reddit user: u/{username}")
+        else:
+            logging.warning("⚠️ Reddit classic indicates user is not logged in or cookie expired.")
+
+        # Determine target subreddit
+        target_sub = os.getenv("REDDIT_SUBREDDIT", "").strip()
+        if not target_sub and username:
+            target_sub = f"u_{username}"  # User profile feed on Reddit
+
+        # If old reddit submit form is available
         if page.locator('input[name="title"]').count() > 0:
-            logging.info("📝 Submitting via Reddit classic interface...")
+            logging.info(f"📝 Submitting via Reddit classic interface to '{target_sub or 'default'}'...")
             try:
                 url_tab = page.locator('a:has-text("link"), #url').first
                 if url_tab.is_visible(timeout=2000):
@@ -223,19 +266,26 @@ def post_to_reddit(page, post):
             page.fill('input[name="url"]', url)
             time.sleep(1)
 
+            # Subreddit input
+            if target_sub and page.locator('input[name="sr"]').count() > 0:
+                page.fill('input[name="sr"]', target_sub)
+                time.sleep(1)
+
             submit_btn = page.locator('button[name="submit"]').first
             if submit_btn.is_visible(timeout=3000):
                 submit_btn.click()
                 time.sleep(5)
-                logging.info("✅ SUCCESS: Link posted to Reddit!")
-                return True
+                if "submit" not in page.url:
+                    logging.info("✅ SUCCESS: Link posted to Reddit!")
+                    return True
 
         # Modern reddit fallback
-        page.goto("https://www.reddit.com/submit", wait_until="domcontentloaded", timeout=40000)
+        modern_url = f"https://www.reddit.com/user/{username}/submit" if username else "https://www.reddit.com/submit"
+        page.goto(modern_url, wait_until="domcontentloaded", timeout=40000)
         time.sleep(4)
 
         if "login" in page.url:
-            logging.error("❌ Reddit is NOT logged in in this session!")
+            logging.error("❌ Reddit is NOT logged in in this session! Please run LOGIN_REDDIT.bat")
             return False
 
         link_tab = page.locator('button:has-text("Link"), [data-testid="tab-link"]').first

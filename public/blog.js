@@ -1857,6 +1857,52 @@ function initAdminPanel() {
     testCustomTwitterPostBtn.addEventListener('click', () => executeXPostTest(testCustomTwitterPostBtn, customTwitterStatus));
   }
 
+  const triggerRedditPostTestBtn = document.getElementById('triggerRedditPostTestBtn');
+  const redditTestStatus = document.getElementById('redditTestStatus');
+
+  async function executeRedditPostTest(sourceBtn, statusDisplay) {
+    if (sourceBtn) sourceBtn.disabled = true;
+    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
+    if (sourceBtn) {
+      sourceBtn.innerHTML = '⏳ <span style="font-size:0.85rem;">Posting to Reddit...</span>';
+    }
+    if (statusDisplay) {
+      statusDisplay.style.display = 'block';
+      statusDisplay.style.color = '#FF4500';
+      statusDisplay.innerText = '🔴 Connecting to Cloud Bot & publishing article to Reddit...';
+    }
+
+    try {
+      const res = await fetch('/api/test-custom-reddit-post', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#15803D';
+          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message} <a href="https://www.reddit.com" target="_blank" style="color: #FF4500; font-weight: bold; margin-left: 6px;">View on Reddit ↗</a>`;
+        }
+      } else {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#DC2626';
+          statusDisplay.innerText = `❌ ${data.message || 'Failed to post to Reddit.'}`;
+        }
+      }
+    } catch (err) {
+      if (statusDisplay) {
+        statusDisplay.style.color = '#DC2626';
+        statusDisplay.innerText = `❌ Network Error: ${err.message}`;
+      }
+    } finally {
+      if (sourceBtn) {
+        sourceBtn.disabled = false;
+        sourceBtn.innerHTML = prevBtnHtml;
+      }
+    }
+  }
+
+  if (triggerRedditPostTestBtn) {
+    triggerRedditPostTestBtn.addEventListener('click', () => executeRedditPostTest(triggerRedditPostTestBtn, redditTestStatus));
+  }
+
   loadCustomTwitterConfig();
 
   // Reddit Subreddit Auto-Poster Admin Handlers

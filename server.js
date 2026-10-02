@@ -1107,6 +1107,80 @@ app.post('/api/test-reddit-post', async (req, res) => {
   res.json(result);
 });
 
+// 🔴 Test Post to Reddit via Oracle Cloud Headless Bot (No API keys needed)
+app.post('/api/test-custom-reddit-post', async (req, res) => {
+  const posts = getAllPosts();
+  if (!posts || posts.length === 0) {
+    return res.json({ success: false, message: 'No published articles found to test.' });
+  }
+
+  const targetSlug = req.body && req.body.slug ? req.body.slug : null;
+  const targetPost = (targetSlug ? posts.find(p => p.slug === targetSlug) : null) || posts[0];
+
+  try {
+    const database = await connectDB();
+    if (database) {
+      const triggersCol = database.collection('social_triggers');
+      const triggerDoc = {
+        platform: 'reddit',
+        action: 'test_post',
+        status: 'pending',
+        article: {
+          title: targetPost.title,
+          slug: targetPost.slug,
+          category: targetPost.category || 'TECH',
+          summary: targetPost.summary || targetPost.content || '',
+          coverImage: targetPost.imageUrl || targetPost.coverImage || targetPost.image || '',
+          imageUrl: targetPost.imageUrl || targetPost.coverImage || targetPost.image || ''
+        },
+        requestedAt: new Date()
+      };
+
+      const insertResult = await triggersCol.insertOne(triggerDoc);
+      const triggerId = insertResult.insertedId;
+      console.log(`📡 [Admin Reddit Post Test] Created trigger in MongoDB (ID: ${triggerId}) for "${targetPost.title.substring(0, 45)}..."`);
+
+      const maxAttempts = 16;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const currentTrigger = await triggersCol.findOne({ _id: triggerId });
+        if (currentTrigger) {
+          if (currentTrigger.status === 'completed') {
+            return res.json({
+              success: true,
+              message: currentTrigger.message || 'Article successfully submitted to Reddit!',
+              redditUrl: 'https://www.reddit.com'
+            });
+          }
+          if (currentTrigger.status === 'failed') {
+            return res.json({
+              success: false,
+              message: currentTrigger.error || 'Oracle Cloud Bot failed to post to Reddit. Ensure Reddit is logged in.'
+            });
+          }
+        }
+      }
+
+      const checkDoc = await triggersCol.findOne({ _id: triggerId });
+      if (checkDoc && checkDoc.status === 'processing') {
+        return res.json({
+          success: true,
+          message: 'Cloud Bot is currently posting to Reddit! Check Reddit in a few seconds.',
+          redditUrl: 'https://www.reddit.com'
+        });
+      }
+
+      return res.json({
+        success: false,
+        message: 'Timeout: Oracle Cloud Bot is taking longer than expected. Please verify Reddit login in LOGIN_REDDIT.bat.'
+      });
+    }
+  } catch (err) {
+    console.warn('⚠️ [Admin Reddit Post Test] Error:', err.message);
+    return res.json({ success: false, message: err.message });
+  }
+});
+
 // 🚀 1-Click Social Syndication: Broadcast any specific article immediately to Reddit & Twitter/X
 app.post('/api/social/broadcast-post', async (req, res) => {
   try {
