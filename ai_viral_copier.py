@@ -24,12 +24,14 @@ OLLAMA_ENDPOINT = os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/gener
 DEFAULT_MODEL = os.getenv("AI_MODEL", "qwen2.5:3b")
 
 
-SYSTEM_PROMPT = """You are the Chief Viral Editor of Prime Media News (@PrimeMediaSite), a global news wire covering AI, Cinema, Tech, and Economy.
-Transform the provided article details into a high-CTR, rich-context tweet package.
+SYSTEM_PROMPT = """You are the Lead Growth Editor of Prime Media News (@PrimeMediaSite), a global news wire covering AI, Cinema, Tech, and Economy.
+Transform the provided article details into a high-CTR, viral curiosity-hook tweet package designed to maximize clicks to the publication website.
+
 Rules:
-1. Hook: High-stakes headline starting with an alert emoji (e.g. 🚨 BREAKING: or ⚡ INTEL:). Max 65 characters.
-2. Description: 1 to 2 rich, contextual sentences (80 to 110 characters) explaining what is happening, the real-world impact, and why readers should care. DO NOT use pin emojis (📌) or bullet points. Write clean, compelling prose.
-3. Hashtags: 3 relevant hashtags starting with #.
+1. Hook: High-stakes headline starting with an alert emoji (e.g. 🚨 BREAKING:, ⚡ TECH INTEL:, 🎬 CINEMA ALERT:, or 💥 MARKET SHOCK:). Max 65 characters.
+2. Description: 1 to 2 gripping, curiosity-gap sentences (100 to 140 characters). Highlight the conflict, dramatic numbers, or surprise findings, leaving an intriguing open loop that compels readers to click through. DO NOT use pin emojis (📌) or bullet points. DO NOT repeat the headline.
+3. Hashtags: 3 targeted high-traffic hashtags starting with #.
+
 Return strictly valid JSON:
 {
   "hook": "string",
@@ -46,7 +48,7 @@ def generate_viral_copy_with_llm(title, summary="", category="TECH", trending_to
 Category: {category}
 Summary: {summary[:500] if summary else 'N/A'}{trend_context}
 
-Generate the JSON tweet package now:"""
+Generate the high-CTR viral JSON tweet package now:"""
 
     payload = {
         "model": DEFAULT_MODEL,
@@ -72,7 +74,7 @@ Generate the JSON tweet package now:"""
             match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if match:
                 parsed = json.loads(match.group(0))
-                if "hook" in parsed:
+                if "hook" in parsed and "description" in parsed:
                     return parsed
     except Exception as e:
         print(f"⚠️ Ollama LLM call failed or offline ({e}), using smart editorial fallback...")
@@ -81,34 +83,42 @@ Generate the JSON tweet package now:"""
 
 
 def generate_editorial_fallback(title, summary, category):
-    """Rich editorial fallback with full context and zero pin emojis"""
-    cat = category.lower()
-    if any(k in cat for k in ["movie", "cinema", "entertainment"]):
+    """Rich editorial fallback with full curiosity context and zero pin emojis"""
+    cat = (category or "").lower()
+    if any(k in cat for k in ["movie", "cinema", "entertainment", "film"]):
         hashtags = "#Movies #Cinema #PrimeMedia"
-        tag = "ENTERTAINMENT ALERT"
-    elif any(k in cat for k in ["ai", "tech", "gadget", "software"]):
+        tag = "CINEMA ALERT"
+        default_desc = "New box office milestones and contentious streaming contract terms shake up the entertainment industry rollout."
+    elif any(k in cat for k in ["ai", "tech", "gadget", "software", "silicon"]):
         hashtags = "#AI #TechNews #PrimeMedia"
         tag = "TECH INTEL"
-    elif any(k in cat for k in ["market", "economy", "stock", "finance"]):
+        default_desc = "Leaked benchmark figures and custom silicon investments trigger intense debate among enterprise architects."
+    elif any(k in cat for k in ["market", "economy", "stock", "finance", "business"]):
         hashtags = "#StockMarket #Economy #PrimeMedia"
         tag = "MARKET SHOCK"
+        default_desc = "Surging capital flows and regulatory policy shifts caught analysts off guard as sector valuations diverge."
     else:
         hashtags = "#BreakingNews #Trending #PrimeMedia"
         tag = "GLOBAL WIRE"
+        default_desc = "Key developments reveal unprecedented global consequences as eyewitness reports and internal data emerge."
 
-    # Build meaningful context description from summary or title
     desc = ""
-    if summary and len(summary) > 30:
+    if summary and len(summary) > 40:
         clean_sum = summary.strip().replace("\n", " ")
-        first_sentence = clean_sum.split(". ")[0].strip()
-        if len(first_sentence) > 100:
-            first_sentence = first_sentence[:97] + "..."
-        desc = first_sentence + ("." if not first_sentence.endswith(".") else "")
-    else:
-        desc = "Major developments unfold with sweeping industry implications as analysts reveal the hidden market fallout."
+        sentences = [s.strip() for s in clean_sum.split(". ") if len(s.strip()) > 10]
+        if sentences:
+            desc = sentences[0]
+            if len(desc) < 70 and len(sentences) > 1:
+                desc += ". " + sentences[1]
+            if len(desc) > 135:
+                desc = desc[:132].rstrip() + "..."
+            if not desc.endswith((".", "!", "?")):
+                desc += "."
+    if not desc:
+        desc = default_desc
 
     return {
-        "hook": f"🚨 {tag}: {title[:65]}",
+        "hook": f"🚨 {tag}: {title[:62]}",
         "description": desc,
         "hashtags": hashtags
     }

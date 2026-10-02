@@ -261,6 +261,8 @@ app.get('/post/:slug', async (req, res) => {
     <meta property="article:published_time" content="${post.publishedAt}">
     <meta property="article:author" content="${baseUrl}/author/${author.slug}">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@PrimeMediaSite">
+    <meta name="twitter:creator" content="@PrimeMediaSite">
     <meta name="twitter:title" content="${escapeHtml(post.title)}">
     <meta name="twitter:description" content="${escapeHtml(post.metaDescription)}">
     <meta name="twitter:image" content="${post.imageUrl}">
@@ -285,7 +287,8 @@ app.get('/post/:slug', async (req, res) => {
             "@type": "NewsMediaOrganization",
             "name": "Prime Media",
             "url": baseUrl,
-            "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo2.png` }
+            "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo2.png` },
+            "sameAs": ["https://x.com/PrimeMediaSite"]
           },
           "description": post.metaDescription,
           "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/post/${post.slug}` }
