@@ -222,97 +222,73 @@ def post_to_twitter(page, post):
 
 
 def post_to_reddit(page, post):
-    """Submits link directly to Reddit using authenticated session and detected user/subreddit"""
+    """Submits high-value discussion post to Reddit using modern Shreddit interface & stealth"""
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
-    logging.info(f"\n🔴 [Reddit Bot] Preparing to post: \"{title[:60]}...\"")
+    summary = post.get("summary") or post.get("content") or ""
+    if len(summary) > 400:
+        summary = summary[:397] + "..."
 
-    if len(title) > 280:
-        title = title[:277] + "..."
+    logging.info(f"\n🔴 [Reddit Bot] Preparing modern value post for: \"{title[:60]}...\"")
+
+    target_sub = os.getenv("REDDIT_SUBREDDIT", "test").strip()
+    submit_url = f"https://www.reddit.com/r/{target_sub}/submit/"
 
     try:
-        # Check classic interface first (faster and very reliable)
-        page.goto("https://old.reddit.com/submit", wait_until="domcontentloaded", timeout=35000)
+        page.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
+        logging.info(f"🌐 Navigating to {submit_url} ...")
+        page.goto(submit_url, wait_until="domcontentloaded", timeout=40000)
         time.sleep(3)
 
-        # Detect logged-in status
-        user_elem = page.locator('span.user a, .user a').first
-        username = None
-        if user_elem.count() > 0 and user_elem.is_visible():
-            username = (user_elem.inner_text() or "").strip()
-            logging.info(f"👤 Logged in as Reddit user: u/{username}")
-        else:
-            logging.warning("⚠️ Reddit classic indicates user is not logged in or cookie expired.")
-
-        # Determine target subreddit
-        target_sub = os.getenv("REDDIT_SUBREDDIT", "").strip()
-        if not target_sub and username:
-            target_sub = f"u_{username}"  # User profile feed on Reddit
-
-        # If old reddit submit form is available
-        if page.locator('input[name="title"]').count() > 0:
-            logging.info(f"📝 Submitting via Reddit classic interface to '{target_sub or 'default'}'...")
-            try:
-                url_tab = page.locator('a:has-text("link"), #url').first
-                if url_tab.is_visible(timeout=2000):
-                    url_tab.click()
-                    time.sleep(1)
-            except Exception:
-                pass
-
-            page.fill('input[name="title"]', title)
-            time.sleep(1)
-            page.fill('input[name="url"]', url)
-            time.sleep(1)
-
-            # Subreddit input
-            if target_sub and page.locator('input[name="sr"]').count() > 0:
-                page.fill('input[name="sr"]', target_sub)
-                time.sleep(1)
-
-            submit_btn = page.locator('button[name="submit"]').first
-            if submit_btn.is_visible(timeout=3000):
-                submit_btn.click()
-                time.sleep(5)
-                if "submit" not in page.url:
-                    logging.info("✅ SUCCESS: Link posted to Reddit!")
-                    return True
-
-        # Modern reddit fallback
-        modern_url = f"https://www.reddit.com/user/{username}/submit" if username else "https://www.reddit.com/submit"
-        page.goto(modern_url, wait_until="domcontentloaded", timeout=40000)
-        time.sleep(4)
-
         if "login" in page.url:
-            logging.error("❌ Reddit is NOT logged in in this session! Please run LOGIN_REDDIT.bat")
+            logging.error("❌ Reddit is NOT logged in in this session! Please sync cookies.")
             return False
 
-        link_tab = page.locator('button:has-text("Link"), [data-testid="tab-link"]').first
-        if link_tab.is_visible(timeout=3000):
-            link_tab.click()
-            time.sleep(1.5)
+        # 1. Fill Title
+        title_box = page.locator('post-composer-title textarea').first
+        if not title_box.is_visible(timeout=8000):
+            logging.error("❌ Could not locate Reddit title textarea.")
+            return False
 
-        title_box = page.locator('textarea[placeholder="Title"], input[placeholder="Title"], textarea[name="title"]').first
-        if title_box.is_visible(timeout=4000):
-            title_box.click()
-            page.keyboard.type(title, delay=15)
-            time.sleep(1)
+        title_box.click()
+        time.sleep(0.5)
+        page.keyboard.type(title, delay=10)
+        time.sleep(1)
 
-        url_box = page.locator('textarea[placeholder="Url"], input[placeholder="Url"], textarea[name="url"]').first
-        if url_box.is_visible(timeout=4000):
-            url_box.click()
-            page.keyboard.type(url, delay=10)
-            time.sleep(1.5)
+        # 2. Jump to Body (via Tab) and write value-first breakdown
+        page.keyboard.press("Tab")
+        time.sleep(0.5)
 
-        post_btn = page.locator('button:has-text("Post")').first
-        if post_btn.is_visible(timeout=3000):
-            post_btn.click()
-            time.sleep(5)
-            logging.info("✅ SUCCESS: Link posted to Reddit!")
+        body_text = (
+            f"⚡ Executive Summary:\n{summary}\n\n"
+            f"Key Insights & Analysis:\n"
+            f"- Autonomous AI deep-dive on current industry shifts\n"
+            f"- Technical specs and benchmark breakdown\n\n"
+            f"📖 Full interactive report & data:\n{url}"
+        )
+        page.keyboard.type(body_text, delay=10)
+        time.sleep(2)
+
+        # 3. Click Submit Button
+        submit_btn = page.locator('r-post-form-submit-button button').first
+        if submit_btn.is_visible(timeout=4000) and not submit_btn.is_disabled():
+            logging.info("🚀 Clicking Submit button on Reddit...")
+            submit_btn.click()
+            time.sleep(6)
+            logging.info(f"✅ SUCCESS: Post published to r/{target_sub}! Current URL: {page.url}")
             return True
+        else:
+            # Fallback DOM click
+            logging.info("ℹ️ Attempting fallback submit click...")
+            page.evaluate('() => document.querySelector("r-post-form-submit-button")?.shadowRoot?.querySelector("button")?.click() || document.querySelector("r-post-form-submit-button button")?.click()')
+            time.sleep(6)
+            if "submit" not in page.url:
+                logging.info(f"✅ SUCCESS: Post published to Reddit! Current URL: {page.url}")
+                return True
 
         return False
+
     except Exception as e:
         logging.error(f"❌ Reddit posting error: {e}")
         return False
@@ -374,6 +350,7 @@ def run_cycle():
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
             )
             page = context.new_page()
+            page.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
 
             # 1. Post to Twitter with 16:9 Card & AI Copy
             if target_for_twitter:
@@ -460,6 +437,7 @@ def process_pending_triggers():
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
             )
             page = context.new_page()
+            page.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
 
             success = False
             if platform in ["twitter", "x"]:
