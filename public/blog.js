@@ -585,12 +585,22 @@ async function loadSingleArticle() {
       if (document.getElementById('authorInitials')) {
         const el = document.getElementById('authorInitials');
         el.innerText = author.initials;
-        if (el.parentElement && el.parentElement.tagName === 'A') el.parentElement.href = `/author/${author.slug}`;
+        if (el.parentElement && el.parentElement.tagName === 'A') {
+          el.parentElement.href = `/author/${author.slug}`;
+        } else {
+          el.style.cursor = 'pointer';
+          el.onclick = () => window.location.href = `/author/${author.slug}`;
+        }
       }
       if (document.getElementById('bioAvatar')) {
         const el = document.getElementById('bioAvatar');
         el.innerText = author.initials;
-        if (el.parentElement && el.parentElement.tagName === 'A') el.parentElement.href = `/author/${author.slug}`;
+        if (el.parentElement && el.parentElement.tagName === 'A') {
+          el.parentElement.href = `/author/${author.slug}`;
+        } else {
+          el.style.cursor = 'pointer';
+          el.onclick = () => window.location.href = `/author/${author.slug}`;
+        }
       }
       if (document.getElementById('postAuthorName')) {
         document.getElementById('postAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">By ${author.name}</a>`;
@@ -689,7 +699,7 @@ async function loadRecommendedArticles(currentSlug, category) {
       if (bottomGrid) {
         const bottomPosts = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
         bottomGrid.innerHTML = bottomPosts.map(p => `
-          <div style="display: flex; gap: 0.85rem; align-items: center; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; transition: transform 0.2s, box-shadow 0.2s;">
+          <div class="recommended-card" style="display: flex; gap: 0.85rem; align-items: center; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; transition: transform 0.2s, box-shadow 0.2s;">
             <a href="/post/${p.slug}" style="flex-shrink: 0; display: block;">
               <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 95px; height: 70px; object-fit: cover; border-radius: 6px; display: block;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
             </a>
@@ -895,6 +905,8 @@ function initAdminPanel() {
       if (data.success && Array.isArray(data.posts)) {
         adminAllPosts = data.posts;
         if (badge) badge.innerText = `${adminAllPosts.length} Total Articles`;
+        const statArts = document.getElementById('statTotalArticles');
+        if (statArts) statArts.innerText = adminAllPosts.length;
         renderAdminArticlesList();
       }
     } catch (e) {
@@ -2086,8 +2098,6 @@ function initAdminPanel() {
     }
   }
 
-  loadSerperKeysAndCredits();
-  loadAnalytics();
 }
 
 function hashString(str) {

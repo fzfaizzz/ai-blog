@@ -730,7 +730,7 @@ body {
   .card {
     display: flex !important;
     flex-direction: row !important; /* Image on LEFT, Title on RIGHT */
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: flex-start !important;
     padding: 0.85rem 0 !important;
     border: none !important;
@@ -738,7 +738,8 @@ body {
     border-radius: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
-    gap: 0.85rem !important;
+    gap: 0.9rem !important;
+    height: auto !important;
   }
   .card:hover {
     transform: none !important;
@@ -929,20 +930,33 @@ body {
 
 /* 🌟 Layout Type 2: News Stream (Main Feed on Left + Ranked Most Read on Right) */
 .news-stream-container {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  align-items: flex-start;
-  margin-top: 1rem;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 2.25rem !important;
+  margin-top: 1.5rem !important;
+  width: 100% !important;
 }
 
 .news-stream-main {
-  min-width: 0;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 100% !important;
 }
 
 .news-stream-sidebar {
-  position: sticky;
-  top: 70px;
+  width: 350px !important;
+  min-width: 320px !important;
+  max-width: 360px !important;
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  top: 70px !important;
+}
+
+/* Prevent rogue auto-injected ad wrappers from displacing the sidebar */
+.news-stream-container > :not(.news-stream-main):not(.news-stream-sidebar) {
+  display: none !important;
 }
 
 /* 📈 Most Read Ranked Widget */
@@ -1069,14 +1083,17 @@ body {
 /* 📱 Responsive Grid Breakpoints */
 @media (max-width: 1024px) {
   .spotlight-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   .news-stream-container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    flex-direction: column !important;
+    gap: 2rem !important;
   }
   .news-stream-sidebar {
-    position: static;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    position: static !important;
   }
 }
 
@@ -1149,9 +1166,9 @@ body {
 /* Real Magazine Cards Grid */
 .posts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.75rem;
+  margin-bottom: 2.5rem;
 }
 
 .card {
@@ -1163,6 +1180,7 @@ body {
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .card:hover {
@@ -1900,8 +1918,8 @@ img {
 /* 4. Desktop / Laptop Grid (> 1024px) */
 @media (min-width: 1024px) {
   .posts-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 2rem;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.75rem !important;
   }
 }
 
@@ -1974,14 +1992,8 @@ img {
     padding: 0 1rem;
   }
 
-  /* Grid to Single Column on Mobile */
   .hero-magazine {
     grid-template-columns: 1fr !important;
-  }
-
-  .posts-grid {
-    grid-template-columns: 1fr !important;
-    gap: 1.5rem;
   }
 
   .sidebar {

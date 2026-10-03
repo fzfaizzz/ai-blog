@@ -6,12 +6,14 @@ After=network.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/social_bot
+Environment=HOME=/home/ubuntu
+Environment=USER=ubuntu
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/ubuntu/miniforge3/envs/ai/bin/python /home/ubuntu/social_bot/cloud_browser_bot.py
 Restart=always
 RestartSec=30
 StandardOutput=append:/home/ubuntu/social_bot/bot.log
 StandardError=append:/home/ubuntu/social_bot/bot.log
-Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target

@@ -76,7 +76,7 @@ export const AUTHOR_LIST = Object.values(AUTHORS);
 
 export function getAuthorBySlug(slug) {
   if (!slug) return null;
-  const normalized = slug.toLowerCase().trim();
+  const normalized = slug.toLowerCase().replace(/\.html$/i, '').trim();
   return AUTHORS[normalized] || null;
 }
 

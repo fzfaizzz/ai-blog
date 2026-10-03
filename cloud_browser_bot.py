@@ -92,7 +92,7 @@ def fetch_latest_posts():
 
 
 def post_to_twitter(page, post):
-    """Generates 16:9 news card + viral copy and posts to X using Thread Strategy (Zero Link Suppression)"""
+    """Generates 16:9 news card + viral copy and posts to X with 100% media confirmation"""
     title = (post.get("title") or "").strip()
     slug = post.get("slug")
     url = f"{BASE_SITE_URL}/post/{slug}"
@@ -106,10 +106,8 @@ def post_to_twitter(page, post):
         summary=post.get("summary") or post.get("content") or "",
         category=category
     )
-    hook_tweet = format_hook_tweet(viral_data)
-    reply_tweet = format_reply_tweet(title, url)
-    logging.info(f"📝 Post 1 (Hook - 0 Link):\n{hook_tweet}\n")
-    logging.info(f"📝 Post 2 (Connected Reply):\n{reply_tweet}\n")
+    tweet_text = format_full_viral_tweet(viral_data, url)
+    logging.info(f"📝 Full Viral Tweet ({len(tweet_text)} chars):\n{tweet_text}\n")
 
     # 2. Dynamic 16:9 Branded News Card Generation
     card_path = None
@@ -133,7 +131,14 @@ def post_to_twitter(page, post):
             logging.error("❌ Twitter is NOT logged in in this session! Please sync cookies from PC.")
             return False
 
-        # 3. Attach 16:9 Branded Media Card to first tweet
+        # Dismiss cookie banner immediately
+        try:
+            page.locator('//span[text()="Accept all cookies" or text()="Refuse non-essential cookies"]').first.click(timeout=3000)
+            logging.info("Cookie banner dismissed.")
+        except Exception:
+            pass
+
+        # 3. Attach 16:9 Branded Media Card
         if card_path and os.path.exists(card_path):
             try:
                 logging.info(f"🖼️ Attaching 16:9 News Card ({card_path}) to tweet...")
@@ -141,11 +146,26 @@ def post_to_twitter(page, post):
                 if file_input.count() > 0:
                     file_input.set_input_files(card_path)
                     logging.info("✅ 16:9 News Card attached to compose window!")
-                    time.sleep(3)
+
+                    # Wait for media upload progressbar to detach
+                    logging.info("⏳ Waiting for media upload spinner to detach...")
+                    try:
+                        page.wait_for_selector('div[role="progressbar"]', state="detached", timeout=25000)
+                        logging.info("✅ Media spinner detached! Upload complete.")
+                    except Exception:
+                        logging.warning("⚠️ Spinner wait timed out, continuing...")
+                        time.sleep(4)
+
+                    # Verify attachment preview is present
+                    try:
+                        page.wait_for_selector('button[aria-label="Remove media"], div[data-testid="attachments"]', timeout=8000)
+                        logging.info("✅ Media attachment preview confirmed in compose window!")
+                    except Exception:
+                        pass
             except Exception as me:
                 logging.warning(f"⚠️ Media attachment warning: {me}")
 
-        # 4. Fill Post 1 (Main Hook)
+        # 4. Fill Post Content (Hook + Curiosity Context + CTA Link + Hashtags)
         input_selectors = [
             'div[data-testid="tweetTextarea_0"]',
             'div[role="textbox"][contenteditable="true"]',
@@ -155,7 +175,7 @@ def post_to_twitter(page, post):
         for sel in input_selectors:
             try:
                 el = page.locator(sel).first
-                if el.is_visible(timeout=3000):
+                if el.is_visible(timeout=4000):
                     tweet_box_0 = el
                     break
             except Exception:
@@ -165,53 +185,73 @@ def post_to_twitter(page, post):
             logging.error("❌ Failed to locate Twitter compose textarea.")
             return False
 
-        tweet_box_0.click()
-        time.sleep(0.5)
-        page.keyboard.type(hook_tweet, delay=10)
-        time.sleep(1.5)
-
-        # 5. Attempt High-Reach Thread Creation (Add Post button)
-        thread_created = False
+        # Dismiss any overlapping tooltips or backdrops
         try:
-            add_btn = page.locator('button[data-testid="addButton"], button[aria-label="Add post"], button[aria-label="Add Tweet"]').first
-            if add_btn.is_visible(timeout=2500):
-                add_btn.click()
-                time.sleep(1.5)
-                tweet_box_1 = page.locator('div[data-testid="tweetTextarea_1"]').first
-                if tweet_box_1.is_visible(timeout=2500):
-                    tweet_box_1.click()
-                    time.sleep(0.5)
-                    page.keyboard.type(reply_tweet, delay=10)
-                    time.sleep(1)
-                    thread_created = True
-                    logging.info("🧵 Thread connection successful: Post 1 (Hook) + Post 2 (Direct Link) ready!")
-        except Exception as te:
-            logging.warning(f"⚠️ Thread creation skipped: {te}")
+            page.evaluate('''() => {
+                document.querySelectorAll('div[data-testid="sheetDialog"], div[role="dialog"] button[aria-label="Close"]').forEach(el => el.click?.());
+            }''')
+        except Exception:
+            pass
 
-        # If thread could not be created, fallback to appending link in tweet 0
-        if not thread_created:
-            logging.info("ℹ️ Thread button not active, appending CTA + link directly...")
-            tweet_box_0.click()
-            time.sleep(0.5)
-            page.keyboard.press("End")
-            page.keyboard.type(f"\n\n📖 Read Full Story 👇\n{url}", delay=10)
-            time.sleep(1)
+        try:
+            tweet_box_0.click(force=True, timeout=5000)
+        except Exception:
+            page.focus('div[data-testid="tweetTextarea_0"]')
 
-        # 6. Submit via direct DOM click (handles both "Post" and "Post all")
-        logging.info("🚀 Submitting post via direct DOM click on tweetButton...")
-        page.evaluate('() => document.querySelector("button[data-testid=\\"tweetButton\\"]")?.click()')
-        time.sleep(6)
+        time.sleep(0.5)
+        # Type clean viral tweet text (strictly bounded to fit under 280 chars)
+        page.keyboard.type(tweet_text, delay=8)
+        time.sleep(2)
 
-        if "compose" not in page.url:
-            logging.info("✅ SUCCESS: Viral Post & 16:9 Card published to Twitter / X!")
-            return True
+        # 5. Submit via Post button
+        logging.info("🚀 Submitting post to Twitter / X...")
+        post_btn = page.locator('button[data-testid="tweetButton"]').first
+        try:
+            page.wait_for_selector('button[data-testid="tweetButton"]:not([disabled])', timeout=15000)
+            logging.info("✅ Post button is enabled and ready to click!")
+        except Exception:
+            logging.warning("⚠️ Post button wait timed out, attempting force click...")
 
-        # Fallback Control+Enter
-        page.keyboard.press("Control+Enter")
+        # Save screenshot before click for proof
+        try:
+            page.screenshot(path=os.path.join(BASE_DIR, "before_tweet_click.png"))
+        except Exception:
+            pass
+
+        post_btn.click(force=True)
         time.sleep(4)
 
-        if "compose" not in page.url:
-            logging.info("✅ SUCCESS: Post published to Twitter / X!")
+        # Fallback Control+Enter
+        if "compose" in page.url:
+            try:
+                tweet_box_0.focus()
+                page.keyboard.press("Control+Enter")
+                time.sleep(4)
+            except Exception:
+                pass
+
+        # Dismiss "Unlock more on X" or promotional dialogs
+        try:
+            page.evaluate('''() => {
+                document.querySelectorAll('button').forEach(b => {
+                    const txt = (b.innerText || '').trim();
+                    if (['Got it', 'Dismiss', 'Close'].includes(txt)) b.click();
+                });
+            }''')
+        except Exception:
+            pass
+
+        time.sleep(4)
+
+        # Save screenshot after click for proof
+        try:
+            page.screenshot(path=os.path.join(BASE_DIR, "after_tweet_click.png"))
+        except Exception:
+            pass
+
+        content = page.content()
+        if "Your post was sent" in content or "compose" not in page.url:
+            logging.info("✅ SUCCESS: 16:9 Branded Viral Post published to Twitter / X!")
             return True
 
         return False
@@ -221,81 +261,8 @@ def post_to_twitter(page, post):
         return False
 
 
-def post_to_reddit(page, post):
-    """Submits high-value discussion post to Reddit using modern Shreddit interface & stealth"""
-    title = (post.get("title") or "").strip()
-    slug = post.get("slug")
-    url = f"{BASE_SITE_URL}/post/{slug}"
-    summary = post.get("summary") or post.get("content") or ""
-    if len(summary) > 400:
-        summary = summary[:397] + "..."
-
-    logging.info(f"\n🔴 [Reddit Bot] Preparing modern value post for: \"{title[:60]}...\"")
-
-    target_sub = os.getenv("REDDIT_SUBREDDIT", "test").strip()
-    submit_url = f"https://www.reddit.com/r/{target_sub}/submit/"
-
-    try:
-        page.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
-        logging.info(f"🌐 Navigating to {submit_url} ...")
-        page.goto(submit_url, wait_until="domcontentloaded", timeout=40000)
-        time.sleep(3)
-
-        if "login" in page.url:
-            logging.error("❌ Reddit is NOT logged in in this session! Please sync cookies.")
-            return False
-
-        # 1. Fill Title
-        title_box = page.locator('post-composer-title textarea').first
-        if not title_box.is_visible(timeout=8000):
-            logging.error("❌ Could not locate Reddit title textarea.")
-            return False
-
-        title_box.click()
-        time.sleep(0.5)
-        page.keyboard.type(title, delay=10)
-        time.sleep(1)
-
-        # 2. Jump to Body (via Tab) and write value-first breakdown
-        page.keyboard.press("Tab")
-        time.sleep(0.5)
-
-        body_text = (
-            f"⚡ Executive Summary:\n{summary}\n\n"
-            f"Key Insights & Analysis:\n"
-            f"- Autonomous AI deep-dive on current industry shifts\n"
-            f"- Technical specs and benchmark breakdown\n\n"
-            f"📖 Full interactive report & data:\n{url}"
-        )
-        page.keyboard.type(body_text, delay=10)
-        time.sleep(2)
-
-        # 3. Click Submit Button
-        submit_btn = page.locator('r-post-form-submit-button button').first
-        if submit_btn.is_visible(timeout=4000) and not submit_btn.is_disabled():
-            logging.info("🚀 Clicking Submit button on Reddit...")
-            submit_btn.click()
-            time.sleep(6)
-            logging.info(f"✅ SUCCESS: Post published to r/{target_sub}! Current URL: {page.url}")
-            return True
-        else:
-            # Fallback DOM click
-            logging.info("ℹ️ Attempting fallback submit click...")
-            page.evaluate('() => document.querySelector("r-post-form-submit-button")?.shadowRoot?.querySelector("button")?.click() || document.querySelector("r-post-form-submit-button button")?.click()')
-            time.sleep(6)
-            if "submit" not in page.url:
-                logging.info(f"✅ SUCCESS: Post published to Reddit! Current URL: {page.url}")
-                return True
-
-        return False
-
-    except Exception as e:
-        logging.error(f"❌ Reddit posting error: {e}")
-        return False
-
-
 def run_cycle():
-    """Runs a single check & publish cycle"""
+    """Runs a single check & publish cycle focused 100% on X (Twitter)"""
     if not os.path.exists(AUTH_FILE):
         logging.warning(f"⚠️ Auth file '{AUTH_FILE}' not found yet.")
         return
@@ -308,27 +275,19 @@ def run_cycle():
         return
 
     twitter_posted = set(history.get("twitter_posted", []))
-    reddit_posted = set(history.get("reddit_posted", []))
 
     target_for_twitter = None
-    target_for_reddit = None
-
     for p in posts:
         slug = p.get("slug")
-        if not slug:
-            continue
-        if not target_for_twitter and slug not in twitter_posted:
+        if slug and slug not in twitter_posted:
             target_for_twitter = p
-        if not target_for_reddit and slug not in reddit_posted:
-            target_for_reddit = p
-        if target_for_twitter and target_for_reddit:
             break
 
-    if not target_for_twitter and not target_for_reddit:
-        logging.info("✅ All recent articles have already been posted to X and Reddit. Bot is up to date!")
+    if not target_for_twitter:
+        logging.info("✅ All recent articles have already been posted to X. Bot is up to date!")
         return
 
-    logging.info("🚀 Starting Headless Browser Session for High-CTR Syndication...")
+    logging.info("🚀 Starting Headless Browser Session for High-CTR 𝕏 Syndication...")
 
     with sync_playwright() as p:
         try:
@@ -352,35 +311,17 @@ def run_cycle():
             page = context.new_page()
             page.add_init_script("delete Object.getPrototypeOf(navigator).webdriver;")
 
-            # 1. Post to Twitter with 16:9 Card & AI Copy
-            if target_for_twitter:
-                ok = post_to_twitter(page, target_for_twitter)
-                if ok:
-                    twitter_posted.add(target_for_twitter["slug"])
-                    history["twitter_posted"] = list(twitter_posted)
-                    save_history(history)
-                time.sleep(random.uniform(10.0, 18.0))
-
-            # 2. Post to Reddit
-            if target_for_reddit:
-                try:
-                    if page.is_closed():
-                        page = context.new_page()
-                except Exception:
-                    page = context.new_page()
-
-                ok = post_to_reddit(page, target_for_reddit)
-                if ok:
-                    reddit_posted.add(target_for_reddit["slug"])
-                    history["reddit_posted"] = list(reddit_posted)
-                    save_history(history)
-
-            history["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            save_history(history)
+            # Post to Twitter with 16:9 Card & AI Copy
+            ok = post_to_twitter(page, target_for_twitter)
+            if ok:
+                twitter_posted.add(target_for_twitter["slug"])
+                history["twitter_posted"] = list(twitter_posted)
+                history["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                save_history(history)
 
             context.close()
             browser.close()
-            logging.info("✨ High-CTR Syndication cycle completed successfully!")
+            logging.info("✨ 𝕏 Syndication cycle completed successfully!")
 
         except Exception as err:
             logging.error(f"❌ Browser cycle error: {err}")
@@ -443,7 +384,8 @@ def process_pending_triggers():
             if platform in ["twitter", "x"]:
                 success = post_to_twitter(page, post)
             elif platform == "reddit":
-                success = post_to_reddit(page, post)
+                logging.warning("⚠️ Reddit automated posting has been disabled per user policy.")
+                success = False
 
             try:
                 context.close()
@@ -485,8 +427,8 @@ def main():
     logging.info(f"Chromium: {CHROMIUM_EXEC}")
     logging.info(f"Auth file: {AUTH_FILE}")
 
-    last_cycle_time = time.time()
-    cycle_interval = 1800  # Run autonomous cycle every 30 minutes
+    last_cycle_time = time.time()  # Start timing from now, next cycle in 1 hour
+    cycle_interval = 3600  # Check every 1 hour (3600 seconds)
 
     while True:
         try:

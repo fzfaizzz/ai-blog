@@ -3,7 +3,7 @@ Prime Media - 1-Click Reddit Login & Oracle Cloud Sync
 ======================================================
 1. Opens Google Chrome with existing social_auth.json (preserving X / Twitter login).
 2. Directs you to https://www.reddit.com/login.
-3. Automatically detects when you have successfully logged in.
+3. Automatically detects when you have successfully logged in OR click the on-screen button.
 4. Saves combined credentials (Twitter + Reddit) to social_auth.json.
 5. Uploads directly to Oracle Cloud VM (129.159.201.219) and restarts the 24/7 service!
 """
@@ -13,9 +13,14 @@ import sys
 import json
 import time
 import subprocess
+import threading
 import tkinter as tk
-from tkinter import messagebox
 from playwright.sync_api import sync_playwright
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", line_buffering=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUTH_PATH = os.path.join(BASE_DIR, "social_auth.json")
@@ -23,28 +28,98 @@ KEY_PATH = os.path.expanduser("~/.ssh/oracle_ai_server.key")
 ORACLE_HOST = "ubuntu@129.159.201.219"
 REMOTE_DIR = "/home/ubuntu/social_bot"
 
+stop_flag = threading.Event()
+login_confirmed = threading.Event()
+
 def get_logged_in_reddit_user(context):
-    """Checks cookies and page to see if a real Reddit user session exists"""
-    cookies = context.cookies(["https://www.reddit.com", "https://old.reddit.com"])
-    has_session = False
-    for c in cookies:
-        if c.get("name") in ["reddit_session", "token_v2"]:
-            # Check if token_v2 belongs to a logged-in user rather than guest
+    """Checks cookies to see if a real Reddit user session exists"""
+    try:
+        cookies = context.cookies(["https://www.reddit.com", "https://old.reddit.com"])
+        for c in cookies:
             if c.get("name") == "reddit_session":
-                has_session = True
-            elif c.get("name") == "token_v2":
+                return True
+            if c.get("name") == "token_v2":
+                import base64
+                parts = c.get("value", "").split(".")
+                if len(parts) > 1:
+                    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+                    data = json.loads(base64.b64decode(payload))
+                    if data.get("sub") and data.get("sub") != "loid":
+                        return True
+    except Exception:
+        pass
+    return False
+
+def show_floating_helper():
+    """Small floating window that allows the user to click when done"""
+    try:
+        root = tk.Tk()
+        root.title("Prime Media - Reddit Login")
+        root.geometry("420x220+50+50")
+        root.attributes("-topmost", True)
+        root.configure(bg="#0F172A")
+
+        def on_confirm():
+            login_confirmed.set()
+            root.destroy()
+
+        def on_cancel():
+            stop_flag.set()
+            root.destroy()
+
+        title_lbl = tk.Label(
+            root,
+            text="🔴 Reddit Login Helper",
+            font=("Segoe UI", 13, "bold"),
+            fg="#FF4500",
+            bg="#0F172A"
+        )
+        title_lbl.pack(pady=(14, 6))
+
+        desc = (
+            "1. Chrome window me apna Reddit account login karein.\n"
+            "2. Login hone ke baad neeche diye button par click karein\n"
+            "   (ya script automatic bhi detect kar lega)!"
+        )
+        desc_lbl = tk.Label(
+            root,
+            text=desc,
+            font=("Segoe UI", 9),
+            fg="#CBD5E1",
+            bg="#0F172A",
+            justify="left"
+        )
+        desc_lbl.pack(padx=20, pady=4)
+
+        btn = tk.Button(
+            root,
+            text="✅ Main Login Ho Gaya - Save & Sync!",
+            font=("Segoe UI", 10, "bold"),
+            bg="#FF4500",
+            fg="#FFFFFF",
+            padx=12,
+            pady=6,
+            relief="flat",
+            cursor="hand2",
+            command=on_confirm
+        )
+        btn.pack(pady=12)
+
+        # Check in a loop if auto-detection completed
+        def check_auto():
+            if login_confirmed.is_set() or stop_flag.is_set():
                 try:
-                    import base64
-                    parts = c.get("value", "").split(".")
-                    if len(parts) > 1:
-                        payload = parts[1] + "=" * (-len(parts[1]) % 4)
-                        data = json.loads(base64.b64decode(payload))
-                        # If sub is not loid and not None, it's a real user ID
-                        if data.get("sub") and data.get("sub") != "loid":
-                            has_session = True
+                    root.destroy()
                 except Exception:
                     pass
-    return has_session
+            else:
+                root.after(1000, check_auto)
+
+        root.after(1000, check_auto)
+        root.protocol("WM_DELETE_WINDOW", on_cancel)
+        root.mainloop()
+    except Exception as e:
+        print(f"Tkinter notice: {e}")
 
 def upload_and_restart():
     """Uploads social_auth.json to Oracle Cloud and restarts service"""
@@ -65,7 +140,13 @@ def upload_and_restart():
         ORACLE_HOST,
         "sudo systemctl restart social_bot && sudo systemctl status social_bot --no-pager -n 5"
     ]
-    res = subprocess.run(restart_cmd, capture_output=True, text=True)
+    res = subprocess.run(
+        restart_cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
     print(res.stdout)
     print("🎉 Bot restarted on Oracle Cloud with both 𝕏 and Reddit active!")
 
@@ -81,6 +162,10 @@ def main():
     print("🌐 Launching Google Chrome for Reddit login...")
     print("👉 Please log into your Reddit account in the browser window.")
 
+    # Start floating UI in separate thread
+    ui_thread = threading.Thread(target=show_floating_helper, daemon=True)
+    ui_thread.start()
+
     with sync_playwright() as p:
         browser = p.chromium.launch(
             channel="chrome",
@@ -88,7 +173,6 @@ def main():
             args=["--disable-blink-features=AutomationControlled", "--start-maximized"]
         )
 
-        # Load existing state if available to preserve Twitter
         if os.path.exists(AUTH_PATH):
             print(f"📂 Loading existing credentials from {AUTH_PATH} (Twitter session preserved)...")
             context = browser.new_context(
@@ -103,38 +187,37 @@ def main():
         page.goto("https://www.reddit.com/login", wait_until="domcontentloaded")
 
         print("\n⏳ Waiting for Reddit login...")
-        print("💡 TIP: You can log in with your Reddit username/password or Google.")
-        print("💡 The script will automatically detect when login completes!\n")
+        print("💡 TIP: Enter your username/password or click 'Continue with Google'.")
 
-        # Auto-detection loop
-        logged_in = False
-        start_time = time.time()
-        timeout = 300  # 5 minutes timeout
-
-        while time.time() - start_time < timeout:
+        # Auto-detection loop (runs until login confirmed, stop flag, or page closed)
+        while not login_confirmed.is_set() and not stop_flag.is_set():
             time.sleep(2)
-            if get_logged_in_reddit_user(context):
-                logged_in = True
-                print("\n🎯 REDDIT LOGIN DETECTED SUCCESSFULLY!")
-                break
-            # Also check if page redirected to reddit home/feed and not on login page
-            current_url = page.url
-            if "reddit.com" in current_url and "login" not in current_url and "register" not in current_url:
-                # Give 3 seconds to finalize cookies
-                time.sleep(3)
-                if get_logged_in_reddit_user(context):
-                    logged_in = True
-                    print("\n🎯 REDDIT LOGIN DETECTED VIA REDIRECT!")
+            try:
+                if page.is_closed():
                     break
+            except Exception:
+                break
 
-        if not logged_in:
-            print("⚠️ Timeout or login not detected. Saving whatever session was captured...")
+            if get_logged_in_reddit_user(context):
+                login_confirmed.set()
+                print("\n🎯 REDDIT LOGIN DETECTED AUTOMATICALLY!")
+                break
 
-        time.sleep(2)
+            try:
+                current_url = page.url
+                if "reddit.com" in current_url and "login" not in current_url and "register" not in current_url:
+                    time.sleep(3)
+                    if get_logged_in_reddit_user(context):
+                        login_confirmed.set()
+                        print("\n🎯 REDDIT LOGIN DETECTED VIA REDIRECT!")
+                        break
+            except Exception:
+                pass
+
+        time.sleep(1)
         print("💾 Saving combined session (Twitter + Reddit) to social_auth.json...")
         context.storage_state(path=AUTH_PATH)
         print(f"✅ Session saved locally to: {AUTH_PATH}")
-
         browser.close()
 
     # Upload to Oracle VM

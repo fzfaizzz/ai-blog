@@ -82,6 +82,7 @@ function findBestMatchingPost(requestedSlug, allPosts) {
   ]);
   const queryWords = requestedSlug
     .toLowerCase()
+    .replace(/\.html$/i, '')
     .split(/[^a-z0-9]+/)
     .filter(w => w.length > 2 && !stopWords.has(w));
 
