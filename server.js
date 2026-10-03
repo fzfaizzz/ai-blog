@@ -174,7 +174,11 @@ app.get('/', (req, res) => {
           </div>
         `;
       }).join('');
-      html = html.replace(/<div id="spotlightGrid" class="spotlight-grid">[\s\S]*?<\/div>/i, `<div id="spotlightGrid" class="spotlight-grid">${spotlightHtml}</div>`);
+      if (html.includes('<!-- SPOTLIGHT_PLACEHOLDER -->')) {
+        html = html.replace('<!-- SPOTLIGHT_PLACEHOLDER -->', spotlightHtml);
+      } else {
+        html = html.replace(/<div id="spotlightGrid" class="spotlight-grid">[\s\S]*?<\/div>/i, `<div id="spotlightGrid" class="spotlight-grid">${spotlightHtml}</div>`);
+      }
 
       // 12 News Stream Cards
       const streamItems = posts.slice(8, 20);
@@ -200,7 +204,11 @@ app.get('/', (req, res) => {
           </div>
         `;
       }).join('');
-      html = html.replace(/<div id="postsGrid" class="posts-grid">[\s\S]*?<\/div>/i, `<div id="postsGrid" class="posts-grid">${streamHtml}</div>`);
+      if (html.includes('<!-- POSTS_STREAM_PLACEHOLDER -->')) {
+        html = html.replace('<!-- POSTS_STREAM_PLACEHOLDER -->', streamHtml);
+      } else {
+        html = html.replace(/<div id="postsGrid" class="posts-grid">[\s\S]*?<\/div>/i, `<div id="postsGrid" class="posts-grid">${streamHtml}</div>`);
+      }
 
       // Top 5 Most Read
       const rankedItems = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
@@ -210,7 +218,11 @@ app.get('/', (req, res) => {
           <h5><a href="/post/${escapeHtml(item.slug)}">${escapeHtml(item.title)}</a></h5>
         </div>
       `).join('');
-      html = html.replace(/<div id="mostReadList" class="most-read-list">[\s\S]*?<\/div>/i, `<div id="mostReadList" class="most-read-list">${mostReadHtml}</div>`);
+      if (html.includes('<!-- MOST_READ_PLACEHOLDER -->')) {
+        html = html.replace('<!-- MOST_READ_PLACEHOLDER -->', mostReadHtml);
+      } else {
+        html = html.replace(/<div id="mostReadList" class="most-read-list">[\s\S]*?<\/div>/i, `<div id="mostReadList" class="most-read-list">${mostReadHtml}</div>`);
+      }
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
