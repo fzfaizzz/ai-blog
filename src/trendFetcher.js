@@ -25,33 +25,33 @@ export async function getTrendingTopics() {
     targetGl = 'in';
   }
 
-  // 1. High-Search-Volume & Google Discover Viral Queries (Topics millions of readers actively search & click)
+  // 1. High-Search-Volume & High-CPC Enterprise AI & Cloud Queries ($15 - $35 CPC)
   const globalViralQueries = [
-    'OpenAI ChatGPT Google Gemini DeepSeek new AI update features 2026',
-    'NVIDIA RTX GPU Apple iPhone Samsung Galaxy launch review comparison 2026',
-    'SpaceX Starship NASA James Webb Telescope cosmic discovery news',
-    'Netflix Prime Video Hollywood Box Office top movie release news',
-    'Wall Street NVIDIA Tesla Apple stock market rally forecast news',
-    'Cybersecurity zero-day breach AI technology breakthrough news'
+    'OpenAI ChatGPT Google Gemini enterprise AI data center infrastructure 2026',
+    'NVIDIA Blackwell AI GPU server demand cloud computing earnings',
+    'Cybersecurity zero-day vulnerability cloud security enterprise defense news',
+    'Quantum computing breakthrough semiconductor 2nm manufacturing innovation',
+    'Wall Street S&P 500 tech rally Federal Reserve interest rate forecast',
+    'DeepSeek open source LLM benchmark cloud deployment cost optimization'
   ];
 
-  // 2. High eCPM & High Search Intent Queries (US/UK/Global)
+  // 2. Ultra-High eCPM FinTech, SaaS & CleanTech Queries ($20 - $50 CPC)
   const highEcpmQueries = [
-    'AI chips NVIDIA OpenAI Microsoft cloud data center investment 2026',
-    'SpaceX Falcon 9 Starship orbital launch NASA mission update',
-    'Federal Reserve interest rate stock market S&P 500 tech rally',
-    'Marvel Spider-Man Avengers Hollywood box office record news',
-    'Electric vehicle solid-state battery Tesla autonomous driving update',
-    'Quantum computing semiconductor 2nm chip breakthrough news'
+    'AI chips NVIDIA Microsoft Azure AWS cloud data center billion investment 2026',
+    'Enterprise cybersecurity ransomware mitigation zero trust architecture',
+    'Federal Reserve monetary policy global financial market liquidity bond yields',
+    'Solid-state battery commercial breakthrough EV range energy density parity',
+    'FinTech digital payment infrastructure blockchain wholesale settlement banking',
+    'SaaS AI agent workflow automation enterprise cost reduction case study'
   ];
 
-  // 3. India Viral & Search Queries
+  // 3. High-Growth Emerging Tech & Economy Queries
   const indiaQueries = [
-    'ISRO Gaganyaan space mission satellite launch India science news',
-    'Sensex Nifty stock market rally RBI economy investment news',
-    'India AI semiconductor startup technology innovation 2026',
-    'Box office collection Indian cinema blockbuster OTT release news',
-    'Smartphone 5G technology launch India price specs comparison'
+    'India semiconductor fabrication plant Tata micron chip manufacturing 2026',
+    'Sensex Nifty market capitalisation foreign institutional investment RBI report',
+    'India AI startup funding venture capital enterprise SaaS expansion',
+    'ISRO commercial satellite launch space economy revenue roadmap',
+    'Digital public infrastructure UPI global adoption cross-border fintech'
   ];
 
   let queriesList = globalViralQueries;

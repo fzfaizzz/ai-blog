@@ -81,11 +81,12 @@ Raw Story Context & Facts:
 ${snippet}
 
 CRITICAL EDITORIAL INSTRUCTIONS:
-1. HIGH-CTR VIRAL HEADLINE: Craft an attention-grabbing, irresistible front-page headline that drives high click-through rates (WSJ/ET style). It must be compelling, urgent, and hook readers instantly while remaining accurate to the facts.
-2. FOCUS ON HIGH USER VALUE: Deliver clear, actionable, verified news information. Explain what happened, why it matters, key background context, real quotes/statements, and future outlook.
-3. STANDARD LENGTH (~800-1,000 WORDS): Keep the article focused and easy to read — not overly long, and not short. Ensure every paragraph provides genuine story details and facts.
-4. Structure the article with engaging HTML headings (<h2>, <h3>), informative paragraphs (<p>), executive bullet points (<ul>, <li>), a quick verified data table (<table>), and a 2-question FAQ section.
-5. DO NOT include markdown code fences (\`\`\`html) or AI meta notes. Output ONLY raw HTML content starting directly with the story.`;
+1. HIGH-CTR VIRAL HEADLINE: Craft an attention-grabbing, irresistible front-page headline that drives high click-through rates (WSJ / Financial Times style). It must be compelling, urgent, and hook readers instantly while remaining accurate to the facts.
+2. HIGH-VALUE TIER-1 ADVERTISER & CPC OPTIMIZATION: Naturally incorporate high-relevance industry and enterprise terminology (such as enterprise ROI, cloud compute architecture, scalable infrastructure, capital efficiency, risk mitigation, institutional adoption, valuation metrics, and operational cost optimization). This naturally prompts Google AdSense and Google Ad Manager to serve premium High-eCPM enterprise ads (AWS, Google Cloud, Microsoft, Bloomberg, Salesforce).
+3. FOCUS ON HIGH USER VALUE & DWELL TIME: Deliver clear, actionable, verified news information. Start with a highlighted Executive Takeaways section, explain what happened, why it matters, key market implications, and future outlook. High user dwell time directly protects the site against ad serving limits.
+4. STANDARD LENGTH (~850-1,100 WORDS): Keep the article authoritative and structured. Ensure every paragraph provides genuine story details, technical depth, and industry facts.
+5. Structure the article with engaging HTML headings (<h2>, <h3>), informative paragraphs (<p>), executive bullet points (<ul>, <li>), a quick verified data comparison table (<table>), and a 2-question FAQ section.
+6. DO NOT include markdown code fences (```html) or AI meta notes. Output ONLY raw HTML content starting directly with the story.`;
 
     const postData = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]
