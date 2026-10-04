@@ -568,9 +568,20 @@ app.get('/api/author/:slug', (req, res) => {
   });
 });
 
-// Official Google AdSense ads.txt Route
+// Official Google AdSense ads.txt Route (Optimized per AdSense Crawler & Cloudflare Best Practices)
 app.get('/ads.txt', (req, res) => {
-  res.header('Content-Type', 'text/plain');
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  const adsTxtPath = path.join(__dirname, 'public/ads.txt');
+  if (fs.existsSync(adsTxtPath)) {
+    const rawContent = fs.readFileSync(adsTxtPath, 'utf8');
+    const cleanLines = rawContent.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
+    return res.send(cleanLines + '\n');
+  }
   res.send('google.com, pub-9492642167600744, DIRECT, f08c47fec0942fa0\n');
 });
 

@@ -211,12 +211,33 @@ export async function publishPost(postData) {
     .trim()
     .replace(/\s+/g, '-');
 
+  // 🔗 Smart Internal Link Injection (Guards against AdSense "Low-Value Content" flags)
+  let finalHtml = postData.contentHtml || '';
+  if (!finalHtml.includes('/post/') && cachedPosts.length > 0) {
+    const candidatePosts = cachedPosts.filter(p => p.slug && p.slug !== slug);
+    if (candidatePosts.length > 0) {
+      const related = candidatePosts[Math.floor(Math.random() * Math.min(candidatePosts.length, 6))];
+      const linkBox = `
+        <div class="article-internal-link-box" style="margin: 2.2rem 0; padding: 1.25rem; background: #F8FAFC; border-left: 4px solid #2563EB; border-radius: 8px;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: #2563EB; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem;">Related Newsroom Intelligence &amp; Analysis</div>
+          <a href="/post/${related.slug}" style="font-size: 1.05rem; font-weight: 700; color: #0F172A; text-decoration: none; display: block; line-height: 1.45;">${related.title} &rarr;</a>
+        </div>
+      `;
+      const lastH2 = finalHtml.lastIndexOf('<h2');
+      if (lastH2 > 200) {
+        finalHtml = finalHtml.substring(0, lastH2) + linkBox + finalHtml.substring(lastH2);
+      } else {
+        finalHtml += linkBox;
+      }
+    }
+  }
+
   const newPost = {
     id: Date.now(),
     slug,
     title: postData.title,
     metaDescription: postData.metaDescription || '',
-    contentHtml: postData.contentHtml,
+    contentHtml: finalHtml,
     imageUrl: postData.imageUrl,
     imageCredit: postData.imageCredit || 'Unsplash / Media Provider',
     category: postData.category || 'Trending',
@@ -231,12 +252,12 @@ export async function publishPost(postData) {
 
   console.log(`✅ Auto-Published Post to MongoDB & Cache: "${newPost.title}" [Slug: ${newPost.slug}]`);
 
-  // Asynchronously broadcast to Telegram Bot, Telegram Userbot, Twitter API, Custom Twitter & Reddit
+  // Asynchronously broadcast to Telegram & Twitter (Reddit permanently removed per policy)
   sendPostToTelegram(newPost).catch(e => console.error('Telegram broadcast background error:', e));
   sendPostViaUserbot(newPost).catch(e => console.error('Telegram Userbot background error:', e));
   sendPostToTwitter(newPost).catch(e => console.error('Twitter API broadcast background error:', e));
   sendTweetViaCookieSession(newPost).catch(e => console.error('Custom Twitter Cookie Bot error:', e));
-  sendPostToReddit(newPost).catch(e => console.error('Reddit Auto-Poster error:', e));
+  // Reddit auto-poster permanently disabled per policy
 
   // Asynchronously submit to IndexNow (Bing, DuckDuckGo, Yandex) & Ping Search Engines
   const domain = (process.env.BASE_URL || 'https://primemedia.site').replace(/\/+$/, '');
