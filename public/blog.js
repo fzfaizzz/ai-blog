@@ -901,6 +901,12 @@ function initAdminPanel() {
       const res = await fetch('/api/admin/posts', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (res.status === 401) {
+        sessionStorage.removeItem('adminToken');
+        if (loginModal) loginModal.style.display = 'flex';
+        if (container) container.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: #64748B;">Admin session required. Please log in with password.</div>`;
+        return;
+      }
       const data = await res.json();
       if (data.success && Array.isArray(data.posts)) {
         adminAllPosts = data.posts;
@@ -908,9 +914,11 @@ function initAdminPanel() {
         const statArts = document.getElementById('statTotalArticles');
         if (statArts) statArts.innerText = adminAllPosts.length;
         renderAdminArticlesList();
+      } else {
+        if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626;">Error: ${data.error || 'Failed to retrieve articles'}</div>`;
       }
     } catch (e) {
-      if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626;">Error loading articles list</div>`;
+      if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626; display: flex; align-items: center; justify-content: space-between;"><span>Error loading articles (${e.message})</span><button onclick="loadAdminArticlesList()" style="padding: 4px 10px; background: #2563EB; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Retry</button></div>`;
     }
   }
 
