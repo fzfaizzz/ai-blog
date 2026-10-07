@@ -600,30 +600,38 @@ app.get('/robots.txt', (req, res) => {
   res.header('Content-Type', 'text/plain');
   res.send(`User-agent: *
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
+Disallow: /*?s=*
+Disallow: /*?search=*
+Disallow: /*?ref=*
+Disallow: /*?utm_*
 
 User-agent: Googlebot
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
+Disallow: /*?s=*
+Disallow: /*?search=*
+Disallow: /*?ref=*
+Disallow: /*?utm_*
 
 User-agent: Googlebot-News
 Allow: /
 
 User-agent: bingbot
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
 
 User-agent: Mediapartners-Google
 Allow: /
@@ -1499,14 +1507,14 @@ function startServer(portToTry) {
     console.log(` ⚙️ Admin Control Panel at: http://localhost:${portToTry}/admin.html`);
     console.log(` 🗺️ Dynamic XML Sitemap Live at: http://localhost:${portToTry}/sitemap.xml`);
     console.log(` 🔑 Serper API Keys Pool Active (${getSerperKeys().length} keys configured)`);
-    console.log(` 🤖 24/7 Autopilot Mode: ACTIVE (Auto-publishing every 5 minutes)`);
+    console.log(` 🤖 24/7 Autopilot Mode: ACTIVE (Curated Editorial Schedule: Every 3 hours)`);
     console.log(`===============================================================\n`);
 
-    // Initialize 24/7 Autopilot Cron Timer (Every 5 minutes for breaking live news)
-    startAutopilotCron(appSettings.cronIntervalMinutes || 5);
+    // Initialize 24/7 Autopilot Cron Timer (Every 3 hours for deep, high-value editorial news)
+    startAutopilotCron(appSettings.cronIntervalMinutes || 180);
 
-    // Initialize 24/7 Automated Social Syndication Engine (Every 15 minutes)
-    startSocialScheduler(15);
+    // Initialize 24/7 Automated Social Syndication Engine (Every 60 minutes)
+    startSocialScheduler(60);
   });
 
   server.on('error', (err) => {

@@ -1,29 +1,37 @@
 User-agent: *
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
+Disallow: /*?s=*
+Disallow: /*?search=*
+Disallow: /*?ref=*
+Disallow: /*?utm_*
 
 User-agent: Googlebot
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
+Disallow: /*?s=*
+Disallow: /*?search=*
+Disallow: /*?ref=*
+Disallow: /*?utm_*
 
 User-agent: Googlebot-News
 Allow: /
 
 User-agent: bingbot
 Allow: /
+Allow: /?page=*
 Disallow: /admin.html
 Disallow: /admin.js
 Disallow: /api/
 Disallow: /data/
-Disallow: /*?*
 
 User-agent: Mediapartners-Google
 Allow: /
