@@ -72,21 +72,27 @@ function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-flas
     const date = newsObj.date || 'Today';
     const snippet = newsObj.fullStoryText || newsObj.snippet || '';
 
-    const prompt = `You are a Senior Bureau Chief & Chief Editor at The Wall Street Journal and Economic Times.
-Write a crisp, highly engaging, high-CTR, 800 to 1,000-word standard news report covering the FULL STORY on: "${topic}".
+    const prompt = `You are a Senior Bureau Chief & Chief Investigative Editor at The Wall Street Journal, Financial Times, and Bloomberg.
+Write a comprehensive, authoritative, high-dwell-time, 1,200 to 1,600-word investigative report covering the FULL STORY on: "${topic}".
 
 Primary Wire Source: ${source}
 Publication Time: ${date}
 Raw Story Context & Facts:
 ${snippet}
 
-CRITICAL EDITORIAL INSTRUCTIONS:
-1. HIGH-CTR VIRAL HEADLINE: Craft an attention-grabbing, irresistible front-page headline that drives high click-through rates (WSJ / Financial Times style). It must be compelling, urgent, and hook readers instantly while remaining accurate to the facts.
-2. HIGH-VALUE TIER-1 ADVERTISER & CPC OPTIMIZATION: Naturally incorporate high-relevance industry and enterprise terminology (such as enterprise ROI, cloud compute architecture, scalable infrastructure, capital efficiency, risk mitigation, institutional adoption, valuation metrics, and operational cost optimization). This naturally prompts Google AdSense and Google Ad Manager to serve premium High-eCPM enterprise ads (AWS, Google Cloud, Microsoft, Bloomberg, Salesforce).
-3. FOCUS ON HIGH USER VALUE & DWELL TIME: Deliver clear, actionable, verified news information. Start with a highlighted Executive Takeaways section, explain what happened, why it matters, key market implications, and future outlook. High user dwell time directly protects the site against ad serving limits.
-4. STANDARD LENGTH (~850-1,100 WORDS): Keep the article authoritative and structured. Ensure every paragraph provides genuine story details, technical depth, and industry facts.
-5. Structure the article with engaging HTML headings (<h2>, <h3>), informative paragraphs (<p>), executive bullet points (<ul>, <li>), a quick verified data comparison table (<table>), and a 2-question FAQ section.
-6. DO NOT include markdown code fences (```html) or AI meta notes. Output ONLY raw HTML content starting directly with the story.`;
+CRITICAL EDITORIAL & ADSENSE QUALITY STANDARDS:
+1. HIGH-CTR VIRAL HEADLINE: Craft an irresistible, authoritative front-page headline that drives high click-through rates. It must be compelling, urgent, and hook readers instantly while strictly adhering to factual accuracy.
+2. ELIMINATE "LOW-VALUE CONTENT" (COMPREHENSIVE DEPTH): Provide exhaustive depth, technical details, historical context, and direct implications. Avoid generic fluff or repetitive summaries. Every section must deliver concrete facts, dates, real-world impacts, and executive insights.
+3. HIGH-VALUE TIER-1 ADVERTISER & CPC OPTIMIZATION: Naturally incorporate high-relevance enterprise, financial, and tech terminology (such as enterprise ROI, infrastructure scalability, capital allocation, valuation multiples, risk mitigation, cloud compute architecture, regulatory compliance, and market liquidity). This signals premium High-eCPM advertiser intent to Google AdSense / Google Ad Manager.
+4. TARGET LONG-TAIL QUERIES & "PEOPLE ALSO ASK" FAQS: Include a dedicated, rich "Frequently Asked Questions (People Also Ask)" section with 3 to 4 detailed questions and comprehensive answers addressing user queries and long-tail search intent.
+5. REQUIRED ARTICLE ARCHITECTURE:
+   - Executive Takeaways: 3-4 bullet points highlighting the most vital facts.
+   - Comprehensive Narrative: Background, catalytic events, and deep breakdown.
+   - Verified Data / Metrics Breakdown Table (HTML <table>) comparing key numbers, dates, or specifications.
+   - Industry & Market Implications: Who wins, who loses, and broader economic impact.
+   - People Also Ask (FAQ): 3-4 high-intent questions and authoritative answers.
+   - Future Outlook: What comes next and key milestones to watch.
+6. FORMATTING: Use engaging HTML headings (<h2>, <h3>), well-paced paragraphs (<p>), bullet lists (<ul>, <li>), and responsive tables (<table>). DO NOT include markdown code fences (\`\`\`html) or conversational commentary. Output ONLY raw HTML content starting directly with the story.`;
 
     const postData = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]
@@ -188,11 +194,14 @@ CRITICAL EDITORIAL INSTRUCTIONS:
             cleanMeta = `In-depth analysis and verified reporting on ${finalTitle}, examining key industry, economic, and policy developments.`;
           }
 
+          const wordCount = text.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
+          const dynamicReadTime = Math.max(5, Math.ceil(wordCount / 200));
+
           resolve({
             title: finalTitle,
             contentHtml: text,
             metaDescription: cleanMeta,
-            readTimeMinutes: 6,
+            readTimeMinutes: dynamicReadTime,
             source,
             publishTime: date
           });
