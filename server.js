@@ -358,9 +358,10 @@ app.get('/post/:slug', async (req, res) => {
     </script>
   `;
   
-  // Replace the existing <title> and closing </head> with injected meta
+  // Replace the existing <title>, <meta description>, and <meta robots> with injected meta
   html = html.replace(/<title[^>]*>.*?<\/title>/i, '');
   html = html.replace(/<meta[^>]*name="description"[^>]*>/i, '');
+  html = html.replace(/<meta[^>]*name="robots"[^>]*>/i, '');
   html = html.replace('</head>', `${ogTags}\n</head>`);
 
   // 🚀 Full Server-Side Rendered (SSR) Body Content for Googlebot & SEO Crawlers
