@@ -61,13 +61,34 @@ async function loadHomepagePosts(category = null, page = null) {
     }
   }
 
+  const isInitialSsrHome = (category === null && page === null && currentPage === 1 && !currentSearchQuery && featuredStory && !featuredStory.innerText.includes('Loading lead headline'));
+
   try {
     if (cachedPosts.length === 0) {
-      const res = await fetch('/api/posts');
+      const res = await fetch('/api/posts?limit=120');
       const data = await res.json();
       if (data.success && data.posts) {
         cachedPosts = data.posts;
       }
+    }
+
+    // If initial page 1 was already rendered by SSR, do not destroy & re-create DOM (prevents LCP reset & CLS)
+    if (isInitialSsrHome && cachedPosts.length > 0) {
+      document.querySelectorAll('.topic-pill').forEach(pill => {
+        pill.onclick = (e) => {
+          e.preventDefault();
+          const query = pill.getAttribute('data-query');
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput) searchInput.value = query;
+          currentSearchQuery = query;
+          currentPage = 1;
+          loadHomepagePosts();
+        };
+      });
+      const totalStream = Math.max(1, cachedPosts.length - 8);
+      const perPage = window.innerWidth < 768 ? 8 : (window.innerWidth <= 1024 ? 10 : 12);
+      renderPagination(Math.ceil(totalStream / perPage) || 1);
+      return;
     }
 
     if (cachedPosts.length > 0) {
@@ -525,6 +546,20 @@ async function loadSingleArticle() {
   if (isArticleLoading) return;
   isArticleLoading = true;
 
+  const postContainer = document.getElementById('postContent');
+  // If Server-Side Rendering (SSR) already populated the article, do NOT wipe & re-download DOM (protects Core Web Vitals LCP & CLS)
+  if (postContainer && postContainer.getAttribute('data-ssr') === 'true') {
+    const inImgs = postContainer.querySelectorAll('img');
+    inImgs.forEach(img => {
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function() {
+        this.onerror = null;
+        this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+      };
+    });
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   // Support both /post/slug and post.html?slug=slug
   let slug = params.get('slug');
@@ -662,7 +697,7 @@ async function loadRecommendedArticles(currentSlug, category) {
   const midPlaceholder = document.getElementById('inArticleRecommendedPlaceholder');
 
   try {
-    const res = await fetch('/api/posts');
+    const res = await fetch('/api/posts?limit=16');
     const data = await res.json();
 
     if (data.success && Array.isArray(data.posts)) {

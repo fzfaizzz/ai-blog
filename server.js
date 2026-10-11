@@ -130,7 +130,7 @@ app.get('/', (req, res) => {
       const featuredHtml = `
         <span class="featured-badge">${escapeHtml((lead.category || 'TOP STORY').toUpperCase())}</span>
         <a href="/post/${escapeHtml(lead.slug)}">
-          <img src="${lead.imageUrl || fallbackImg}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" />
+          <img src="${lead.imageUrl || fallbackImg}" alt="${escapeHtml(lead.title)}" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" />
         </a>
         <h2><a href="/post/${escapeHtml(lead.slug)}">${escapeHtml(lead.title)}</a></h2>
         <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription || '')}</p>
@@ -140,6 +140,10 @@ app.get('/', (req, res) => {
       `;
       html = html.replace(/<div id="featuredStory" class="featured-story">[\s\S]*?<\/div>\s*<div class="trending-sidebar-list">/i,
         `<div id="featuredStory" class="featured-story">${featuredHtml}</div>\n        <div class="trending-sidebar-list">`);
+
+      // Update Red Breaking News Ticker in SSR
+      html = html.replace(/<a href="#" id="breakingHeadlineLink">[\s\S]*?<\/a>/i,
+        `<a href="/post/${escapeHtml(lead.slug)}" id="breakingHeadlineLink">${escapeHtml(lead.title)}</a>`);
 
       // Top 3 Sidebar Stories
       const sideItems = posts.slice(1, 4);
@@ -161,7 +165,7 @@ app.get('/', (req, res) => {
             <div class="spotlight-img-wrap">
               <span class="spotlight-tag-overlay">${escapeHtml(post.category || 'SPECIAL REPORT')}</span>
               <a href="/post/${escapeHtml(post.slug)}">
-                <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" />
+                <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="spotlight-img" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
               </a>
             </div>
             <div class="spotlight-body">
@@ -188,7 +192,7 @@ app.get('/', (req, res) => {
         return `
           <div class="card">
             <a href="/post/${escapeHtml(post.slug)}">
-              <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" />
+              <img src="${post.imageUrl || fallbackImg}" alt="${escapeHtml(post.title)}" class="card-img" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
             </a>
             <div class="card-body">
               <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
@@ -226,7 +230,7 @@ app.get('/', (req, res) => {
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     return res.send(html);
   } catch (e) {
     return res.sendFile(path.join(__dirname, 'public/index.html'));
@@ -254,13 +258,23 @@ app.get('/post/:slug', async (req, res) => {
     res.setHeader('X-Robots-Tag', 'noindex, follow');
     return res.sendFile(path.join(__dirname, 'public/404.html'));
   }
+
+  // Record 100% Real Human Views directly on SSR route (exclude known search/social bots)
+  const ua = (req.headers['user-agent'] || '').toLowerCase();
+  if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview/i.test(ua)) {
+    recordRealView(post.slug, detectRequestCountry(req));
+  }
   
   const baseUrl = BASE_CANONICAL_URL;
   const author = getAuthorForPost(post);
   let html = fs.readFileSync(path.join(__dirname, 'public/post.html'), 'utf8');
+  const isSensitiveWarPost = /\b(kill|killed|killing|dead|death|deaths|died|airstrike|bombing|massacre|casualties|suicide|murder|jailed)\b/i.test(post.title || '');
+  const robotsDirective = (post.hidden || isSensitiveWarPost)
+    ? 'noindex, follow'
+    : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
   
   const ogTags = `
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="robots" content="${robotsDirective}">
     <title>${escapeHtml(post.title)} | Prime Media</title>
     <meta name="description" content="${escapeHtml(post.metaDescription)}">
     <link rel="canonical" href="${baseUrl}/post/${post.slug}">
@@ -361,7 +375,7 @@ app.get('/post/:slug', async (req, res) => {
   html = html.replace(/<p id="postLeadDesc"[^>]*>.*?<\/p>/i, `<p id="postLeadDesc" style="color: var(--text-muted); font-size: 1.15rem; line-height: 1.6; margin-bottom: 1.5rem;">${escapeHtml(post.metaDescription || '')}</p>`);
   const fallbackHero = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
   const heroImgUrl = post.imageUrl || fallbackHero;
-  html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${heroImgUrl}" alt="${escapeHtml(post.title)}" class="featured-img" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackHero}';" />`);
+  html = html.replace(/<img id="postFeaturedImg"[^>]*\/?>/i, `<img id="postFeaturedImg" src="${heroImgUrl}" alt="${escapeHtml(post.title)}" class="featured-img" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackHero}';" />`);
   
   // ✍️ Real E-E-A-T Author SSR Binding with Clickable Profile Links
   html = html.replace(/<div id="authorInitials"[^>]*>.*?<\/div>/i, `<a href="/author/${author.slug}" style="text-decoration: none;"><div id="authorInitials" class="author-avatar">${author.initials}</div></a>`);
@@ -399,8 +413,9 @@ app.get('/post/:slug', async (req, res) => {
       .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
       .replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '')
       .replace(/<h1(\b[^>]*)>/gi, '<h2$1>')
-      .replace(/<\/h1>/gi, '</h2>');
-    html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article">${cleanContent}</article>`);
+      .replace(/<\/h1>/gi, '</h2>')
+      .replace(/<img\b(?![^>]*\bloading=)/gi, '<img loading="lazy" decoding="async"');
+    html = html.replace(/<article id="postContent"[^>]*>[\s\S]*?<\/article>/i, `<article id="postContent" class="human-article" data-ssr="true">${cleanContent}</article>`);
   }
 
   // 🔗 Inject SSR Internal Links (Category + Archive Hash-Ring) so all 600+ articles receive strong internal link equity
@@ -441,7 +456,7 @@ app.get('/post/:slug', async (req, res) => {
     const recommendedHtml = relatedPosts.map(r => `
       <div class="recommended-card" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.75rem;">
         <a href="/post/${escapeHtml(r.slug)}" style="text-decoration: none; color: inherit; display: flex; gap: 0.75rem; align-items: center;">
-          ${r.imageUrl ? `<img src="${r.imageUrl}" alt="${escapeHtml(r.title)}" style="width: 70px; height: 50px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />` : ''}
+          ${r.imageUrl ? `<img src="${r.imageUrl}" alt="${escapeHtml(r.title)}" loading="lazy" decoding="async" style="width: 70px; height: 50px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />` : ''}
           <div>
             <h4 style="font-size: 0.85rem; font-weight: 700; line-height: 1.3; margin: 0; color: #0F172A;">${escapeHtml(r.title)}</h4>
             <span style="font-size: 0.72rem; color: #DC2626; font-weight: 600; text-transform: uppercase;">${escapeHtml(r.category || 'News')}</span>
@@ -450,10 +465,11 @@ app.get('/post/:slug', async (req, res) => {
       </div>
     `).join('');
 
-    html = html.replace(/<div id="recommendedGrid"[^>]*>[\s\S]*?<\/div>/i, `<div id="recommendedGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">${recommendedHtml}</div>`);
+    html = html.replace(/<div id="recommendedGrid"[^>]*>[\s\S]*?<\/div>/i, `<div id="recommendedGrid" data-ssr="true" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem;">${recommendedHtml}</div>`);
   } catch (recErr) {}
   
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.send(html);
 });
 
@@ -744,7 +760,7 @@ app.get('/sitemap.xml', (req, res) => {
     xml += `  </url>\n`;
   });
 
-  posts.forEach(post => {
+  posts.filter(p => !/\b(kill|killed|killing|dead|death|deaths|died|airstrike|bombing|massacre|casualties|suicide|murder|jailed)\b/i.test(p.title || '')).forEach(post => {
     const postDate = new Date(post.publishedAt || Date.now());
     const isoDate = isNaN(postDate.getTime()) ? new Date().toISOString() : postDate.toISOString();
     const dateOnly = isoDate.split('T')[0];
@@ -851,11 +867,14 @@ app.get('/rss', handleRssFeed);
 // 1. Get All Posts (For Homepage - Lightweight Optimized Payload)
 app.get('/api/posts', (req, res) => {
   const posts = getAllPosts();
-  // Strip heavy article HTML from overview list to keep homepage payload under 100KB (10x faster load)
-  const previewPosts = posts.map(({ contentHtml, ...rest }) => rest);
+  const limit = parseInt(req.query.limit, 10);
+  const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : posts;
+  // Strip heavy article HTML from overview list to keep homepage payload fast
+  const previewPosts = sliced.map(({ contentHtml, ...rest }) => rest);
   res.json({
     success: true,
     count: previewPosts.length,
+    totalCount: posts.length,
     posts: previewPosts,
     settings: appSettings,
     serperKeysCount: getSerperKeys().length

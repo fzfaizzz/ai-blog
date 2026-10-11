@@ -106,8 +106,12 @@ def post_to_twitter(page, post):
         summary=post.get("summary") or post.get("content") or "",
         category=category
     )
-    tweet_text = format_full_viral_tweet(viral_data, url)
-    logging.info(f"📝 Full Viral Tweet ({len(tweet_text)} chars):\n{tweet_text}\n")
+    hook_text = format_hook_tweet(viral_data)
+    reply_text = format_reply_tweet(title, url)
+    full_fallback_text = format_full_viral_tweet(viral_data, url)
+
+    logging.info(f"📝 Post 1 (Native Viral Hook - 0 Links, Full Algorithm Boost):\n{hook_text}\n")
+    logging.info(f"📝 Post 2 (Thread Reply with Link & Follow CTA):\n{reply_text}\n")
 
     # 2. Dynamic 16:9 Branded News Card Generation
     card_path = None
@@ -199,11 +203,32 @@ def post_to_twitter(page, post):
             page.focus('div[data-testid="tweetTextarea_0"]')
 
         time.sleep(0.5)
-        # Type clean viral tweet text (strictly bounded to fit under 280 chars)
-        page.keyboard.type(tweet_text, delay=8)
+        # Type Post 1 Hook (strictly NO external link to bypass algorithm link penalty)
+        page.keyboard.type(hook_text, delay=6)
         time.sleep(2)
 
-        # 5. Submit via Post button
+        # 5. Append Thread Reply (Post 2 with Link) via Add Post (+) button using real Playwright pointer click
+        has_thread = False
+        try:
+            logging.info("➕ Clicking Add Post (+) button to create native 2-post thread...")
+            add_btn = page.locator('[data-testid="addButton"], button[aria-label="Add post"], button[aria-label="Add Tweet"]').first
+            if add_btn.count() > 0:
+                add_btn.click(force=True, timeout=5000)
+                time.sleep(2)
+                tb1 = page.locator('div[data-testid="tweetTextarea_1"]').first
+                if tb1.is_visible(timeout=5000):
+                    tb1.click(force=True)
+                    time.sleep(0.5)
+                    page.keyboard.type(reply_text, delay=6)
+                    time.sleep(2)
+                    has_thread = True
+                    logging.info("✅ Thread Reply (Post 2 with article link) attached in compose modal!")
+        except Exception as te:
+            logging.warning(f"⚠️ Thread compose modal notice ({te}), will post link via self-reply after publishing Post 1...")
+
+        # IMPORTANT: Never append the external URL into Post 1! Post 1 must stay 100% link-free for X algorithm reach.
+
+        # 6. Submit Post 1 (or full thread if has_thread=True)
         logging.info("🚀 Submitting post to Twitter / X...")
         post_btn = page.locator('button[data-testid="tweetButton"]').first
         try:
@@ -250,7 +275,32 @@ def post_to_twitter(page, post):
             pass
 
         content = page.content()
-        if "Your post was sent" in content or "compose" not in page.url:
+        post1_sent = ("Your post was sent" in content or "compose" not in page.url)
+
+        # 7. If thread modal didn't attach Post 2, post the link as an immediate self-reply on @PrimeMediaSite!
+        if post1_sent and not has_thread:
+            try:
+                logging.info("💬 Posting Article Link as First Comment Reply on @PrimeMediaSite...")
+                page.goto("https://x.com/PrimeMediaSite", wait_until="domcontentloaded", timeout=35000)
+                time.sleep(4)
+                reply_icon = page.locator('article [data-testid="reply"]').first
+                if reply_icon.is_visible(timeout=8000):
+                    reply_icon.click(force=True)
+                    time.sleep(2.5)
+                    reply_box = page.locator('div[data-testid="tweetTextarea_0"]').first
+                    if reply_box.is_visible(timeout=6000):
+                        reply_box.click(force=True)
+                        time.sleep(0.5)
+                        page.keyboard.type(reply_text, delay=6)
+                        time.sleep(2)
+                        reply_submit = page.locator('button[data-testid="tweetButton"]').first
+                        reply_submit.click(force=True)
+                        time.sleep(4)
+                        logging.info("✅ Self-Reply with Article Link published under Post 1!")
+            except Exception as re_err:
+                logging.warning(f"⚠️ Self-reply fallback warning: {re_err}")
+
+        if post1_sent:
             logging.info("✅ SUCCESS: 16:9 Branded Viral Post published to Twitter / X!")
             return True
 

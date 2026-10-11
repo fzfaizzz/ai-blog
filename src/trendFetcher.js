@@ -161,6 +161,11 @@ function isValidNewsTitle(title) {
     return false;
   }
 
+  // Strictly block AdSense-Demonetized Sensitive Events (War, Casualties, Disasters, Crime, Violence)
+  if (/\b(kill|killed|killing|dead|death|deaths|died|war|airstrike|strike|attacks|bomb|bombing|missile|flood|floods|earthquake|murder|jailed|prison|shooting|shooter|terror|terrorist|hostage|massacre|casualties|suicide|assault|crash)\b/i.test(lower)) {
+    return false;
+  }
+
   // Reject titles ending abruptly with a dangling preposition, article, or hyphen prefix
   if (/\b(?:the|a|an|for|to|in|on|with|by|from|of|and|or|at|as|into|self|sub|anti|non|pre|post|multi|inter|bi|contr)\s*$/i.test(title)) {
     return false;
@@ -174,27 +179,25 @@ function isValidNewsTitle(title) {
 
 function getCategoryFromTitle(title) {
   const lower = title.toLowerCase();
-  if (lower.includes('politic') || lower.includes('election') || lower.includes('president') || lower.includes('white house') || lower.includes('congress') || lower.includes('senate') || lower.includes('government') || lower.includes('biden') || lower.includes('trump')) return 'Politics & World Affairs';
   if (lower.includes('india') || lower.includes('isro') || lower.includes('sensex') || lower.includes('nifty') || lower.includes('bollywood')) return 'India News & Trends';
   if (lower.includes('space') || lower.includes('spacex') || lower.includes('nasa') || lower.includes('moon') || lower.includes('mars') || lower.includes('orbit')) return 'Space & Cosmos';
   if (lower.includes('movie') || lower.includes('box office') || lower.includes('film') || lower.includes('hollywood') || lower.includes('netflix') || lower.includes('marvel')) return 'Movies & Entertainment';
   if (lower.includes('musk') || lower.includes('bezos') || lower.includes('zuckerberg') || lower.includes('billionaire') || lower.includes('wealth') || lower.includes('net worth')) return 'Billionaires & Business Moguls';
-  if (lower.includes('tech') || lower.includes('ai') || lower.includes('chip') || lower.includes('nvidia') || lower.includes('apple') || lower.includes('google')) return 'AI & Next-Gen Tech';
-  if (lower.includes('market') || lower.includes('stock') || lower.includes('business') || lower.includes('crypto') || lower.includes('wall street')) return 'Business & Markets';
-  if (lower.includes('ev') || lower.includes('tesla') || lower.includes('solar') || lower.includes('energy')) return 'Clean Energy & EVs';
-  return 'World Breaking News';
+  if (lower.includes('tech') || lower.includes('ai') || lower.includes('chip') || lower.includes('nvidia') || lower.includes('apple') || lower.includes('google') || lower.includes('software') || lower.includes('cloud')) return 'AI & Next-Gen Tech';
+  if (lower.includes('market') || lower.includes('stock') || lower.includes('business') || lower.includes('crypto') || lower.includes('wall street') || lower.includes('finance') || lower.includes('invest') || lower.includes('bank')) return 'Business & Markets';
+  if (lower.includes('ev') || lower.includes('tesla') || lower.includes('solar') || lower.includes('energy') || lower.includes('battery')) return 'Clean Energy & EVs';
+  return 'AI & Next-Gen Tech';
 }
 
 /**
- * Real-Time Google Trends & Google News RSS Feed Parser
+ * Real-Time Google Trends & Google News RSS Feed Parser (Strictly High-CPC Tech, Business & Science)
  */
 export function fetchGoogleTrendsRealtime(geo = 'US') {
   return new Promise((resolve) => {
     const urls = [
-      `https://trends.google.com/trending/rss?geo=${geo}`,
-      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // World Breaking
-      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // Tech & AI
-      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en'  // Business & Markets
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // Technology & AI
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en', // Business, Finance & Markets
+      'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp0Y1RjU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en'  // Science & Space Innovation
     ];
     const targetUrl = urls[Math.floor(Math.random() * urls.length)];
 

@@ -64,7 +64,7 @@ if (!fs.existsSync(ANALYTICS_FILE)) {
  */
 export function getAllPosts(includeHidden = false) {
   if (includeHidden) return cachedPosts;
-  return cachedPosts.filter(p => !p.hidden);
+  return cachedPosts.filter(p => !p.hidden && !/\b(kill|killed|killing|dead|death|deaths|died|airstrike|bombing|massacre|casualties|suicide|murder|jailed)\b/i.test(p.title || ''));
 }
 
 /**
