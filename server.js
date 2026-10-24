@@ -57,7 +57,7 @@ app.use((req, res, next) => {
 });
 
 // Clean Aliases & Defensive Navigation Redirects for Policy Pages
-const POLICY_PAGES = ['about', 'privacy', 'terms', 'disclaimer', 'contact'];
+const POLICY_PAGES = ['about', 'privacy', 'terms', 'disclaimer', 'contact', 'tools'];
 POLICY_PAGES.forEach((page) => {
   app.get(`/${page}`, (req, res) => res.redirect(301, `/${page}.html`));
   app.get(`/post/${page}.html`, (req, res) => res.redirect(301, `/${page}.html`));
