@@ -57,7 +57,11 @@ CRITICAL EDITORIAL & HIGH-CPC ADSENSE GUIDELINES:
 4. FORMATTING: Return ONLY clean HTML content using <h2>, <h3>, <p>, <ul>, <li>, <table>, <strong>. DO NOT include <h1> (handled by template) and DO NOT wrap in markdown code fences (\`\`\`html). Output raw HTML starting directly with the first paragraph.`;
 
     const postData = JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 8192,
+        temperature: 0.7
+      }
     });
 
     const options = {
@@ -76,11 +80,23 @@ CRITICAL EDITORIAL & HIGH-CPC ADSENSE GUIDELINES:
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (!json.candidates || !json.candidates[0] || !json.candidates[0].content) {
-            return reject(new Error('Gemini API returned no candidates'));
+          if (json.error) {
+            return reject(new Error('Gemini API Error: ' + JSON.stringify(json.error)));
           }
-          let html = json.candidates[0].content.parts[0].text;
+          if (!json.candidates || !json.candidates[0] || !json.candidates[0].content) {
+            return reject(new Error('Gemini API returned no candidates. Raw response: ' + data.slice(0, 300)));
+          }
+
+          const textParts = (json.candidates[0].content.parts || []).filter(p => p.text && !p.thought);
+          let html = textParts.map(p => p.text).join('\n').trim();
+
+          if (!html) {
+            return reject(new Error('Gemini API returned no text parts: ' + data.slice(0, 300)));
+          }
+
+          // Clean markdown code blocks & HTML wrapper boilerplate if present
           html = html.replace(/^```html\s*/i, '').replace(/```$/i, '').trim();
+          html = html.replace(/<!DOCTYPE[\s\S]*?<body[^>]*>/i, '').replace(/<\/body>[\s\S]*?<\/html>/i, '').trim();
 
           // Inject Tool Callout Widget after first H2
           const toolBox = `
@@ -153,6 +169,11 @@ async function main() {
       generatedPosts.push(newPost);
     } catch (err) {
       console.error(`   ❌ Error generating "${t.title}":`, err.message);
+    }
+
+    if (i < FLAGSHIP_TOPICS.length - 1) {
+      console.log('   ⏳ Waiting 3 seconds before next generation...');
+      await new Promise(r => setTimeout(r, 3000));
     }
   }
 
