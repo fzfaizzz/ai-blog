@@ -175,6 +175,23 @@ CRITICAL EDITORIAL & ADSENSE QUALITY STANDARDS:
           // Strip leading <h1> if AI included one (since post.html already has <h1 id="postTitle">)
           text = text.replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '').replace(/<h1(\b[^>]*)>/gi, '<h2$1>').replace(/<\/h1>/gi, '</h2>').trim();
 
+          // ⚡ Inject Interactive Tools Suite Callout to drive user dwell-time & Google utility signals
+          const toolBox = `
+            <div class="article-tool-cta-box" style="margin: 2.2rem 0; padding: 1.35rem; background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 5px solid #2563EB; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <span style="font-size: 0.75rem; font-weight: 800; color: #2563EB; text-transform: uppercase; letter-spacing: 0.06em;">⚡ Interactive Technical Utility</span>
+                <h4 style="margin: 0.25rem 0; font-size: 1.05rem; font-weight: 800; color: #0F172A;">Test Our Free AI &amp; Tech Utilities Suite</h4>
+                <p style="margin: 0; font-size: 0.85rem; color: #475569;">Calculate LLM API token costs, analyze article dwell-time, or simulate tech DCA returns.</p>
+              </div>
+              <a href="/tools.html" style="background: #2563EB; color: #FFF; padding: 0.65rem 1.25rem; border-radius: 6px; font-size: 0.88rem; font-weight: 700; text-decoration: none; white-space: nowrap;">Launch Free Tools &rarr;</a>
+            </div>
+          `;
+          if (text.includes('</h2>')) {
+            text = text.replace('</h2>', `</h2>\n${toolBox}\n`);
+          } else {
+            text = toolBox + text;
+          }
+
           // Extract genuine journalistic metaDescription from the opening paragraph
           let cleanMeta = '';
           const pMatch = text.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
