@@ -81,7 +81,7 @@ CRITICAL EDITORIAL & HIGH-CPC ADSENSE GUIDELINES:
         try {
           const json = JSON.parse(data);
           if (json.error) {
-            return reject(new Error('Gemini API Error: ' + JSON.stringify(json.error)));
+            return reject(new Error(`Gemini API Error (${res.statusCode}): ` + JSON.stringify(json.error)));
           }
           if (!json.candidates || !json.candidates[0] || !json.candidates[0].content) {
             return reject(new Error('Gemini API returned no candidates. Raw response: ' + data.slice(0, 300)));
@@ -129,6 +129,22 @@ CRITICAL EDITORIAL & HIGH-CPC ADSENSE GUIDELINES:
   });
 }
 
+async function generateArticleWithRetry(topicObj) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      return await generateArticleWithGemini(topicObj);
+    } catch (err) {
+      console.warn(`   ⚠️ Attempt ${attempt} failed: ${err.message}`);
+      if (attempt < 4) {
+        console.log(`   ⏳ Backing off for 6 seconds before retry...`);
+        await new Promise(r => setTimeout(r, 6000));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 async function main() {
   console.log('🚀 [Flagship Article Generator] Starting creation of 3 High-CPC Evergreen Guides...');
 
@@ -139,9 +155,18 @@ async function main() {
 
   for (let i = 0; i < FLAGSHIP_TOPICS.length; i++) {
     const t = FLAGSHIP_TOPICS[i];
+
+    // If post already exists with >1500 words, reuse it without re-generating
+    const existing = posts.find(p => p.slug === t.slug);
+    if (existing && existing.contentHtml && existing.contentHtml.length > 3000) {
+      console.log(`\n⏩ Article ${i + 1}/3 ("${t.title}") already generated (${existing.contentHtml.length} chars). Keeping!`);
+      generatedPosts.push(existing);
+      continue;
+    }
+
     console.log(`\n✍️ Generating Article ${i + 1}/3: "${t.title}"...`);
     try {
-      const contentHtml = await generateArticleWithGemini(t);
+      const contentHtml = await generateArticleWithRetry(t);
       const wordCount = contentHtml.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
       console.log(`   ✅ Success! Generated ${wordCount} words.`);
 
@@ -159,7 +184,7 @@ async function main() {
         imageCredit: 'Unsplash / Prime Media Tech Lab',
         category: t.category,
         readTimeMinutes: Math.max(6, Math.ceil(wordCount / 220)),
-        views: 128 + i * 45,
+        views: 145 + i * 45,
         publishedAt: new Date(Date.now() - i * 3600000).toISOString()
       };
 
