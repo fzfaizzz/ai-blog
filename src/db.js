@@ -139,9 +139,11 @@ export async function dbGetAllPosts() {
 
 export async function dbGetPostBySlug(slug) {
   try {
+    const safeSlug = (typeof slug === 'string') ? slug.trim() : '';
+    if (!safeSlug) return null;
     if (!isConnected) await connectDB();
     if (!db) return null;
-    const post = await db.collection('posts').findOne({ slug });
+    const post = await db.collection('posts').findOne({ slug: safeSlug });
     if (post) {
       const { _id, ...rest } = post;
       return rest;
@@ -156,6 +158,10 @@ export async function dbGetPostBySlug(slug) {
 
 export async function dbSavePost(post) {
   try {
+    if (!post || typeof post !== 'object' || !post.slug) {
+      console.warn('⚠️ [MongoDB] Invalid post object or missing slug');
+      return false;
+    }
     if (!isConnected) await connectDB();
     if (!db) {
       console.warn('⚠️ [MongoDB] Cannot save post: DB not connected');
@@ -178,10 +184,12 @@ export async function dbSavePost(post) {
 
 export async function dbDeletePost(identifier) {
   try {
+    const safeId = (typeof identifier === 'string' || typeof identifier === 'number') ? String(identifier).trim() : '';
+    if (!safeId) return false;
     if (!isConnected) await connectDB();
     if (!db) return false;
     const res = await db.collection('posts').deleteOne({
-      $or: [{ slug: identifier }, { id: Number(identifier) }, { id: String(identifier) }]
+      $or: [{ slug: safeId }, { id: Number(safeId) || safeId }, { id: safeId }]
     });
     return res.deletedCount > 0;
   } catch (err) {
@@ -192,11 +200,13 @@ export async function dbDeletePost(identifier) {
 
 export async function dbTogglePostVisibility(identifier, isHidden) {
   try {
+    const safeId = (typeof identifier === 'string' || typeof identifier === 'number') ? String(identifier).trim() : '';
+    if (!safeId) return false;
     if (!isConnected) await connectDB();
     if (!db) return false;
     await db.collection('posts').updateOne(
-      { $or: [{ slug: identifier }, { id: Number(identifier) }, { id: String(identifier) }] },
-      { $set: { hidden: isHidden } }
+      { $or: [{ slug: safeId }, { id: Number(safeId) || safeId }, { id: safeId }] },
+      { $set: { hidden: !!isHidden } }
     );
     return true;
   } catch (err) {

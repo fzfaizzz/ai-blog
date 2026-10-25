@@ -128,24 +128,53 @@ export function deletePost(identifier) {
 /**
  * Increments real view count for an article and country.
  */
+let pendingPostsFileSave = false;
+let pendingAnalyticsFileSave = false;
+let analyticsCache = null;
+
+function schedulePostsFileSave() {
+  if (pendingPostsFileSave) return;
+  pendingPostsFileSave = true;
+  setTimeout(() => {
+    pendingPostsFileSave = false;
+    fs.writeFile(POSTS_FILE, JSON.stringify(cachedPosts, null, 2), err => {
+      if (err) console.error('Error flushing posts to disk:', err.message);
+    });
+  }, 30000); // Debounce batch write to disk every 30s (non-blocking)
+}
+
+function scheduleAnalyticsFileSave() {
+  if (pendingAnalyticsFileSave) return;
+  pendingAnalyticsFileSave = true;
+  setTimeout(() => {
+    pendingAnalyticsFileSave = false;
+    if (analyticsCache) {
+      fs.writeFile(ANALYTICS_FILE, JSON.stringify(analyticsCache, null, 2), err => {
+        if (err) console.error('Error flushing analytics to disk:', err.message);
+      });
+    }
+  }, 30000);
+}
+
 export function recordRealView(slug, countryName = '🇺🇸 United States') {
   try {
     const post = cachedPosts.find(p => p.slug === slug);
     if (post) {
       post.views = (post.views || 0) + 1;
-      try { fs.writeFileSync(POSTS_FILE, JSON.stringify(cachedPosts, null, 2)); } catch (e) {}
+      schedulePostsFileSave();
       dbIncrementViews(slug).catch(() => {});
     }
 
-    let analytics = INITIAL_ANALYTICS;
-    if (fs.existsSync(ANALYTICS_FILE)) {
-      analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8'));
+    if (!analyticsCache) {
+      analyticsCache = INITIAL_ANALYTICS;
+      if (fs.existsSync(ANALYTICS_FILE)) {
+        try { analyticsCache = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8')); } catch (e) {}
+      }
     }
 
-    if (!analytics.countryViews) analytics.countryViews = {};
-    analytics.countryViews[countryName] = (analytics.countryViews[countryName] || 0) + 1;
-
-    fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
+    if (!analyticsCache.countryViews) analyticsCache.countryViews = {};
+    analyticsCache.countryViews[countryName] = (analyticsCache.countryViews[countryName] || 0) + 1;
+    scheduleAnalyticsFileSave();
   } catch (e) {
     console.error('Error recording real view:', e);
   }

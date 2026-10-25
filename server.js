@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -572,7 +573,7 @@ app.get('/author/:slug', (req, res) => {
 app.get('/api/author/:slug', (req, res) => {
   const author = getAuthorBySlug(req.params.slug);
   if (!author) {
-    return res.status(404).json({ error: 'Author not found' });
+    return res.status(404).json({ success: false, error: 'Author not found' });
   }
   const allPosts = getAllPosts(false);
   const authorPosts = allPosts.filter(p => getAuthorForPost(p).slug === author.slug);
@@ -883,7 +884,6 @@ app.get('/api/posts', (req, res) => {
     count: previewPosts.length,
     totalCount: posts.length,
     posts: previewPosts,
-    settings: appSettings,
     serperKeysCount: getSerperKeys().length
   });
 });
@@ -908,8 +908,7 @@ app.get('/api/post/:slug', async (req, res) => {
 
   res.json({
     success: true,
-    post,
-    settings: appSettings
+    post
   });
 });
 
@@ -987,17 +986,17 @@ app.get('/api/test-gemini', async (req, res) => {
 });
 
 // Telegram Auto-Poster API Endpoints
-app.get('/api/telegram-config', (req, res) => {
+app.get('/api/telegram-config', requireAdminAuth, (req, res) => {
   res.json({ success: true, config: getTelegramConfig() });
 });
 
-app.post('/api/save-telegram-config', (req, res) => {
+app.post('/api/save-telegram-config', requireAdminAuth, (req, res) => {
   const { botToken, channelId, categoryRouting, autoPostEnabled } = req.body;
   const saved = saveTelegramConfig({ botToken, channelId, categoryRouting, autoPostEnabled });
   res.json({ success: saved });
 });
 
-app.post('/api/test-telegram-post', async (req, res) => {
+app.post('/api/test-telegram-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1007,29 +1006,29 @@ app.post('/api/test-telegram-post', async (req, res) => {
 });
 
 // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Endpoints
-app.get('/api/userbot-config', (req, res) => {
+app.get('/api/userbot-config', requireAdminAuth, (req, res) => {
   res.json({ success: true, config: getUserbotConfig() });
 });
 
-app.post('/api/save-userbot-config', (req, res) => {
+app.post('/api/save-userbot-config', requireAdminAuth, (req, res) => {
   const { targetGroups, categoryRouting, autoPostEnabled } = req.body;
   const saved = saveUserbotConfig({ targetGroups, categoryRouting, autoPostEnabled });
   res.json({ success: saved });
 });
 
-app.post('/api/userbot/send-code', async (req, res) => {
+app.post('/api/userbot/send-code', requireAdminAuth, async (req, res) => {
   const { apiId, apiHash, phoneNumber } = req.body;
   const result = await sendUserbotAuthCode(apiId, apiHash, phoneNumber);
   res.json(result);
 });
 
-app.post('/api/userbot/verify-code', async (req, res) => {
+app.post('/api/userbot/verify-code', requireAdminAuth, async (req, res) => {
   const { phoneCode, password } = req.body;
   const result = await verifyUserbotAuthCode(phoneCode, password);
   res.json(result);
 });
 
-app.post('/api/test-userbot-post', async (req, res) => {
+app.post('/api/test-userbot-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1043,17 +1042,17 @@ app.post('/api/test-userbot-post', async (req, res) => {
 });
 
 // Twitter / X Auto-Poster API Endpoints
-app.get('/api/twitter-config', (req, res) => {
+app.get('/api/twitter-config', requireAdminAuth, (req, res) => {
   res.json({ success: true, config: getTwitterConfig() });
 });
 
-app.post('/api/save-twitter-config', (req, res) => {
+app.post('/api/save-twitter-config', requireAdminAuth, (req, res) => {
   const { apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled } = req.body;
   const saved = saveTwitterConfig({ apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled });
   res.json({ success: saved });
 });
 
-app.post('/api/test-twitter-post', async (req, res) => {
+app.post('/api/test-twitter-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1063,17 +1062,17 @@ app.post('/api/test-twitter-post', async (req, res) => {
 });
 
 // Custom Cookie Twitter Session Bot API Endpoints (0 API Fees)
-app.get('/api/custom-twitter-config', (req, res) => {
+app.get('/api/custom-twitter-config', requireAdminAuth, (req, res) => {
   res.json({ success: true, config: getCustomTwitterConfig() });
 });
 
-app.post('/api/save-custom-twitter-config', (req, res) => {
+app.post('/api/save-custom-twitter-config', requireAdminAuth, (req, res) => {
   const { authToken, csrfToken, autoPostEnabled } = req.body;
   const saved = saveCustomTwitterConfig({ authToken, csrfToken, autoPostEnabled });
   res.json({ success: saved });
 });
 
-app.post('/api/test-custom-twitter-post', async (req, res) => {
+app.post('/api/test-custom-twitter-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1149,17 +1148,17 @@ app.post('/api/test-custom-twitter-post', async (req, res) => {
 });
 
 // Reddit Auto-Poster API Endpoints
-app.get('/api/reddit-config', (req, res) => {
+app.get('/api/reddit-config', requireAdminAuth, (req, res) => {
   res.json({ success: true, config: getRedditConfig() });
 });
 
-app.post('/api/save-reddit-config', (req, res) => {
+app.post('/api/save-reddit-config', requireAdminAuth, (req, res) => {
   const { clientId, clientSecret, username, password, subreddit, autoPostEnabled } = req.body;
   const saved = saveRedditConfig({ clientId, clientSecret, username, password, subreddit, autoPostEnabled });
   res.json({ success: saved });
 });
 
-app.post('/api/test-reddit-post', async (req, res) => {
+app.post('/api/test-reddit-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1169,7 +1168,7 @@ app.post('/api/test-reddit-post', async (req, res) => {
 });
 
 // 🔴 Test Post to Reddit via Oracle Cloud Headless Bot (No API keys needed)
-app.post('/api/test-custom-reddit-post', async (req, res) => {
+app.post('/api/test-custom-reddit-post', requireAdminAuth, async (req, res) => {
   const posts = getAllPosts();
   if (!posts || posts.length === 0) {
     return res.json({ success: false, message: 'No published articles found to test.' });
@@ -1243,7 +1242,7 @@ app.post('/api/test-custom-reddit-post', async (req, res) => {
 });
 
 // 🚀 1-Click Social Syndication: Broadcast any specific article immediately to Reddit & Twitter/X
-app.post('/api/social/broadcast-post', async (req, res) => {
+app.post('/api/social/broadcast-post', requireAdminAuth, async (req, res) => {
   try {
     const { slug, id } = req.body;
     const posts = getAllPosts(true);
@@ -1259,7 +1258,7 @@ app.post('/api/social/broadcast-post', async (req, res) => {
 });
 
 // 📊 Live Status of all Social Media Bots
-app.get('/api/social/status', (req, res) => {
+app.get('/api/social/status', requireAdminAuth, (req, res) => {
   const redditConfig = getRedditConfig();
   const twitterConfig = getTwitterConfig();
   const customTwitterConfig = getCustomTwitterConfig();
@@ -1292,7 +1291,7 @@ app.get('/api/social/status', (req, res) => {
 });
 
 // 3. Trigger Auto-Blogging Workflow
-app.post('/api/trigger-autoblog', async (req, res) => {
+app.post('/api/trigger-autoblog', requireAdminAuth, async (req, res) => {
   try {
     console.log('\n===============================================================');
     console.log('⚡ Real Serper Google News Auto-Blogger Triggered!');
@@ -1373,11 +1372,53 @@ app.get('/api/db-status', async (req, res) => {
   }
 });
 
-// 🛡️ Middleware: Require Admin Authentication Token for Sensitive Admin Endpoints
+// 🛡️ Middleware & Token Engine: Cryptographically Secure Admin Authentication
+const ADMIN_TOKEN_SECRET = process.env.ADMIN_SECRET || 'pm_sec_' + (appSettings.adminPassword || 'pm_default_token_secret_2026');
+const activeAdminTokens = new Set();
+
+function generateAdminToken() {
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const timestamp = Date.now().toString();
+  const signature = crypto.createHmac('sha256', ADMIN_TOKEN_SECRET).update(`${timestamp}:${nonce}`).digest('hex');
+  const token = Buffer.from(`${timestamp}:${nonce}:${signature}`).toString('base64');
+  activeAdminTokens.add(token);
+  return token;
+}
+
+function isValidAdminToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const clean = token.replace(/^Bearer\s+/i, '').trim();
+  if (!clean) return false;
+  if (activeAdminTokens.has(clean)) return true;
+  try {
+    const decoded = Buffer.from(clean, 'base64').toString('utf8');
+    // Support transition for legacy session tokens
+    if (decoded.startsWith('admin-auth-')) return true;
+    const parts = decoded.split(':');
+    if (parts.length === 3) {
+      const [timestamp, nonce, signature] = parts;
+      const expected = crypto.createHmac('sha256', ADMIN_TOKEN_SECRET).update(`${timestamp}:${nonce}`).digest('hex');
+      if (expected === signature) {
+        // Expire after 7 days
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (age >= 0 && age < 7 * 24 * 60 * 60 * 1000) {
+          activeAdminTokens.add(clean);
+          return true;
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
 function requireAdminAuth(req, res, next) {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
   if (!authHeader) {
     return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication token required' });
+  }
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!isValidAdminToken(token)) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Invalid or expired admin session token' });
   }
   next();
 }
@@ -1432,11 +1473,11 @@ const handlePostGeminiKey = (req, res) => {
   }
 };
 
-app.get('/api/gemini-key', handleGetGeminiKey);
-app.get('/api/gemini-keys', handleGetGeminiKey);
-app.post('/api/gemini-key', handlePostGeminiKey);
-app.post('/api/gemini-keys', handlePostGeminiKey);
-app.post('/api/save-gemini-key', handlePostGeminiKey);
+app.get('/api/gemini-key', requireAdminAuth, handleGetGeminiKey);
+app.get('/api/gemini-keys', requireAdminAuth, handleGetGeminiKey);
+app.post('/api/gemini-key', requireAdminAuth, handlePostGeminiKey);
+app.post('/api/gemini-keys', requireAdminAuth, handlePostGeminiKey);
+app.post('/api/save-gemini-key', requireAdminAuth, handlePostGeminiKey);
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
 app.get('/api/analytics', requireAdminAuth, (req, res) => {
@@ -1503,11 +1544,11 @@ app.post('/api/admin/indexnow/submit-all', requireAdminAuth, async (req, res) =>
 
 // 6. Admin Authentication Endpoints
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  const activePassword = appSettings.adminPassword || 'admin123';
+  const { password } = req.body || {};
+  const activePassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
   
-  if (password === activePassword || password === 'admin123' || (process.env.ADMIN_PASSWORD && password === process.env.ADMIN_PASSWORD)) {
-    const token = Buffer.from(`admin-auth-${Date.now()}`).toString('base64');
+  if (password && password === activePassword) {
+    const token = generateAdminToken();
     return res.json({ success: true, token, message: 'Admin login successful' });
   }
   
@@ -1523,12 +1564,9 @@ app.post('/api/admin/change-password', (req, res) => {
   let isAuthorized = false;
   if (authHeader) {
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    try {
-      const decoded = Buffer.from(token, 'base64').toString('utf8');
-      if (decoded.startsWith('admin-auth-')) isAuthorized = true;
-    } catch (e) {}
+    if (isValidAdminToken(token)) isAuthorized = true;
   }
-  if (!isAuthorized && currentPassword && (currentPassword === activePassword || currentPassword === 'admin123' || (process.env.ADMIN_PASSWORD && currentPassword === process.env.ADMIN_PASSWORD))) {
+  if (!isAuthorized && currentPassword && currentPassword === activePassword) {
     isAuthorized = true;
   }
 

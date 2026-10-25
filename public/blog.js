@@ -341,11 +341,12 @@ function scrollToGridTop() {
 
 // Bind Category Navigation & Search Input Listeners
 function initCategoryFilter() {
-  const categoryBtns = document.querySelectorAll('.category-btn');
+  const categoryBtns = document.querySelectorAll('.category-btn[data-category]');
   categoryBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      e.preventDefault();
       const targetCat = btn.getAttribute('data-category');
+      if (!targetCat) return; // Allow natural navigation for links without data-category
+      e.preventDefault();
 
       // Update Active UI State
       categoryBtns.forEach(b => {
@@ -766,6 +767,14 @@ function initAdminPanel() {
   if (isAdminPanelInitialized) return;
   isAdminPanelInitialized = true;
 
+  function getAdminAuthHeaders() {
+    const token = sessionStorage.getItem('adminToken') || '';
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
   const loginModal = document.getElementById('adminLoginModal');
   const loginForm = document.getElementById('adminLoginForm');
   const passwordInput = document.getElementById('adminPasswordInput');
@@ -1040,6 +1049,7 @@ function initAdminPanel() {
 
         try {
           const res = await fetch('/api/social/broadcast-post', {
+          headers: getAdminAuthHeaders(),
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ slug })
@@ -1174,7 +1184,7 @@ function initAdminPanel() {
       saveGeminiBtn.innerText = '⌛ Saving Key...';
 
       try {
-        const token = sessionStorage.getItem('adminToken') || 'Faiz@1122';
+        const token = sessionStorage.getItem('adminToken') || '';
         let res = await fetch('/api/save-gemini-key', {
           method: 'POST',
           headers: { 
@@ -1395,7 +1405,7 @@ function initAdminPanel() {
   async function loadTelegramConfig() {
     if (!telegramBotTokenInput) return;
     try {
-      const res = await fetch('/api/telegram-config');
+      const res = await fetch('/api/telegram-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
         telegramBotTokenInput.value = data.config.botToken || '';
@@ -1417,6 +1427,7 @@ function initAdminPanel() {
       if (telegramStatus) telegramStatus.innerText = '⌛ Saving...';
       try {
         const res = await fetch('/api/save-telegram-config', {
+        headers: getAdminAuthHeaders(),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1457,7 +1468,8 @@ function initAdminPanel() {
     testTelegramPostBtn.addEventListener('click', async () => {
       if (telegramStatus) telegramStatus.innerText = '⌛ Sending test post...';
       try {
-        const res = await fetch('/api/test-telegram-post', { method: 'POST' });
+        const res = await fetch('/api/test-telegram-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
         const data = await res.json();
         if (data.success) {
           if (telegramStatus) {
@@ -1506,7 +1518,7 @@ function initAdminPanel() {
   async function loadUserbotConfig() {
     if (!userbotTargetGroupsInput) return;
     try {
-      const res = await fetch('/api/userbot-config');
+      const res = await fetch('/api/userbot-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
         if (userbotApiIdInput) userbotApiIdInput.value = data.config.apiId || '';
@@ -1548,6 +1560,7 @@ function initAdminPanel() {
 
       try {
         const res = await fetch('/api/userbot/send-code', {
+        headers: getAdminAuthHeaders(),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiId, apiHash, phoneNumber })
@@ -1581,6 +1594,7 @@ function initAdminPanel() {
 
       try {
         const res = await fetch('/api/userbot/verify-code', {
+        headers: getAdminAuthHeaders(),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneCode })
@@ -1612,6 +1626,7 @@ function initAdminPanel() {
       if (userbotStatus) userbotStatus.innerText = '⌛ Saving...';
       try {
         const res = await fetch('/api/save-userbot-config', {
+        headers: getAdminAuthHeaders(),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1651,7 +1666,8 @@ function initAdminPanel() {
     testUserbotPostBtn.addEventListener('click', async () => {
       if (userbotStatus) userbotStatus.innerText = '⌛ Broadcasting via Userbot...';
       try {
-        const res = await fetch('/api/test-userbot-post', { method: 'POST' });
+        const res = await fetch('/api/test-userbot-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
         const data = await res.json();
         if (data.success) {
           if (userbotStatus) {
@@ -1690,7 +1706,7 @@ function initAdminPanel() {
   async function loadTwitterConfig() {
     if (!twitterApiKeyInput) return;
     try {
-      const res = await fetch('/api/twitter-config');
+      const res = await fetch('/api/twitter-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
         twitterApiKeyInput.value = data.config.apiKey || '';
@@ -1710,6 +1726,7 @@ function initAdminPanel() {
       if (twitterStatus) twitterStatus.innerText = '⌛ Saving...';
       try {
         const res = await fetch('/api/save-twitter-config', {
+        headers: getAdminAuthHeaders(),
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1746,7 +1763,8 @@ function initAdminPanel() {
     testTwitterPostBtn.addEventListener('click', async () => {
       if (twitterStatus) twitterStatus.innerText = '⌛ Sending test tweet to X...';
       try {
-        const res = await fetch('/api/test-twitter-post', { method: 'POST' });
+        const res = await fetch('/api/test-twitter-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
         const data = await res.json();
         if (data.success) {
           if (twitterStatus) {
@@ -1784,7 +1802,7 @@ function initAdminPanel() {
   async function loadCustomTwitterConfig() {
     if (!customAuthTokenInput) return;
     try {
-      const res = await fetch('/api/custom-twitter-config');
+      const res = await fetch('/api/custom-twitter-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
         customAuthTokenInput.value = data.config.authToken || '';
@@ -1822,6 +1840,7 @@ function initAdminPanel() {
     if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Saving...';
     try {
       const res = await fetch('/api/save-custom-twitter-config', {
+        headers: getAdminAuthHeaders(),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1877,7 +1896,8 @@ function initAdminPanel() {
     }
 
     try {
-      const res = await fetch('/api/test-custom-twitter-post', { method: 'POST' });
+      const res = await fetch('/api/test-custom-twitter-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
       const data = await res.json();
       if (data.success) {
         const liveUrl = data.tweetUrl || 'https://x.com/PrimeMediaSite';
@@ -1936,7 +1956,8 @@ function initAdminPanel() {
     }
 
     try {
-      const res = await fetch('/api/test-custom-reddit-post', { method: 'POST' });
+      const res = await fetch('/api/test-custom-reddit-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
       const data = await res.json();
       if (data.success) {
         if (statusDisplay) {
@@ -1983,7 +2004,7 @@ function initAdminPanel() {
   async function loadRedditConfig() {
     if (!redditClientIdInput) return;
     try {
-      const res = await fetch('/api/reddit-config');
+      const res = await fetch('/api/reddit-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
         redditClientIdInput.value = data.config.clientId || '';
@@ -2022,6 +2043,7 @@ function initAdminPanel() {
     if (redditStatus) redditStatus.innerText = '⌛ Saving Reddit Settings...';
     try {
       const res = await fetch('/api/save-reddit-config', {
+        headers: getAdminAuthHeaders(),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2063,7 +2085,8 @@ function initAdminPanel() {
     testRedditPostBtn.addEventListener('click', async () => {
       if (redditStatus) redditStatus.innerText = '⌛ Sending test post to Reddit...';
       try {
-        const res = await fetch('/api/test-reddit-post', { method: 'POST' });
+        const res = await fetch('/api/test-reddit-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
         const data = await res.json();
         if (data.success) {
           if (redditStatus) {
