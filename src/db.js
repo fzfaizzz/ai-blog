@@ -49,6 +49,8 @@ export async function connectDB() {
     const postsCollection = db.collection('posts');
     await postsCollection.createIndex({ slug: 1 }, { unique: true, sparse: true }).catch(() => {});
     await postsCollection.createIndex({ id: 1 }).catch(() => {});
+    await postsCollection.createIndex({ publishedAt: -1, id: -1 }).catch(() => {});
+    await postsCollection.createIndex({ hidden: 1, publishedAt: -1 }).catch(() => {});
     await postsCollection.createIndex({ publishedAt: -1 }).catch(() => {});
 
     // Seed database if empty
@@ -122,6 +124,7 @@ export async function dbGetAllPosts() {
     if (!db) return null;
     const posts = await db.collection('posts')
       .find({})
+      .allowDiskUse(true)
       .sort({ publishedAt: -1, id: -1 })
       .toArray();
     return posts.map(p => {
