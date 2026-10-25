@@ -63,6 +63,10 @@ POLICY_PAGES.forEach((page) => {
   app.get(`/post/${page}.html`, (req, res) => res.redirect(301, `/${page}.html`));
   app.get(`/post/${page}`, (req, res) => res.redirect(301, `/${page}.html`));
 });
+app.get(['/privacy-policy', '/privacy-policy.html', '/privacy-policy/'], (req, res) => res.redirect(301, '/privacy.html'));
+app.get(['/terms-of-service', '/terms-of-service.html', '/terms-and-conditions', '/terms-of-use'], (req, res) => res.redirect(301, '/terms.html'));
+app.get(['/about-us', '/about-us.html'], (req, res) => res.redirect(301, '/about.html'));
+app.get(['/contact-us', '/contact-us.html'], (req, res) => res.redirect(301, '/contact.html'));
 app.get('/post/sitemap.xml', (req, res) => res.redirect(301, '/sitemap.xml'));
 
 app.use(cors());
