@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.join(__dirname, '..');
 
-let key = 'AIzaSyCKsoswky0Xu4tNnxD4CpF2fXXaRtSCa1w';
+let key = process.env.GEMINI_API_KEY || '';
 try {
   const p = path.join(ROOT_DIR, 'data/gemini_keys.json');
   if (fs.existsSync(p)) {

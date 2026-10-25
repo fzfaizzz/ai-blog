@@ -1,6 +1,22 @@
 import https from 'https';
 
-const key = 'AIzaSyCKsoswky0Xu4tNnxD4CpF2fXXaRtSCa1w';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.join(__dirname, '..');
+
+let key = process.env.GEMINI_API_KEY || '';
+try {
+  const p = path.join(ROOT_DIR, 'data/gemini_keys.json');
+  if (fs.existsSync(p)) {
+    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+    if (Array.isArray(raw)) key = raw[0];
+    else if (raw.keys && raw.keys[0]) key = raw.keys[0];
+  }
+} catch (e) {}
 
 const prompt = `You are a Senior Technology Editor. Write an informative 800-word overview on: "How to Run DeepSeek Locally on Laptops". Output clean HTML with <h2>, <p>, <ul>. Do not include markdown fences.`;
 

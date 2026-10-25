@@ -928,6 +928,7 @@ app.get('/api/test-gemini', async (req, res) => {
 
   const results = [];
   const testModels = [
+    { name: 'gemini-2.5-flash', ver: 'v1beta' },
     { name: 'gemini-2.0-flash', ver: 'v1beta' },
     { name: 'gemini-1.5-flash', ver: 'v1beta' },
     { name: 'gemini-1.5-pro', ver: 'v1beta' }
@@ -991,18 +992,22 @@ app.get('/api/telegram-config', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/save-telegram-config', requireAdminAuth, (req, res) => {
-  const { botToken, channelId, categoryRouting, autoPostEnabled } = req.body;
+  const { botToken, channelId, categoryRouting, autoPostEnabled } = req.body || {};
   const saved = saveTelegramConfig({ botToken, channelId, categoryRouting, autoPostEnabled });
   res.json({ success: saved });
 });
 
 app.post('/api/test-telegram-post', requireAdminAuth, async (req, res) => {
-  const posts = getAllPosts();
-  if (!posts || posts.length === 0) {
-    return res.json({ success: false, message: 'No published articles found to test.' });
+  try {
+    const posts = getAllPosts();
+    if (!posts || posts.length === 0) {
+      return res.json({ success: false, message: 'No published articles found to test.' });
+    }
+    const result = await sendPostToTelegram(posts[0], true);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
-  const result = await sendPostToTelegram(posts[0], true);
-  res.json(result);
 });
 
 // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Endpoints
@@ -1011,34 +1016,46 @@ app.get('/api/userbot-config', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/save-userbot-config', requireAdminAuth, (req, res) => {
-  const { targetGroups, categoryRouting, autoPostEnabled } = req.body;
+  const { targetGroups, categoryRouting, autoPostEnabled } = req.body || {};
   const saved = saveUserbotConfig({ targetGroups, categoryRouting, autoPostEnabled });
   res.json({ success: saved });
 });
 
 app.post('/api/userbot/send-code', requireAdminAuth, async (req, res) => {
-  const { apiId, apiHash, phoneNumber } = req.body;
-  const result = await sendUserbotAuthCode(apiId, apiHash, phoneNumber);
-  res.json(result);
+  try {
+    const { apiId, apiHash, phoneNumber } = req.body || {};
+    const result = await sendUserbotAuthCode(apiId, apiHash, phoneNumber);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.post('/api/userbot/verify-code', requireAdminAuth, async (req, res) => {
-  const { phoneCode, password } = req.body;
-  const result = await verifyUserbotAuthCode(phoneCode, password);
-  res.json(result);
+  try {
+    const { phoneCode, password } = req.body || {};
+    const result = await verifyUserbotAuthCode(phoneCode, password);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.post('/api/test-userbot-post', requireAdminAuth, async (req, res) => {
-  const posts = getAllPosts();
-  if (!posts || posts.length === 0) {
-    return res.json({ success: false, message: 'No published articles found to test.' });
+  try {
+    const posts = getAllPosts();
+    if (!posts || posts.length === 0) {
+      return res.json({ success: false, message: 'No published articles found to test.' });
+    }
+    // 1. Ensure official post with photo & website link is sent to channel first
+    await sendPostToTelegram(posts[0], true).catch(e => console.error('Telegram test bot error:', e));
+    
+    // 2. Post to public groups via Userbot with HD Photo Banner + exact deep-link
+    const result = await sendPostViaUserbot(posts[0], true);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
-  // 1. Ensure official post with photo & website link is sent to channel first
-  await sendPostToTelegram(posts[0], true).catch(e => console.error('Telegram test bot error:', e));
-  
-  // 2. Post to public groups via Userbot with HD Photo Banner + exact deep-link
-  const result = await sendPostViaUserbot(posts[0], true);
-  res.json(result);
 });
 
 // Twitter / X Auto-Poster API Endpoints
@@ -1047,18 +1064,22 @@ app.get('/api/twitter-config', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/save-twitter-config', requireAdminAuth, (req, res) => {
-  const { apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled } = req.body;
+  const { apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled } = req.body || {};
   const saved = saveTwitterConfig({ apiKey, apiSecret, accessToken, accessSecret, autoPostEnabled });
   res.json({ success: saved });
 });
 
 app.post('/api/test-twitter-post', requireAdminAuth, async (req, res) => {
-  const posts = getAllPosts();
-  if (!posts || posts.length === 0) {
-    return res.json({ success: false, message: 'No published articles found to test.' });
+  try {
+    const posts = getAllPosts();
+    if (!posts || posts.length === 0) {
+      return res.json({ success: false, message: 'No published articles found to test.' });
+    }
+    const result = await sendPostToTwitter(posts[0], true);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
-  const result = await sendPostToTwitter(posts[0], true);
-  res.json(result);
 });
 
 // Custom Cookie Twitter Session Bot API Endpoints (0 API Fees)
@@ -1067,7 +1088,7 @@ app.get('/api/custom-twitter-config', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/save-custom-twitter-config', requireAdminAuth, (req, res) => {
-  const { authToken, csrfToken, autoPostEnabled } = req.body;
+  const { authToken, csrfToken, autoPostEnabled } = req.body || {};
   const saved = saveCustomTwitterConfig({ authToken, csrfToken, autoPostEnabled });
   res.json({ success: saved });
 });
@@ -1153,18 +1174,22 @@ app.get('/api/reddit-config', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/save-reddit-config', requireAdminAuth, (req, res) => {
-  const { clientId, clientSecret, username, password, subreddit, autoPostEnabled } = req.body;
+  const { clientId, clientSecret, username, password, subreddit, autoPostEnabled } = req.body || {};
   const saved = saveRedditConfig({ clientId, clientSecret, username, password, subreddit, autoPostEnabled });
   res.json({ success: saved });
 });
 
 app.post('/api/test-reddit-post', requireAdminAuth, async (req, res) => {
-  const posts = getAllPosts();
-  if (!posts || posts.length === 0) {
-    return res.json({ success: false, message: 'No published articles found to test.' });
+  try {
+    const posts = getAllPosts();
+    if (!posts || posts.length === 0) {
+      return res.json({ success: false, message: 'No published articles found to test.' });
+    }
+    const result = await sendPostToReddit(posts[0], true);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
-  const result = await sendPostToReddit(posts[0], true);
-  res.json(result);
 });
 
 // 🔴 Test Post to Reddit via Oracle Cloud Headless Bot (No API keys needed)
@@ -1392,8 +1417,8 @@ function isValidAdminToken(token) {
   if (activeAdminTokens.has(clean)) return true;
   try {
     const decoded = Buffer.from(clean, 'base64').toString('utf8');
-    // Support transition for legacy session tokens
-    if (decoded.startsWith('admin-auth-')) return true;
+    // Deprecated legacy tokens disabled for strict HMAC security
+    // if (decoded.startsWith('admin-auth-')) return true;
     const parts = decoded.split(':');
     if (parts.length === 3) {
       const [timestamp, nonce, signature] = parts;
@@ -1495,7 +1520,7 @@ app.get('/api/admin/posts', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/admin/post/toggle-visibility', requireAdminAuth, (req, res) => {
-  const { id } = req.body;
+  const { id } = req.body || {};
   if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
 
   const updatedPost = togglePostVisibility(id);
@@ -1506,7 +1531,7 @@ app.post('/api/admin/post/toggle-visibility', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/admin/post/delete', requireAdminAuth, (req, res) => {
-  const { id } = req.body;
+  const { id } = req.body || {};
   if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
 
   const deleted = deletePost(id);

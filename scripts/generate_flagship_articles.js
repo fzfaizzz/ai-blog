@@ -2,14 +2,23 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { MongoClient } from 'mongodb';
+import { connectDB } from '../src/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.join(__dirname, '..');
 
-const GEMINI_KEY = 'AIzaSyCKsoswky0Xu4tNnxD4CpF2fXXaRtSCa1w';
-const MONGO_URI = 'mongodb+srv://akhtarfarhan251_db_user:HUEXPccjB9Wm1msH@cluster0.nfkigk7.mongodb.net/primemedia?retryWrites=true&w=majority&appName=Cluster0';
+let GEMINI_KEY = process.env.GEMINI_API_KEY || '';
+if (!GEMINI_KEY) {
+  try {
+    const p = path.join(ROOT_DIR, 'data/gemini_keys.json');
+    if (fs.existsSync(p)) {
+      const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (Array.isArray(raw)) GEMINI_KEY = raw[0];
+      else if (raw.keys && raw.keys[0]) GEMINI_KEY = raw.keys[0];
+    }
+  } catch (e) {}
+}
 
 const FLAGSHIP_TOPICS = [
   {
@@ -208,24 +217,23 @@ async function main() {
   // Sync directly with MongoDB Atlas
   try {
     console.log('🍃 Syncing flagship articles to MongoDB Atlas...');
-    const client = new MongoClient(MONGO_URI, { tls: true, serverSelectionTimeoutMS: 15000 });
-    await client.connect();
-    const db = client.db('primemedia');
-    const col = db.collection('posts');
-
-    for (const gp of generatedPosts) {
-      const cleanPost = { ...gp };
-      delete cleanPost._id;
-      await col.updateOne(
-        { slug: cleanPost.slug },
-        { $set: cleanPost },
-        { upsert: true }
-      );
-      console.log(`   ✓ Synced to MongoDB: "${cleanPost.title}"`);
+    const db = await connectDB();
+    if (db) {
+      const col = db.collection('posts');
+      for (const gp of generatedPosts) {
+        const cleanPost = { ...gp };
+        delete cleanPost._id;
+        await col.updateOne(
+          { slug: cleanPost.slug },
+          { $set: cleanPost },
+          { upsert: true }
+        );
+        console.log(`   ✓ Synced to MongoDB: "${cleanPost.title}"`);
+      }
+      console.log('✅ All flagship articles synced to cloud database!');
+    } else {
+      console.warn('⚠️ MongoDB not connected, articles saved locally.');
     }
-
-    await client.close();
-    console.log('✅ All flagship articles synced to cloud database!');
   } catch (dbErr) {
     console.warn('⚠️ MongoDB sync warning:', dbErr.message);
   }

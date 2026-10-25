@@ -124,8 +124,8 @@ export async function dbGetAllPosts() {
     if (!db) return null;
     const posts = await db.collection('posts')
       .find({})
-      .allowDiskUse(true)
       .sort({ publishedAt: -1, id: -1 })
+      .allowDiskUse(true)
       .toArray();
     return posts.map(p => {
       const { _id, ...rest } = p;

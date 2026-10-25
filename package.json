@@ -5,7 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "node --check server.js && node --check public/blog.js",
+    "test": "node ../scratch/test_suite.js && node ../scratch/test_live_server.js"
   },
   "dependencies": {
     "compression": "^1.8.1",

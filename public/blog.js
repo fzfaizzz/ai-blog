@@ -141,7 +141,7 @@ async function loadHomepagePosts(category = null, page = null) {
           <h2><a href="/post/${lead.slug}">${escapeHtml(lead.title)}</a></h2>
           <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
           <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
-            By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;"><strong>${author.name}</strong></a> • ${new Date(lead.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;"><strong>${author.name}</strong></a> • ${new Date(lead.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         `;
       }
@@ -190,7 +190,7 @@ async function loadHomepagePosts(category = null, page = null) {
                   <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
                 </h4>
                 <div class="spotlight-meta">
-                  <span>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></span> • <span>${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></span> • <span>${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </div>
               </div>
             `;
@@ -272,7 +272,7 @@ async function loadHomepagePosts(category = null, page = null) {
             <div class="card-author-meta">
               <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-avatar">${author.initials}</div></a>
               <div>
-                <strong>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></strong> • ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <strong>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></strong> • ${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
             </div>
           </div>
@@ -927,6 +927,11 @@ function initAdminPanel() {
     loadSerperKeysAndCredits();
     loadAnalytics();
     loadAdminArticlesList();
+    if (typeof loadTelegramConfig === 'function') loadTelegramConfig();
+    if (typeof loadUserbotConfig === 'function') loadUserbotConfig();
+    if (typeof loadTwitterConfig === 'function') loadTwitterConfig();
+    if (typeof loadCustomTwitterConfig === 'function') loadCustomTwitterConfig();
+    if (typeof loadRedditConfig === 'function') loadRedditConfig();
   }
 
   // Auto-refresh analytics and articles every 15 seconds while Admin is active
@@ -1051,7 +1056,6 @@ function initAdminPanel() {
           const res = await fetch('/api/social/broadcast-post', {
           headers: getAdminAuthHeaders(),
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ slug })
           });
           const data = await res.json();
@@ -1429,7 +1433,6 @@ function initAdminPanel() {
         const res = await fetch('/api/save-telegram-config', {
         headers: getAdminAuthHeaders(),
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             botToken: telegramBotTokenInput.value.trim(),
             channelId: telegramChannelIdInput.value.trim(),
@@ -1494,7 +1497,8 @@ function initAdminPanel() {
     });
   }
 
-  loadTelegramConfig();
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadTelegramConfig();
 
   // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Handlers
   const userbotAuthBadge = document.getElementById('userbotAuthBadge');
@@ -1562,7 +1566,6 @@ function initAdminPanel() {
         const res = await fetch('/api/userbot/send-code', {
         headers: getAdminAuthHeaders(),
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiId, apiHash, phoneNumber })
         });
         const data = await res.json();
@@ -1596,7 +1599,6 @@ function initAdminPanel() {
         const res = await fetch('/api/userbot/verify-code', {
         headers: getAdminAuthHeaders(),
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneCode })
         });
         const data = await res.json();
@@ -1628,7 +1630,6 @@ function initAdminPanel() {
         const res = await fetch('/api/save-userbot-config', {
         headers: getAdminAuthHeaders(),
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             targetGroups: userbotTargetGroupsInput.value.trim(),
             categoryRouting: {
@@ -1691,7 +1692,8 @@ function initAdminPanel() {
     });
   }
 
-  loadUserbotConfig();
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadUserbotConfig();
 
   // Twitter / X Auto-Poster Admin Handlers
   const twitterConfigForm = document.getElementById('twitterConfigForm');
@@ -1728,7 +1730,6 @@ function initAdminPanel() {
         const res = await fetch('/api/save-twitter-config', {
         headers: getAdminAuthHeaders(),
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             apiKey: twitterApiKeyInput.value.trim(),
             apiSecret: twitterApiSecretInput.value.trim(),
@@ -1789,7 +1790,8 @@ function initAdminPanel() {
     });
   }
 
-  loadTwitterConfig();
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadTwitterConfig();
 
   // Custom Direct Cookie Twitter Bot Admin Handlers
   const customTwitterConfigForm = document.getElementById('customTwitterConfigForm');
@@ -1842,7 +1844,6 @@ function initAdminPanel() {
       const res = await fetch('/api/save-custom-twitter-config', {
         headers: getAdminAuthHeaders(),
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           authToken: customAuthTokenInput.value.trim(),
           csrfToken: customCsrfTokenInput.value.trim(),
@@ -1987,7 +1988,8 @@ function initAdminPanel() {
     triggerRedditPostTestBtn.addEventListener('click', () => executeRedditPostTest(triggerRedditPostTestBtn, redditTestStatus));
   }
 
-  loadCustomTwitterConfig();
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadCustomTwitterConfig();
 
   // Reddit Subreddit Auto-Poster Admin Handlers
   const redditConfigForm = document.getElementById('redditConfigForm');
@@ -2045,7 +2047,6 @@ function initAdminPanel() {
       const res = await fetch('/api/save-reddit-config', {
         headers: getAdminAuthHeaders(),
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: redditClientIdInput.value.trim(),
           clientSecret: redditClientSecretInput.value.trim(),
@@ -2111,7 +2112,8 @@ function initAdminPanel() {
     });
   }
 
-  loadRedditConfig();
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadRedditConfig();
 
   async function loadAnalytics() {
     if (!topTopicsList || !countryTrafficList) return;
