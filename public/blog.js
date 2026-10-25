@@ -367,6 +367,10 @@ let cachedAllPosts = [];
 
 async function fetchAllPostsForSearch() {
   if (cachedAllPosts.length > 0) return cachedAllPosts;
+  if (cachedPosts && cachedPosts.length > 0) {
+    cachedAllPosts = cachedPosts;
+    return cachedAllPosts;
+  }
   try {
     const res = await fetch('/api/posts');
     const data = await res.json();
