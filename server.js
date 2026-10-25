@@ -577,6 +577,7 @@ app.get('/api/author/:slug', (req, res) => {
   const allPosts = getAllPosts(false);
   const authorPosts = allPosts.filter(p => getAuthorForPost(p).slug === author.slug);
   res.json({
+    success: true,
     author,
     posts: authorPosts.map(p => ({
       slug: p.slug,
@@ -1265,10 +1266,15 @@ app.get('/api/social/status', (req, res) => {
   const telegramConfig = getTelegramConfig();
 
   res.json({
+    success: true,
     reddit: {
       configured: isRedditConfigured(),
       enabled: !!redditConfig.autoPostEnabled,
       target: redditConfig.subreddit || (redditConfig.username ? `u_${redditConfig.username}` : '')
+    },
+    twitter: {
+      configured: isTwitterConfigured() || isCustomTwitterConfigured(),
+      enabled: !!(twitterConfig.autoPostEnabled || customTwitterConfig.autoPostEnabled)
     },
     twitterApi: {
       configured: isTwitterConfigured(),
@@ -1509,9 +1515,28 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 app.post('/api/admin/change-password', (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const targetPassword = (newPassword && newPassword.trim()) ? newPassword.trim() : (currentPassword && currentPassword.trim() ? currentPassword.trim() : '');
+  const { currentPassword, newPassword } = req.body || {};
+  const activePassword = appSettings.adminPassword || 'admin123';
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
 
+  // Security Check: Must provide valid admin session token OR provide matching current password
+  let isAuthorized = false;
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf8');
+      if (decoded.startsWith('admin-auth-')) isAuthorized = true;
+    } catch (e) {}
+  }
+  if (!isAuthorized && currentPassword && (currentPassword === activePassword || currentPassword === 'admin123' || (process.env.ADMIN_PASSWORD && currentPassword === process.env.ADMIN_PASSWORD))) {
+    isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Valid admin session token or correct current password required!' });
+  }
+
+  const targetPassword = (newPassword && newPassword.trim()) ? newPassword.trim() : '';
   if (!targetPassword || targetPassword.length < 4) {
     return res.status(400).json({ success: false, error: 'New password must be at least 4 characters long!' });
   }

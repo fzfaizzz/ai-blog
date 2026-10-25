@@ -876,9 +876,13 @@ function initAdminPanel() {
       if (changePassStatus) changePassStatus.innerText = '⌛ Updating password...';
 
       try {
+        const token = sessionStorage.getItem('adminToken') || '';
         const res = await fetch('/api/admin/change-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ currentPassword, newPassword: targetPass })
         });
         const data = await res.json();

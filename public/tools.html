@@ -377,8 +377,8 @@
     // Tool 1: AI Cost Calculator Logic
     function calculateAiCost() {
       const model = document.getElementById('aiModelSelect').value;
-      const inp = parseFloat(document.getElementById('inputTokens').value) || 0;
-      const out = parseFloat(document.getElementById('outputTokens').value) || 0;
+      const inp = Math.max(0, parseFloat(document.getElementById('inputTokens').value) || 0);
+      const out = Math.max(0, parseFloat(document.getElementById('outputTokens').value) || 0);
 
       const rates = {
         gpt4o: { in: 2.50, out: 10.00 },
@@ -423,9 +423,9 @@
 
     // Tool 3: DCA Compound Calculator Logic
     function calculateDca() {
-      const monthly = parseFloat(document.getElementById('monthlyInv').value) || 0;
-      const annualRate = (parseFloat(document.getElementById('annualRate').value) || 0) / 100;
-      const years = parseFloat(document.getElementById('investYears').value) || 0;
+      const monthly = Math.max(0, parseFloat(document.getElementById('monthlyInv').value) || 0);
+      const annualRate = Math.max(0, (parseFloat(document.getElementById('annualRate').value) || 0) / 100);
+      const years = Math.max(1, Math.min(60, parseFloat(document.getElementById('investYears').value) || 1));
 
       const months = years * 12;
       const monthlyRate = annualRate / 12;
