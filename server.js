@@ -265,7 +265,7 @@ app.get('/post/:slug', async (req, res) => {
 
   // Record 100% Real Human Views directly on SSR route (exclude known search/social bots)
   const ua = (req.headers['user-agent'] || '').toLowerCase();
-  if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview/i.test(ua)) {
+  if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview|python|curl|wget|scanner|probe|nmap|zgrab|go-http-client|apache-httpclient/i.test(ua)) {
     recordRealView(post.slug, detectRequestCountry(req));
   }
   
@@ -898,9 +898,12 @@ app.get('/api/post/:slug', async (req, res) => {
     return res.status(404).json({ success: false, error: 'Article not found' });
   }
 
-  // Record 100% Real Live View & Country Geo-Location
-  const country = detectRequestCountry(req);
-  recordRealView(slug, country);
+  // Record 100% Real Live View & Country Geo-Location (Exclude bots and automated scanners)
+  const apiUa = (req.headers['user-agent'] || '').toLowerCase();
+  if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview|python|curl|wget|scanner|probe|nmap|zgrab|go-http-client|apache-httpclient/i.test(apiUa)) {
+    const country = detectRequestCountry(req);
+    recordRealView(slug, country);
+  }
 
   res.json({
     success: true,
