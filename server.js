@@ -891,7 +891,11 @@ app.get('/rss', handleRssFeed);
 
 // 1. Get All Posts (For Homepage - Lightweight Optimized Payload)
 app.get('/api/posts', (req, res) => {
-  const posts = getAllPosts();
+  let posts = getAllPosts();
+  if (req.query.category && req.query.category.trim() && req.query.category.toUpperCase() !== 'ALL') {
+    const cat = req.query.category.trim().toLowerCase();
+    posts = posts.filter(p => (p.category || '').toLowerCase() === cat);
+  }
   const limit = parseInt(req.query.limit, 10);
   const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : posts;
   // Strip heavy article HTML from overview list to keep homepage payload fast
@@ -907,26 +911,30 @@ app.get('/api/posts', (req, res) => {
 
 // 2. Get Single Post by Slug & Record Real Live View & Country Tracking
 app.get('/api/post/:slug', async (req, res) => {
-  const { slug } = req.params;
-  let post = getPostBySlug(slug);
-  if (!post) {
-    post = await getPostBySlugAsync(slug);
-  }
-  if (!post) {
-    return res.status(404).json({ success: false, error: 'Article not found' });
-  }
+  try {
+    const { slug } = req.params;
+    let post = getPostBySlug(slug);
+    if (!post) {
+      post = await getPostBySlugAsync(slug);
+    }
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Article not found' });
+    }
 
-  // Record 100% Real Live View & Country Geo-Location (Exclude bots and automated scanners)
-  const apiUa = (req.headers['user-agent'] || '').toLowerCase();
-  if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview|python|curl|wget|scanner|probe|nmap|zgrab|go-http-client|apache-httpclient/i.test(apiUa)) {
-    const country = detectRequestCountry(req);
-    recordRealView(slug, country);
-  }
+    // Record 100% Real Live View & Country Geo-Location (Exclude bots and automated scanners)
+    const apiUa = (req.headers['user-agent'] || '').toLowerCase();
+    if (!/bot|crawl|spider|slurp|mediapartners|adsense|lighthouse|pagespeed|headless|facebookexternalhit|twitterbot|telegrambot|bingpreview|python|curl|wget|scanner|probe|nmap|zgrab|go-http-client|apache-httpclient/i.test(apiUa)) {
+      const country = detectRequestCountry(req);
+      recordRealView(slug, country);
+    }
 
-  res.json({
-    success: true,
-    post
-  });
+    res.json({
+      success: true,
+      post
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Internal server error', message: err.message });
+  }
 });
 
 // 2.5 Diagnostic: Test Gemini API Key Connection
@@ -944,11 +952,10 @@ app.get('/api/test-gemini', async (req, res) => {
   }
 
   const results = [];
-  const testModels = [
-    { name: 'gemini-2.5-flash', ver: 'v1beta' },
-    { name: 'gemini-2.0-flash', ver: 'v1beta' },
-    { name: 'gemini-1.5-flash', ver: 'v1beta' },
-    { name: 'gemini-1.5-pro', ver: 'v1beta' }
+    const testModels = [
+    { name: 'gemini-3.5-flash', ver: 'v1beta' },
+    { name: 'gemini-3.5-flash-lite', ver: 'v1beta' },
+    { name: 'gemini-2.5-flash', ver: 'v1beta' }
   ];
 
   for (const key of keys) {
@@ -1286,7 +1293,7 @@ app.post('/api/test-custom-reddit-post', requireAdminAuth, async (req, res) => {
 // 🚀 1-Click Social Syndication: Broadcast any specific article immediately to Reddit & Twitter/X
 app.post('/api/social/broadcast-post', requireAdminAuth, async (req, res) => {
   try {
-    const { slug, id } = req.body;
+    const { slug, id } = req.body || {};
     const posts = getAllPosts(true);
     const post = posts.find(p => (slug && p.slug === slug) || (id && p.id == id));
     if (!post) {
@@ -1467,17 +1474,21 @@ function requireAdminAuth(req, res, next) {
 
 // 4. Get Serper Keys & Live Credit Balances (Masked Keys for UI display)
 app.get('/api/serper-keys', requireAdminAuth, async (req, res) => {
-  const keysData = await getSerperKeysWithCredits();
-  // Mask keys so full API key string is never exposed over public JSON response
-  const safeDetails = keysData.map(item => ({
-    ...item,
-    key: item.key ? `${item.key.substring(0, 8)}...${item.key.substring(item.key.length - 4)}` : ''
-  }));
-  res.json({ success: true, count: safeDetails.length, keyDetails: safeDetails });
+  try {
+    const keysData = await getSerperKeysWithCredits();
+    // Mask keys so full API key string is never exposed over public JSON response
+    const safeDetails = keysData.map(item => ({
+      ...item,
+      key: item.key ? `${item.key.substring(0, 8)}...${item.key.substring(item.key.length - 4)}` : ''
+    }));
+    res.json({ success: true, count: safeDetails.length, keyDetails: safeDetails });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/serper-keys', requireAdminAuth, (req, res) => {
-  const { keys } = req.body;
+  const { keys } = req.body || {};
   if (!keys) return res.status(400).json({ success: false, error: 'No keys provided' });
 
   const keysArray = Array.isArray(keys) ? keys : keys.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);

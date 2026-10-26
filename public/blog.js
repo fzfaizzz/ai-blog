@@ -459,7 +459,7 @@ function initGlobalSearchModal() {
           <div class="search-result-info">
             <div class="search-result-category">${escapeHtml(p.category || 'NEWS')}</div>
             <h5 class="search-result-title">${escapeHtml(p.title)}</h5>
-            <div class="search-result-date">${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+            <div class="search-result-date">${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
           </div>
           <span class="search-result-action">Read ➔</span>
         </a>
@@ -652,7 +652,7 @@ async function loadSingleArticle() {
         document.getElementById('bioAuthorRole').innerHTML = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA. <a href="/author/${author.slug}" style="color: #2563EB; font-weight: 700; margin-left: 5px; text-decoration: none;">View Profile &amp; Articles &rarr;</a>`;
       }
       if (document.getElementById('postPublishDate')) {
-        document.getElementById('postPublishDate').innerHTML = `<a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${author.role}</a> • Published ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+        document.getElementById('postPublishDate').innerHTML = `<a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${author.role}</a> • Published ${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
       }
       if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
 
