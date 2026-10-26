@@ -305,6 +305,9 @@ app.get('/post/:slug', async (req, res) => {
     <meta property="og:description" content="${escapeHtml(post.metaDescription)}">
     <meta property="og:url" content="${baseUrl}/post/${post.slug}">
     <meta property="og:image" content="${post.imageUrl}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="675">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:site_name" content="Prime Media">
     <meta property="og:locale" content="en_US">
     <meta property="article:published_time" content="${post.publishedAt}">
@@ -430,6 +433,12 @@ app.get('/post/:slug', async (req, res) => {
     </div>
   `;
   html = html.replace(/<div class="author-bio-card" id="authorBioCard">[\s\S]*?<\/div>\s*<\/div>/i, authorBioCardHtml);
+
+  // 📱 Pre-render Mobile Sticky Share Bar Links for 1-Tap Viral Distribution
+  html = html.replace('href="https://api.whatsapp.com/send"', `href="https://api.whatsapp.com/send?text=${encodedTitle}%20-%20${encodedUrl}"`);
+  html = html.replace('href="https://twitter.com/intent/tweet"', `href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}"`);
+  html = html.replace('href="https://t.me/share/url"', `href="https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}"`);
+
 
   if (post.contentHtml) {
     const cleanContent = (post.contentHtml || '')

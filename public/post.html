@@ -37,6 +37,8 @@
   <meta name="theme-color" content="#0F172A">
 </head>
 <body>
+  <!-- 📊 Reading Progress Indicator (Boosts Dwell Time & Engagement) -->
+  <div id="readingProgressBar" class="reading-progress-bar"></div>
   <!-- 🌟 Top Thin Utility Bar -->
   <div class="top-utility-bar">
     <div class="container">
@@ -164,6 +166,27 @@
   </div>
 
   <!-- 🏛️ Prestigious 4-Column Newsroom Footer -->
+  
+  <!-- 📱 Mobile Sticky Floating Viral Share Bar (WhatsApp, X, Telegram, Copy) -->
+  <div class="mobile-sticky-share-bar" id="mobileStickyShareBar">
+    <a id="stickyShareWa" href="https://api.whatsapp.com/send" target="_blank" rel="noopener noreferrer" class="sticky-share-pill sticky-wa" title="Share to WhatsApp">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.54 1.771.848 2.791.848 3.18 0 5.767-2.587 5.767-5.766.001-3.181-2.586-5.767-5.767-5.767zm7.42 5.766c-.001 4.093-3.327 7.42-7.42 7.42-1.31 0-2.539-.344-3.606-.944l-4.425 1.159 1.182-4.318c-.696-1.127-1.071-2.438-1.071-3.791 0-4.094 3.327-7.421 7.42-7.421 4.094 0 7.42 3.328 7.42 7.422z"/></svg>
+      <span>WhatsApp</span>
+    </a>
+    <a id="stickyShareX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener noreferrer" class="sticky-share-pill sticky-x" title="Share on X">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span>X (Twitter)</span>
+    </a>
+    <a id="stickyShareTg" href="https://t.me/share/url" target="_blank" rel="noopener noreferrer" class="sticky-share-pill sticky-tg" title="Share to Telegram">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.61 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.05-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.88 7.97-3.45 3.8-1.63 4.59-1.91 5.11-1.92.11 0 .37.03.54.17.14.12.18.28.2.45-.02.07-.02.21-.04.37z"/></svg>
+      <span>Telegram</span>
+    </a>
+    <button type="button" class="sticky-share-pill sticky-copy" id="stickyShareCopy" title="Copy Link">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      <span>Copy</span>
+    </button>
+  </div>
+
   <footer>
     <div class="container footer-grid">
       <div class="footer-col">

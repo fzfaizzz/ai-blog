@@ -1,3 +1,19 @@
+
+// 🌟 Global Floating Toast Feedback
+function showToast(msg) {
+  let toast = document.getElementById('globalToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.style.cssText = 'position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.3);transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.innerText = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
 // Client JavaScript for Prime Media
 
 const HUMAN_AUTHORS = [
@@ -2231,6 +2247,34 @@ async function loadAuthorPage() {
 document.addEventListener('DOMContentLoaded', () => {
   // Always initialize Global Live Search Modal on all pages
   initGlobalSearchModal();
+
+  // 📊 Reading Progress Bar Scroll Observer
+  window.addEventListener('scroll', () => {
+    const pb = document.getElementById('readingProgressBar');
+    if (!pb) return;
+    const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+    pb.style.width = Math.min(100, Math.max(0, scrolled)) + '%';
+  }, { passive: true });
+
+  // 📱 Mobile Sticky Share Bar Handlers
+  const stickyCopy = document.getElementById('stickyShareCopy');
+  if (stickyCopy) {
+    stickyCopy.addEventListener('click', () => {
+      const url = window.location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('Article link copied to clipboard! 📋');
+        }).catch(() => {
+          prompt('Copy article link:', url);
+        });
+      } else {
+        prompt('Copy article link:', url);
+      }
+    });
+  }
+
 
   if (document.getElementById('postsGrid')) {
     loadHomepagePosts();

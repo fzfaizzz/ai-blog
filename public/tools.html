@@ -142,6 +142,25 @@
       font-size: 1rem;
       padding-top: 0.6rem;
     }
+    .tool-share-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .tool-share-pill:active {
+      transform: scale(0.97);
+    }
+    .share-wa { background: #16A34A; color: #FFFFFF; }
+    .share-x { background: #0F172A; color: #FFFFFF; }
+    .share-copy { background: #E2E8F0; color: #0F172A; }
+    .share-copy:hover { background: #CBD5E1; }
   </style>
 </head>
 <body>
@@ -249,6 +268,14 @@
             <span>Total Monthly API Expense:</span>
             <span id="totalCost">$0.00</span>
           </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Calculation:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('ai', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('ai', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('ai', 'copy')">Copy Link</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -281,6 +308,14 @@
           <div class="result-row">
             <span>Estimated User Dwell Time:</span>
             <span id="dwellTime">0 seconds</span>
+          </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Metric:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('read', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('read', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('read', 'copy')">Copy Link</button>
+            </div>
           </div>
         </div>
       </div>
@@ -320,6 +355,14 @@
           <div class="result-row">
             <span>Estimated Portfolio Value:</span>
             <span id="futureValue" style="color: #7C3AED;">$0</span>
+          </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Forecast:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('dca', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('dca', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('dca', 'copy')">Copy Link</button>
+            </div>
           </div>
         </div>
       </div>
@@ -443,6 +486,80 @@
       document.getElementById('futureValue').innerText = '$' + Math.round(totalWealth).toLocaleString();
       document.getElementById('dcaResult').style.display = 'block';
     }
+
+    // 🌟 Viral Share & Deep Link Flywheel for Utilities
+    function showToolToast(msg) {
+      let toast = document.getElementById('toolToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toolToast';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.25);transition:opacity 0.3s;pointer-events:none;';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+
+    function shareCalculation(tool, channel) {
+      let shareText = '';
+      let shareUrl = 'https://primemedia.site/tools.html';
+
+      if (tool === 'ai') {
+        const model = document.getElementById('aiModelSelect').value;
+        const inp = document.getElementById('inputTokens').value;
+        const out = document.getElementById('outputTokens').value;
+        const total = document.getElementById('totalCost').innerText;
+        shareUrl += `?tool=ai&model=${encodeURIComponent(model)}&in=${inp}&out=${out}`;
+        shareText = `Estimated monthly LLM API expense: ${total} on Prime Media AI Cost Calculator. Check yours:`;
+      } else if (tool === 'dca') {
+        const monthly = document.getElementById('monthlyInv').value;
+        const rate = document.getElementById('annualRate').value;
+        const years = document.getElementById('investYears').value;
+        const total = document.getElementById('futureValue').innerText;
+        shareUrl += `?tool=dca&monthly=${monthly}&rate=${rate}&years=${years}`;
+        shareText = `Calculated my tech wealth growth: $${monthly}/mo at ${rate}% over ${years} yrs grows to ${total}! Simulate yours:`;
+      } else if (tool === 'read') {
+        const wc = document.getElementById('wordCount').innerText;
+        const rt = document.getElementById('readTime').innerText;
+        shareUrl += `?tool=read`;
+        shareText = `Analyzed my draft readability: ${wc}, reading time ${rt} on Prime Media Utilities! Test your content:`;
+      }
+
+      if (channel === 'wa') {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
+      } else if (channel === 'x') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+      } else if (channel === 'copy') {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            showToolToast('Shareable link copied to clipboard! 📋');
+          }).catch(() => {
+            prompt('Copy this link to share:', shareUrl);
+          });
+        } else {
+          prompt('Copy this link to share:', shareUrl);
+        }
+      }
+    }
+
+    // Auto-calculate if user arrives via a shared deep link
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
+      const tool = p.get('tool');
+      if (tool === 'ai') {
+        if (p.get('model')) document.getElementById('aiModelSelect').value = p.get('model');
+        if (p.get('in')) document.getElementById('inputTokens').value = p.get('in');
+        if (p.get('out')) document.getElementById('outputTokens').value = p.get('out');
+        calculateAiCost();
+      } else if (tool === 'dca') {
+        if (p.get('monthly')) document.getElementById('monthlyInv').value = p.get('monthly');
+        if (p.get('rate')) document.getElementById('annualRate').value = p.get('rate');
+        if (p.get('years')) document.getElementById('investYears').value = p.get('years');
+        calculateDca();
+      }
+    });
   </script>
   <script src="/blog.js" defer></script>
 </body>

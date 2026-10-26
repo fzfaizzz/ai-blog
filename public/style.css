@@ -2181,3 +2181,84 @@ img {
   }
 }
 
+
+
+/* ==========================================================================
+   📊 Reading Progress Indicator & 📱 Mobile Sticky Viral Share Bar
+   ========================================================================== */
+.reading-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2563EB, #DC2626);
+  width: 0%;
+  z-index: 99999;
+  transition: width 0.1s ease-out;
+}
+
+.mobile-sticky-share-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-sticky-share-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.5rem 0.65rem;
+    align-items: center;
+    justify-content: space-around;
+    gap: 0.45rem;
+    z-index: 9999;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+    box-sizing: border-box;
+  }
+
+  .sticky-share-pill {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.35rem;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    white-space: nowrap;
+  }
+  .sticky-share-pill:active {
+    transform: scale(0.96);
+  }
+  .sticky-wa {
+    background: #16A34A;
+    color: #FFFFFF;
+  }
+  .sticky-x {
+    background: #000000;
+    color: #FFFFFF;
+    border: 1px solid #334155;
+  }
+  .sticky-tg {
+    background: #0284C7;
+    color: #FFFFFF;
+  }
+  .sticky-copy {
+    background: #334155;
+    color: #F8FAFC;
+  }
+  
+  body {
+    padding-bottom: 60px;
+  }
+}
