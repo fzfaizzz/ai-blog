@@ -76,48 +76,65 @@ app.use(compression());
 
 const BASE_CANONICAL_URL = (process.env.BASE_URL || 'https://primemedia.site').replace(/^http:\/\//i, 'https://').replace(/\/+$/, '');
 
-// Smart Keyword Relevance Matcher for SEO 301 Redirects (Resolves 404s in Google Search Console)
+// High-Confidence Slug Relevance Matcher for SEO 301 Redirects (Strict Overlap Guard to Prevent Soft 404s)
 function findBestMatchingPost(requestedSlug, allPosts) {
   if (!requestedSlug || !allPosts || allPosts.length === 0) return null;
+
+  const cleanRequested = requestedSlug
+    .toLowerCase()
+    .replace(/\.html$/i, '')
+    .replace(/^[\-_]+|[\-_]+$/g, '');
+
+  // 1. Direct exact check after trimming .html or leading/trailing hyphens
+  const exact = allPosts.find(p => !p.hidden && (p.slug || '').toLowerCase() === cleanRequested);
+  if (exact) return exact;
+
   const stopWords = new Set([
     'the', 'and', 'of', 'in', 'a', 'to', 'for', 'on', 'with', 'is', 'are',
     'after', 'whats', 'latest', 'how', 'many', 'no', 'there', 'were', 'as',
     'at', 'least', 'from', 'this', 'that', 'by', 'an', 'be', 'or', 'it',
     'about', 'over', 'into', 'who', 'what', 'when', 'where', 'why'
   ]);
-  const queryWords = requestedSlug
-    .toLowerCase()
-    .replace(/\.html$/i, '')
+  const queryWords = cleanRequested
     .split(/[^a-z0-9]+/)
     .filter(w => w.length > 2 && !stopWords.has(w));
 
-  if (queryWords.length === 0) return null;
+  // If slug has fewer than 3 significant words, do not fuzzy-match to prevent false redirects (Soft 404s)
+  if (queryWords.length < 3) return null;
 
   let bestMatch = null;
   let bestScore = 0;
 
   for (const post of allPosts) {
     if (post.hidden) continue;
-    let score = 0;
-    const postSlugWords = (post.slug || '').toLowerCase();
-    const postTitleWords = (post.title || '').toLowerCase();
+    const postSlugWords = (post.slug || '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
 
-    for (const word of queryWords) {
-      if (postSlugWords.includes(word)) score += 2;
-      else if (postTitleWords.includes(word)) score += 1;
+    if (postSlugWords.length === 0) continue;
+    const postWordSet = new Set(postSlugWords);
+
+    let matched = 0;
+    for (const w of queryWords) {
+      if (postWordSet.has(w)) matched++;
     }
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = post;
+    // High confidence threshold: at least 75% of query words must match,
+    // harmonic similarity >= 0.65, and at least 3 distinct matching words.
+    // Strictly prevents redirecting dead/deleted posts to unrelated active articles.
+    const queryRatio = matched / queryWords.length;
+    const similarity = (2 * matched) / (queryWords.length + postSlugWords.length);
+
+    if (queryRatio >= 0.75 && similarity >= 0.65 && matched >= 3) {
+      if (similarity > bestScore) {
+        bestScore = similarity;
+        bestMatch = post;
+      }
     }
   }
 
-  // Require confidence threshold of at least 2 matching significant words
-  if (bestScore >= 2) {
-    return bestMatch;
-  }
-  return null;
+  return bestMatch;
 }
 
 // 🚀 Full Server-Side Rendering (SSR) for Homepage (/) — Critical for Googlebot, Bingbot & Google-AdSense-Bot
@@ -1612,7 +1629,9 @@ app.post('/api/admin/change-password', (req, res) => {
 
 // Clean 404 Handler for Unmapped Routes (Eliminates Soft 404 Errors in Google Search Console)
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public/404.html'));
+  res.status(404);
+  res.setHeader('X-Robots-Tag', 'noindex, follow');
+  return res.sendFile(path.join(__dirname, 'public/404.html'));
 });
 
 // Start Server with Automatic Port Fallback & Start 24/7 Autopilot Scheduler
