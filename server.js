@@ -261,7 +261,8 @@ app.get('/', (req, res) => {
 
 // SSR Meta Injection for Social Crawlers & SEO
 app.get('/post/:slug', async (req, res) => {
-  let post = getPostBySlug(req.params.slug);
+  try {
+    let post = getPostBySlug(req.params.slug);
   if (!post) {
     post = await getPostBySlugAsync(req.params.slug);
   }
@@ -503,11 +504,16 @@ app.get('/post/:slug', async (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.send(html);
+  } catch (err) {
+    console.error('SSR /post/:slug unexpected error:', err);
+    res.status(500).sendFile(path.join(__dirname, 'public/404.html'));
+  }
 });
 
 // 🧑‍💼 Dedicated SSR Author Profile Route for Google E-E-A-T & Readers
 app.get('/author/:slug', (req, res) => {
-  const author = getAuthorBySlug(req.params.slug);
+  try {
+    const author = getAuthorBySlug(req.params.slug);
   if (!author) {
     return res.redirect(301, '/about.html');
   }
@@ -593,6 +599,10 @@ app.get('/author/:slug', (req, res) => {
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
+  } catch (err) {
+    console.error('SSR /author/:slug unexpected error:', err);
+    res.redirect(301, '/about.html');
+  }
 });
 
 // JSON API endpoint for Author Profile & Posts
@@ -900,22 +910,26 @@ app.get('/rss', handleRssFeed);
 
 // 1. Get All Posts (For Homepage - Lightweight Optimized Payload)
 app.get('/api/posts', (req, res) => {
-  let posts = getAllPosts();
-  if (req.query.category && req.query.category.trim() && req.query.category.toUpperCase() !== 'ALL') {
-    const cat = req.query.category.trim().toLowerCase();
-    posts = posts.filter(p => (p.category || '').toLowerCase() === cat);
+  try {
+    let posts = getAllPosts();
+    if (req.query.category && req.query.category.trim() && req.query.category.toUpperCase() !== 'ALL') {
+      const cat = req.query.category.trim().toLowerCase();
+      posts = posts.filter(p => (p.category || '').toLowerCase() === cat);
+    }
+    const limit = parseInt(req.query.limit, 10);
+    const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : posts;
+    // Strip heavy article HTML from overview list to keep homepage payload fast
+    const previewPosts = sliced.map(({ contentHtml, ...rest }) => rest);
+    res.json({
+      success: true,
+      count: previewPosts.length,
+      totalCount: posts.length,
+      posts: previewPosts,
+      serperKeysCount: getSerperKeys().length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Internal server error', message: err.message });
   }
-  const limit = parseInt(req.query.limit, 10);
-  const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : posts;
-  // Strip heavy article HTML from overview list to keep homepage payload fast
-  const previewPosts = sliced.map(({ contentHtml, ...rest }) => rest);
-  res.json({
-    success: true,
-    count: previewPosts.length,
-    totalCount: posts.length,
-    posts: previewPosts,
-    serperKeysCount: getSerperKeys().length
-  });
 });
 
 // 2. Get Single Post by Slug & Record Real Live View & Country Tracking
@@ -1557,25 +1571,33 @@ app.get('/api/admin/posts', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/admin/post/toggle-visibility', requireAdminAuth, (req, res) => {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
 
-  const updatedPost = togglePostVisibility(id);
-  if (updatedPost) {
-    return res.json({ success: true, post: updatedPost, message: `Post is now ${updatedPost.hidden ? 'Hidden' : 'Visible'}` });
+    const updatedPost = togglePostVisibility(id);
+    if (updatedPost) {
+      return res.json({ success: true, post: updatedPost, message: `Post is now ${updatedPost.hidden ? 'Hidden' : 'Visible'}` });
+    }
+    res.status(404).json({ success: false, error: 'Post not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  res.status(404).json({ success: false, error: 'Post not found' });
 });
 
 app.post('/api/admin/post/delete', requireAdminAuth, (req, res) => {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
+  try {
+    const { id } = req.body || {};
+    if (!id) return res.status(400).json({ success: false, error: 'Post ID is required' });
 
-  const deleted = deletePost(id);
-  if (deleted) {
-    return res.json({ success: true, message: 'Article permanently deleted' });
+    const deleted = deletePost(id);
+    if (deleted) {
+      return res.json({ success: true, message: 'Article permanently deleted' });
+    }
+    res.status(404).json({ success: false, error: 'Post not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  res.status(404).json({ success: false, error: 'Post not found' });
 });
 
 // 5b. IndexNow Bulk Instant Submission
@@ -1618,7 +1640,8 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 app.post('/api/admin/change-password', (req, res) => {
-  const { currentPassword, newPassword } = req.body || {};
+  try {
+    const { currentPassword, newPassword } = req.body || {};
   const activePassword = appSettings.adminPassword || 'admin123';
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
 
@@ -1645,6 +1668,10 @@ app.post('/api/admin/change-password', (req, res) => {
   console.log(`🔐 Admin password successfully updated to: "${targetPassword}"`);
 
   res.json({ success: true, newPassword: targetPassword, message: `Admin password updated and saved successfully to: "${targetPassword}"` });
+  } catch (err) {
+    console.error('/api/admin/change-password error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Clean 404 Handler for Unmapped Routes (Eliminates Soft 404 Errors in Google Search Console)

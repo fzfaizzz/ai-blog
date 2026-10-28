@@ -43,6 +43,25 @@ async function loadHomepagePosts(category = null, page = null) {
     currentCategory = category;
     currentPage = 1; // Reset to Page 1 on category change
     sessionStorage.setItem('homepage_page', 1);
+  } else {
+    // Detect category from URL hash (#category-technology) or query param (?category=technology)
+    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramCat = urlParams.get('category');
+    const detectedCat = (hashMatch ? hashMatch[1] : null) || paramCat;
+    if (detectedCat && currentCategory === 'ALL') {
+      currentCategory = detectedCat;
+      currentPage = 1;
+      const targetBtn = document.querySelector(`.category-btn[data-category="${detectedCat}" i]`);
+      if (targetBtn) {
+        document.querySelectorAll('.category-btn[data-category]').forEach(b => {
+          b.classList.remove('active');
+          b.style.color = 'var(--text-muted)';
+        });
+        targetBtn.classList.add('active');
+        targetBtn.style.color = '#2563EB';
+      }
+    }
   }
 
   // Restore page number from URL or Session Storage when returning via Browser Back button
@@ -377,6 +396,20 @@ function initCategoryFilter() {
       loadHomepagePosts(targetCat, 1);
     });
   });
+
+  // Reactive hashchange listener (enables instant category navigation from footer & breadcrumbs)
+  window.addEventListener('hashchange', () => {
+    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
+    if (hashMatch && hashMatch[1]) {
+      const cat = hashMatch[1];
+      const targetBtn = document.querySelector(`.category-btn[data-category="${cat}" i]`);
+      if (targetBtn) {
+        targetBtn.click();
+      } else {
+        loadHomepagePosts(cat, 1);
+      }
+    }
+  });
 }
 
 // 🔍 Global Live Search Modal System
@@ -578,6 +611,7 @@ async function loadSingleArticle() {
         this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
       };
     });
+    isArticleLoading = false;
     return;
   }
 
@@ -588,7 +622,11 @@ async function loadSingleArticle() {
     const pathMatch = window.location.pathname.match(/\/post\/(.+)/);
     if (pathMatch) slug = pathMatch[1];
   }
-  if (!slug) return;
+  if (!slug) {
+    isArticleLoading = false;
+    return;
+  }
+  slug = slug.replace(/\/+$/, '').replace(/\.html$/i, '');
 
   try {
     const res = await fetch(`/api/post/${slug}`);
@@ -2218,8 +2256,9 @@ async function loadAuthorPage() {
   const grid = document.getElementById('authorArticlesGrid');
   if (!grid) return;
   if (grid.querySelectorAll('.author-post-card').length > 0) return;
-  const pathParts = window.location.pathname.split('/');
-  const authorSlug = pathParts[pathParts.length - 1] || 'sarah-jenkins';
+  const cleanSegments = window.location.pathname.split('/').filter(Boolean);
+  const rawSlug = cleanSegments.pop() || 'sarah-jenkins';
+  const authorSlug = rawSlug.replace(/\.html$/i, '');
   try {
     const res = await fetch(`/api/author/${authorSlug}`);
     if (!res.ok) return;

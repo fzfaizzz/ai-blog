@@ -558,6 +558,9 @@
         if (p.get('rate')) document.getElementById('annualRate').value = p.get('rate');
         if (p.get('years')) document.getElementById('investYears').value = p.get('years');
         calculateDca();
+      } else if (tool === 'read') {
+        const readTool = document.getElementById('articleText');
+        if (readTool) readTool.scrollIntoView({ behavior: 'smooth' });
       }
     });
   </script>
