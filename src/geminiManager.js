@@ -29,9 +29,12 @@ export async function syncGeminiKeysFromDB() {
 syncGeminiKeysFromDB();
 
 export function getGeminiKeys() {
-  const envKeys = process.env.GEMINI_API_KEY 
-    ? process.env.GEMINI_API_KEY.split(/[\n,]+/).map(k => k.trim()).filter(Boolean) 
-    : [];
+  const envKeys = [];
+  ['GEMINI_API_KEY', 'GEMINI_API_KEY_FALLBACK', 'GEMINI_API_KEY_BACKUP'].forEach(envName => {
+    if (process.env[envName]) {
+      envKeys.push(...process.env[envName].split(/[\n,]+/).map(k => k.trim()).filter(Boolean));
+    }
+  });
 
   let fileKeys = [];
   try {
