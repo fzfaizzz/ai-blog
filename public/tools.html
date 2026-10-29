@@ -417,11 +417,18 @@
   </footer>
 
   <script>
+    function formatCost(val) {
+      if (val === 0) return '$0.00';
+      if (val < 0.0001) return '< $0.0001';
+      if (val < 0.01) return '$' + val.toFixed(4);
+      return '$' + val.toFixed(2);
+    }
+
     // Tool 1: AI Cost Calculator Logic
     function calculateAiCost() {
       const model = document.getElementById('aiModelSelect').value;
-      const inp = Math.max(0, parseFloat(document.getElementById('inputTokens').value) || 0);
-      const out = Math.max(0, parseFloat(document.getElementById('outputTokens').value) || 0);
+      const inp = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('inputTokens').value) || 0));
+      const out = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('outputTokens').value) || 0));
 
       const rates = {
         gpt4o: { in: 2.50, out: 10.00 },
@@ -436,9 +443,9 @@
       const outCost = (out / 1000000) * rate.out;
       const total = inpCost + outCost;
 
-      document.getElementById('inputCost').innerText = '$' + inpCost.toFixed(3);
-      document.getElementById('outputCost').innerText = '$' + outCost.toFixed(3);
-      document.getElementById('totalCost').innerText = '$' + total.toFixed(2);
+      document.getElementById('inputCost').innerText = formatCost(inpCost);
+      document.getElementById('outputCost').innerText = formatCost(outCost);
+      document.getElementById('totalCost').innerText = formatCost(total);
       document.getElementById('aiCostResult').style.display = 'block';
     }
 
@@ -466,8 +473,8 @@
 
     // Tool 3: DCA Compound Calculator Logic
     function calculateDca() {
-      const monthly = Math.max(0, parseFloat(document.getElementById('monthlyInv').value) || 0);
-      const annualRate = Math.max(0, (parseFloat(document.getElementById('annualRate').value) || 0) / 100);
+      const monthly = Math.max(0, Math.min(100000000, parseFloat(document.getElementById('monthlyInv').value) || 0));
+      const annualRate = Math.max(0, Math.min(500, parseFloat(document.getElementById('annualRate').value) || 0)) / 100;
       const years = Math.max(1, Math.min(60, parseFloat(document.getElementById('investYears').value) || 1));
 
       const months = years * 12;
@@ -503,8 +510,14 @@
     }
 
     function shareCalculation(tool, channel) {
+      // Auto compute before sharing so values are always fresh
+      if (tool === 'ai') calculateAiCost();
+      else if (tool === 'dca') calculateDca();
+      else if (tool === 'read') analyzeReadability();
+
       let shareText = '';
-      let shareUrl = 'https://primemedia.site/tools.html';
+      let baseToolUrl = window.location.origin ? (window.location.origin + '/tools.html') : 'https://primemedia.site/tools.html';
+      let shareUrl = baseToolUrl;
 
       if (tool === 'ai') {
         const model = document.getElementById('aiModelSelect').value;

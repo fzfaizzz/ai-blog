@@ -653,6 +653,7 @@ async function loadSingleArticle() {
       setMetaTag('twitter:description', p.metaDescription);
       setMetaTag('twitter:image', p.imageUrl);
       setCanonicalTag(postUrl);
+      if (typeof updateStickyShareUrls === 'function') updateStickyShareUrls();
       if (document.getElementById('postTitle')) document.getElementById('postTitle').innerText = p.title;
       if (document.getElementById('postLeadDesc')) document.getElementById('postLeadDesc').innerText = p.metaDescription;
       if (document.getElementById('postFeaturedImg')) {
@@ -2298,6 +2299,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true });
 
   // 📱 Mobile Sticky Share Bar Handlers
+  function updateStickyShareUrls() {
+    const stickyWa = document.getElementById('stickyShareWa');
+    const stickyX = document.getElementById('stickyShareX');
+    const stickyTg = document.getElementById('stickyShareTg');
+
+    const pageUrl = encodeURIComponent(window.location.href);
+    const rawTitle = (document.getElementById('postTitle')?.innerText || document.title || '')
+      .replace(/\s*\|\s*Prime Media.*$/i, '')
+      .replace(/\s*—\s*PRIME MEDIA.*$/i, '')
+      .trim();
+    const pageTitle = encodeURIComponent(rawTitle);
+
+    if (stickyWa) stickyWa.href = `https://api.whatsapp.com/send?text=${pageTitle}%20-%20${pageUrl}`;
+    if (stickyX) stickyX.href = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`;
+    if (stickyTg) stickyTg.href = `https://t.me/share/url?url=${pageUrl}&text=${pageTitle}`;
+  }
+  updateStickyShareUrls();
+
   const stickyCopy = document.getElementById('stickyShareCopy');
   if (stickyCopy) {
     stickyCopy.addEventListener('click', () => {
@@ -2310,6 +2329,73 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       } else {
         prompt('Copy article link:', url);
+      }
+    });
+  }
+
+  // 📬 Contact Desk Form Submission Handler
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusDiv = document.getElementById('contactStatus');
+      const submitBtn = document.getElementById('contactSubmitBtn');
+      const name = document.getElementById('contactName')?.value.trim();
+      const email = document.getElementById('contactEmail')?.value.trim();
+      const subject = document.getElementById('contactSubject')?.value.trim();
+      const message = document.getElementById('contactMessage')?.value.trim();
+
+      if (!name || !email || !subject || !message) {
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#FEE2E2';
+          statusDiv.style.color = '#991B1B';
+          statusDiv.style.border = '1px solid #F87171';
+          statusDiv.innerText = 'Please fill out all required fields.';
+        }
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sending Message...';
+      }
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, subject, message })
+        });
+        const data = await res.json();
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          if (data.success) {
+            statusDiv.style.background = '#DCFCE7';
+            statusDiv.style.color = '#166534';
+            statusDiv.style.border = '1px solid #86EFAC';
+            statusDiv.innerText = '✓ ' + (data.message || 'Message sent successfully!');
+            contactForm.reset();
+          } else {
+            statusDiv.style.background = '#FEE2E2';
+            statusDiv.style.color = '#991B1B';
+            statusDiv.style.border = '1px solid #F87171';
+            statusDiv.innerText = '❌ ' + (data.error || 'Failed to send message.');
+          }
+        }
+      } catch (err) {
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#FEE2E2';
+          statusDiv.style.color = '#991B1B';
+          statusDiv.style.border = '1px solid #F87171';
+          statusDiv.innerText = '❌ Network connection error. Please try again.';
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Send Message ➔';
+        }
       }
     });
   }

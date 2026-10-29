@@ -94,24 +94,25 @@
       </div>
 
       <h2 style="font-size: 1.3rem; margin-top: 2rem; margin-bottom: 0.75rem;">Send Us a Direct Message</h2>
-      <form onsubmit="event.preventDefault(); alert('Thank you for reaching out! Our editorial team will get back to you within 24 hours.');" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div id="contactStatus" style="display: none; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem;"></div>
+      <form id="contactForm" style="display: flex; flex-direction: column; gap: 1rem;">
         <div>
           <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Your Name</label>
-          <input type="text" placeholder="John Doe" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
+          <input type="text" id="contactName" name="name" placeholder="John Doe" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
         </div>
         <div>
           <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Your Email Address</label>
-          <input type="email" placeholder="john@example.com" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
+          <input type="email" id="contactEmail" name="email" placeholder="john@example.com" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
         </div>
         <div>
           <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Subject</label>
-          <input type="text" placeholder="Editorial Feedback / Press Release" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
+          <input type="text" id="contactSubject" name="subject" placeholder="Editorial Feedback / Press Release" required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;" />
         </div>
         <div>
           <label style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Message</label>
-          <textarea rows="5" placeholder="Write your message here..." required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;"></textarea>
+          <textarea id="contactMessage" name="message" rows="5" placeholder="Write your message here..." required style="width: 100%; padding: 0.75rem; border: 1px solid #CBD5E1; border-radius: 6px;"></textarea>
         </div>
-        <button type="submit" style="background: #2563EB; color: #FFF; font-weight: 700; padding: 0.85rem; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;">Send Message ➔</button>
+        <button type="submit" id="contactSubmitBtn" style="background: #2563EB; color: #FFF; font-weight: 700; padding: 0.85rem; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;">Send Message ➔</button>
       </form>
     </div>
   </div>

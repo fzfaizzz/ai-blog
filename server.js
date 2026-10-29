@@ -1642,7 +1642,7 @@ app.post('/api/admin/login', (req, res) => {
 app.post('/api/admin/change-password', (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body || {};
-  const activePassword = appSettings.adminPassword || 'admin123';
+  const activePassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
 
   // Security Check: Must provide valid admin session token OR provide matching current password
@@ -1672,6 +1672,98 @@ app.post('/api/admin/change-password', (req, res) => {
     console.error('/api/admin/change-password error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+
+// 📬 7. Contact Desk Submission & Storage Endpoint
+const contactRateLimits = new Map();
+
+app.post('/api/contact', express.json(), (req, res) => {
+  try {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    
+    // Rate limit: max 5 messages per 10 minutes per IP
+    const userHistory = contactRateLimits.get(ip) || [];
+    const recentSubmissions = userHistory.filter(t => now - t < 10 * 60 * 1000);
+    if (recentSubmissions.length >= 5) {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many messages sent. Please wait 10 minutes before submitting again.'
+      });
+    }
+
+    const { name, email, subject, message } = req.body || {};
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Please enter your name.' });
+    }
+    if (!email || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ success: false, error: 'Please enter a subject.' });
+    }
+    if (!message || message.trim().length < 5) {
+      return res.status(400).json({ success: false, error: 'Message must be at least 5 characters.' });
+    }
+
+    recentSubmissions.push(now);
+    contactRateLimits.set(ip, recentSubmissions);
+
+    const contactFile = path.join(__dirname, 'data/contact_messages.json');
+    let messages = [];
+    if (fs.existsSync(contactFile)) {
+      try {
+        messages = JSON.parse(fs.readFileSync(contactFile, 'utf8'));
+      } catch (e) {
+        messages = [];
+      }
+    }
+
+    const newMsg = {
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+      name: escapeHtml(name.trim().slice(0, 100)),
+      email: escapeHtml(email.trim().slice(0, 100)),
+      subject: escapeHtml(subject.trim().slice(0, 200)),
+      message: escapeHtml(message.trim().slice(0, 4000)),
+      ip: String(ip).replace(/^.*:/, ''),
+      createdAt: new Date().toISOString()
+    };
+
+    messages.unshift(newMsg);
+    if (messages.length > 1000) messages = messages.slice(0, 1000);
+    fs.writeFileSync(contactFile, JSON.stringify(messages, null, 2), 'utf8');
+
+    console.log(`📬 [Contact Desk] Editorial message received from ${newMsg.name} (${newMsg.email}): "${newMsg.subject}"`);
+
+    res.json({
+      success: true,
+      message: 'Thank you! Your message has been received by our editorial desk.'
+    });
+  } catch (err) {
+    console.error('Error in /api/contact:', err);
+    res.status(500).json({ success: false, error: 'Internal server error while saving message.' });
+  }
+});
+
+// Admin Route to Read Contact Desk Messages
+app.get('/api/admin/contact-messages', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
+  const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
+  if (!isValidAdminToken(token)) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication token required' });
+  }
+
+  const contactFile = path.join(__dirname, 'data/contact_messages.json');
+  let messages = [];
+  if (fs.existsSync(contactFile)) {
+    try {
+      messages = JSON.parse(fs.readFileSync(contactFile, 'utf8'));
+    } catch (e) {
+      messages = [];
+    }
+  }
+  res.json({ success: true, count: messages.length, messages });
 });
 
 // Clean 404 Handler for Unmapped Routes (Eliminates Soft 404 Errors in Google Search Console)
