@@ -903,7 +903,7 @@ function initAdminPanel() {
           checkAdminAuth();
         } else {
           if (loginError) {
-            loginError.innerText = data.error || 'Incorrect password!';
+            loginError.innerText = data.error || data.detail || 'Incorrect password!';
             loginError.style.display = 'block';
           }
         }
