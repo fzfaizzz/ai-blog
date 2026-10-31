@@ -1,2427 +1,2443 @@
-
-// 🌟 Global Floating Toast Feedback
-function showToast(msg) {
-  let toast = document.getElementById('globalToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'globalToast';
-    toast.style.cssText = 'position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.3);transition:opacity 0.3s;pointer-events:none;';
-    document.body.appendChild(toast);
-  }
-  toast.innerText = msg;
-  toast.style.opacity = '1';
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-}
-
-// Client JavaScript for Prime Media
-
-const HUMAN_AUTHORS = [
-  { slug: 'sarah-jenkins', name: 'Sarah Jenkins', role: 'Senior Technology & AI Correspondent', initials: 'SJ' },
-  { slug: 'david-chen', name: 'David Chen', role: 'Global Financial & Macro Analyst', initials: 'DC' },
-  { slug: 'elena-rostova', name: 'Elena Rostova', role: 'Aerospace & Deep Science Editor', initials: 'ER' },
-  { slug: 'marcus-vance', name: 'Dr. Marcus Vance', role: 'Executive Editor & Policy Director', initials: 'MV' }
-];
-
-let currentCategory = 'ALL';
-let currentSearchQuery = '';
-let currentPage = 1;
-const POSTS_PER_PAGE = 12;
-let cachedPosts = [];
-
-// Load Homepage Grid Posts & Featured Hero with Live Search & Pagination
-async function loadHomepagePosts(category = null, page = null) {
-  const postsGrid = document.getElementById('postsGrid');
-  const featuredStory = document.getElementById('featuredStory');
-  const trendingSidebarList = document.getElementById('trendingSidebarList');
-  const headerTitle = document.getElementById('reportingHeaderTitle');
-  const paginationContainer = document.getElementById('paginationContainer');
-
-  if (!postsGrid) return;
-
-  if (category !== null) {
-    currentCategory = category;
-    currentPage = 1; // Reset to Page 1 on category change
-    sessionStorage.setItem('homepage_page', 1);
-  } else {
-    // Detect category from URL hash (#category-technology) or query param (?category=technology)
-    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
-    const urlParams = new URLSearchParams(window.location.search);
-    const paramCat = urlParams.get('category');
-    const detectedCat = (hashMatch ? hashMatch[1] : null) || paramCat;
-    if (detectedCat && currentCategory === 'ALL') {
-      currentCategory = detectedCat;
-      currentPage = 1;
-      const targetBtn = document.querySelector(`.category-btn[data-category="${detectedCat}" i]`);
-      if (targetBtn) {
-        document.querySelectorAll('.category-btn[data-category]').forEach(b => {
-          b.classList.remove('active');
-          b.style.color = 'var(--text-muted)';
-        });
-        targetBtn.classList.add('active');
-        targetBtn.style.color = '#2563EB';
-      }
-    }
-  }
-
-  // Restore page number from URL or Session Storage when returning via Browser Back button
-  if (page !== null) {
-    currentPage = page;
-  } else {
-    const urlParams = new URLSearchParams(window.location.search);
-    const savedPage = parseInt(urlParams.get('page')) || parseInt(sessionStorage.getItem('homepage_page')) || 1;
-    currentPage = savedPage;
-  }
-
-  // Persist current page in Session Storage & URL query string
-  sessionStorage.setItem('homepage_page', currentPage);
-  try {
-    const newUrl = new URL(window.location.href);
-    if (currentPage > 1) {
-      newUrl.searchParams.set('page', currentPage);
-    } else {
-      newUrl.searchParams.delete('page');
-    }
-    window.history.replaceState(null, '', newUrl.toString());
-  } catch (e) {}
-
-  // Update Header Title
-  if (headerTitle) {
-    if (currentSearchQuery) {
-      headerTitle.innerText = `SEARCH RESULTS FOR "${currentSearchQuery.toUpperCase()}"`;
-    } else {
-      headerTitle.innerText = currentCategory === 'ALL' 
-        ? 'LATEST REPORTING — ALL HEADLINES' 
-        : `LATEST REPORTING — ${currentCategory.toUpperCase()}`;
-    }
-  }
-
-  const isInitialSsrHome = (category === null && page === null && currentPage === 1 && !currentSearchQuery && featuredStory && !featuredStory.innerText.includes('Loading lead headline'));
-
-  try {
-    if (cachedPosts.length === 0) {
-      const res = await fetch('/api/posts?limit=120');
-      const data = await res.json();
-      if (data.success && data.posts) {
-        cachedPosts = data.posts;
-      }
-    }
-
-    // If initial page 1 was already rendered by SSR, do not destroy & re-create DOM (prevents LCP reset & CLS)
-    if (isInitialSsrHome && cachedPosts.length > 0) {
-      document.querySelectorAll('.topic-pill').forEach(pill => {
-        pill.onclick = (e) => {
-          e.preventDefault();
-          const query = pill.getAttribute('data-query');
-          const searchInput = document.getElementById('searchInput');
-          if (searchInput) searchInput.value = query;
-          currentSearchQuery = query;
-          currentPage = 1;
-          loadHomepagePosts();
-        };
-      });
-      const totalStream = Math.max(1, cachedPosts.length - 8);
-      const perPage = window.innerWidth < 768 ? 8 : (window.innerWidth <= 1024 ? 10 : 12);
-      renderPagination(Math.ceil(totalStream / perPage) || 1);
-      return;
-    }
-
-    if (cachedPosts.length > 0) {
-      // 1. Filter by Category
-      let filtered = currentCategory === 'ALL'
-        ? cachedPosts
-        : cachedPosts.filter(p => (p.category || '').toLowerCase().includes(currentCategory.toLowerCase()) || (p.title || '').toLowerCase().includes(currentCategory.toLowerCase()));
-
-      // 2. Filter by Search Query
-      if (currentSearchQuery.trim()) {
-        const q = currentSearchQuery.trim().toLowerCase();
-        filtered = filtered.filter(p => 
-          (p.title || '').toLowerCase().includes(q) || 
-          (p.metaDescription || '').toLowerCase().includes(q) ||
-          (p.category || '').toLowerCase().includes(q)
-        );
-      }
-
-      if (filtered.length === 0) {
-        postsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 2.5rem; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
-          No articles found matching "<strong>${escapeHtml(currentSearchQuery || currentCategory)}</strong>".
-        </div>`;
-        if (paginationContainer) paginationContainer.innerHTML = '';
-        return;
-      }
-
-      // 3. Dynamic Featured Hero & Trending Sidebar with Zero Duplication
-      const featuredSlugs = new Set();
-      const heroSection = document.getElementById('heroSection');
-      if (heroSection) heroSection.style.display = '';
-
-      if (featuredStory && filtered.length > 0) {
-        const lead = filtered[0];
-        featuredSlugs.add(lead.slug);
-        const author = HUMAN_AUTHORS[0];
-        const categoryTag = (currentCategory !== 'ALL') ? currentCategory : (lead.category || 'TOP STORY');
-        
-        // Update Red Breaking News Ticker
-        const breakingLink = document.getElementById('breakingHeadlineLink');
-        if (breakingLink) {
-          breakingLink.innerText = lead.title;
-          breakingLink.href = `/post/${lead.slug}`;
-        }
-
-        featuredStory.innerHTML = `
-          <span class="featured-badge">${escapeHtml(categoryTag.toUpperCase())}</span>
-          <a href="/post/${lead.slug}">
-            <img src="${lead.imageUrl}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80'" />
-          </a>
-          <h2><a href="/post/${lead.slug}">${escapeHtml(lead.title)}</a></h2>
-          <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
-          <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
-            By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;"><strong>${author.name}</strong></a> • ${new Date(lead.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </div>
-        `;
-      }
-
-      if (trendingSidebarList) {
-        trendingSidebarList.innerHTML = '';
-        const sideItems = filtered.filter(p => !featuredSlugs.has(p.slug)).slice(0, 3);
-        sideItems.forEach(item => {
-          featuredSlugs.add(item.slug);
-          const div = document.createElement('div');
-          div.className = 'trending-sidebar-item';
-          div.innerHTML = `
-            <span style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
-            <h4><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h4>
-          `;
-          trendingSidebarList.appendChild(div);
-        });
-      }
-
-      // 4. Render Layout Type 1: Visual Spotlight 4-Card Grid (Guaranteed Distinct from Hero & Headlines)
-      const spotlightGrid = document.getElementById('spotlightGrid');
-      const spotlightSection = document.getElementById('spotlightSection');
-      const candidateSpotlights = filtered.filter(p => !featuredSlugs.has(p.slug));
-
-      if (spotlightGrid) {
-        spotlightGrid.innerHTML = '';
-        const spotlightItems = candidateSpotlights.slice(0, 4);
-
-        if (spotlightItems.length > 0) {
-          if (spotlightSection) spotlightSection.style.display = '';
-          spotlightItems.forEach((post, i) => {
-            featuredSlugs.add(post.slug);
-            const author = HUMAN_AUTHORS[(i + 4) % HUMAN_AUTHORS.length];
-            const sCard = document.createElement('div');
-            sCard.className = 'spotlight-card';
-            sCard.innerHTML = `
-              <div class="spotlight-img-wrap">
-                <span class="spotlight-tag-overlay">${escapeHtml(post.category || 'SPECIAL REPORT')}</span>
-                <a href="/post/${post.slug}">
-                  <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
-                </a>
-              </div>
-              <div class="spotlight-body">
-                <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL REPORT')}</div>
-                <h4 class="spotlight-title">
-                  <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
-                </h4>
-                <div class="spotlight-meta">
-                  <span>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></span> • <span>${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-              </div>
-            `;
-            spotlightGrid.appendChild(sCard);
-          });
-        } else if (spotlightSection) {
-          spotlightSection.style.display = 'none';
-        }
-      }
-
-      // 5. Render Ranked Most Read Sidebar (Right Column)
-      const mostReadList = document.getElementById('mostReadList');
-      if (mostReadList) {
-        mostReadList.innerHTML = '';
-        const rankedItems = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-        rankedItems.forEach((item, idx) => {
-          const div = document.createElement('div');
-          div.className = 'most-read-item';
-          div.innerHTML = `
-            <div class="rank-badge ${idx === 0 ? 'top-rank' : ''}">${idx + 1}</div>
-            <h5><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h5>
-          `;
-          mostReadList.appendChild(div);
-        });
-      }
-
-      // Initialize Trending Topic Pills Click Listeners
-      document.querySelectorAll('.topic-pill').forEach(pill => {
-        pill.onclick = (e) => {
-          e.preventDefault();
-          const query = pill.getAttribute('data-query');
-          const searchInput = document.getElementById('searchInput');
-          if (searchInput) searchInput.value = query;
-          currentSearchQuery = query;
-          currentPage = 1;
-          loadHomepagePosts();
-        };
-      });
-
-      function getPostsPerPage() {
-        const width = window.innerWidth;
-        if (width < 768) {
-          return 8;  // Phone: 8 articles in sleek row feed
-        } else if (width <= 1024) {
-          return 10;
-        } else {
-          return 12;
-        }
-      }
-
-      // 6. News Stream (LATEST REPORTING — ALL HEADLINES)
-      // Exclude all articles already displayed in Hero and Spotlight so there is 100% unique content!
-      const streamPool = filtered.filter(p => !featuredSlugs.has(p.slug));
-      const activeStream = streamPool.length > 0 ? streamPool : filtered;
-
-      const postsPerPage = getPostsPerPage();
-      const totalPages = Math.ceil(activeStream.length / postsPerPage) || 1;
-      if (currentPage > totalPages) currentPage = totalPages;
-
-      const startIndex = (currentPage - 1) * postsPerPage;
-      const paginatedPosts = activeStream.slice(startIndex, startIndex + postsPerPage);
-
-      // 7. Render Layout Type 2: News Stream (Aaj Tak Row Format)
-      postsGrid.innerHTML = '';
-      paginatedPosts.forEach((post, index) => {
-        const author = HUMAN_AUTHORS[(index + startIndex + 8) % HUMAN_AUTHORS.length];
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="/post/${post.slug}">
-            <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
-          </a>
-          <div class="card-body">
-            <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
-            <h3 class="card-title">
-              <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
-            </h3>
-            <p class="card-desc">${escapeHtml(post.metaDescription)}</p>
-            <div class="card-author-meta">
-              <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-avatar">${author.initials}</div></a>
-              <div>
-                <strong>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></strong> • ${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </div>
-            </div>
-          </div>
-        `;
-        postsGrid.appendChild(card);
-      });
-
-      // 8. Render Pagination Controls
-      renderPagination(totalPages);
-    } else {
-      postsGrid.innerHTML = '<div style="color: var(--text-subtle);">No published articles found.</div>';
-    }
-  } catch (e) {
-    postsGrid.innerHTML = `<div style="color: var(--text-subtle);">Error loading articles: ${e.message}</div>`;
-  }
-}
-
-// Render Pagination Buttons
-function renderPagination(totalPages) {
-  const container = document.getElementById('paginationContainer');
-  if (!container) return;
-
-  if (totalPages <= 1) {
-    container.innerHTML = '';
-    return;
-  }
-
-  let html = `
-    <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === 1 ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === 1 ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
-      ⬅️ Previous
-    </button>
-    <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; padding: 0 0.5rem;">
-      Page ${currentPage} of ${totalPages}
-    </span>
-    <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === totalPages ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === totalPages ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
-      Next ➡️
-    </button>
-  `;
-
-  container.innerHTML = html;
-
-  const prevBtn = document.getElementById('prevPageBtn');
-  const nextBtn = document.getElementById('nextPageBtn');
-
-  if (prevBtn && currentPage > 1) {
-    prevBtn.addEventListener('click', () => {
-      loadHomepagePosts(null, currentPage - 1);
-      scrollToGridTop();
-    });
-  }
-
-  if (nextBtn && currentPage < totalPages) {
-    nextBtn.addEventListener('click', () => {
-      loadHomepagePosts(null, currentPage + 1);
-      scrollToGridTop();
-    });
-  }
-}
-
-function scrollToGridTop() {
-  const target = document.getElementById('reportingHeaderTitle');
-  if (target) {
-    target.scrollIntoView({ behavior: 'smooth' });
-  }
-}
-
-// Bind Category Navigation & Search Input Listeners
-function initCategoryFilter() {
-  const categoryBtns = document.querySelectorAll('.category-btn[data-category]');
-  categoryBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const targetCat = btn.getAttribute('data-category');
-      if (!targetCat) return; // Allow natural navigation for links without data-category
-      e.preventDefault();
-
-      // Update Active UI State
-      categoryBtns.forEach(b => {
-        b.classList.remove('active');
-        b.style.color = 'var(--text-muted)';
-      });
-      btn.classList.add('active');
-      btn.style.color = '#2563EB';
-
-      // Reset Search & Load Category
-      currentSearchQuery = '';
-      loadHomepagePosts(targetCat, 1);
-    });
-  });
-
-  // Reactive hashchange listener (enables instant category navigation from footer & breadcrumbs)
-  window.addEventListener('hashchange', () => {
-    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
-    if (hashMatch && hashMatch[1]) {
-      const cat = hashMatch[1];
-      const targetBtn = document.querySelector(`.category-btn[data-category="${cat}" i]`);
-      if (targetBtn) {
-        targetBtn.click();
-      } else {
-        loadHomepagePosts(cat, 1);
-      }
-    }
-  });
-}
-
-// 🔍 Global Live Search Modal System
-let cachedAllPosts = [];
-
-async function fetchAllPostsForSearch() {
-  if (cachedAllPosts.length > 0) return cachedAllPosts;
-  if (cachedPosts && cachedPosts.length > 0) {
-    cachedAllPosts = cachedPosts;
-    return cachedAllPosts;
-  }
-  try {
-    const res = await fetch('/api/posts');
-    const data = await res.json();
-    if (data.success && Array.isArray(data.posts)) {
-      cachedAllPosts = data.posts;
-      return cachedAllPosts;
-    }
-  } catch (e) {
-    console.error('Error fetching posts for search:', e);
-  }
-  return [];
-}
-
-function initGlobalSearchModal() {
-  // 1. Ensure Search Modal DOM element exists on page
-  let modal = document.getElementById('globalSearchModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'globalSearchModal';
-    modal.className = 'search-modal-backdrop';
-    modal.innerHTML = `
-      <div class="search-modal-dialog">
-        <div class="search-modal-header">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="#64748B" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="modalSearchInput" class="search-modal-input" placeholder="Search news, reports, topics..." autocomplete="off" />
-          <button type="button" id="closeSearchModalBtn" class="search-modal-close" aria-label="Close search">✕</button>
-        </div>
-        <div class="search-modal-quick-tags">
-          <span class="search-quick-label">Trending:</span>
-          <span class="search-quick-pill" data-query="Nvidia">Nvidia AI</span>
-          <span class="search-quick-pill" data-query="Stock Market">Stock Market</span>
-          <span class="search-quick-pill" data-query="Artificial Intelligence">AI &amp; Tech</span>
-          <span class="search-quick-pill" data-query="Economy">Global Economy</span>
-          <span class="search-quick-pill" data-query="Crypto">Crypto</span>
-          <span class="search-quick-pill" data-query="Space">Space</span>
-        </div>
-        <div id="modalSearchResults" class="search-modal-results">
-          <!-- Live results populated dynamically -->
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-
-  const searchInput = document.getElementById('modalSearchInput');
-  const searchResults = document.getElementById('modalSearchResults');
-  const closeBtn = document.getElementById('closeSearchModalBtn');
-
-  async function renderLiveSearchResults(query) {
-    const posts = await fetchAllPostsForSearch();
-    if (!searchResults) return;
-
-    let matched = posts;
-    const q = (query || '').trim().toLowerCase();
-
-    if (q) {
-      matched = posts.filter(p => 
-        (p.title || '').toLowerCase().includes(q) || 
-        (p.metaDescription || '').toLowerCase().includes(q) ||
-        (p.category || '').toLowerCase().includes(q)
-      );
-    }
-
-    if (matched.length === 0) {
-      searchResults.innerHTML = `
-        <div style="text-align: center; padding: 2.5rem 1rem; color: #64748B;">
-          <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 0.25rem;">No stories found</div>
-          <div style="font-size: 0.85rem;">No articles matched "<strong>${escapeHtml(query)}</strong>". Try another keyword.</div>
-        </div>
-      `;
-      return;
-    }
-
-    const displayItems = matched.slice(0, 8);
-    searchResults.innerHTML = `
-      <div style="font-size: 0.72rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; padding-left: 0.2rem;">
-        ${q ? `Search Results (${matched.length})` : 'Top Trending & Latest Stories'}
-      </div>
-      ${displayItems.map(p => `
-        <a href="/post/${p.slug}" class="search-result-row">
-          <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" class="search-result-thumb" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
-          <div class="search-result-info">
-            <div class="search-result-category">${escapeHtml(p.category || 'NEWS')}</div>
-            <h5 class="search-result-title">${escapeHtml(p.title)}</h5>
-            <div class="search-result-date">${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-          </div>
-          <span class="search-result-action">Read ➔</span>
-        </a>
-      `).join('')}
-    `;
-  }
-
-  function openSearchModal() {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    if (searchInput) {
-      searchInput.value = '';
-      setTimeout(() => searchInput.focus(), 80);
-    }
-    renderLiveSearchResults('');
-  }
-
-  function closeSearchModal() {
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-
-  // Bind All Search Trigger Buttons
-  document.querySelectorAll('.global-search-trigger').forEach(btn => {
-    btn.onclick = (e) => {
-      e.preventDefault();
-      openSearchModal();
-    };
-  });
-
-  if (closeBtn) closeBtn.onclick = closeSearchModal;
-
-  modal.onclick = (e) => {
-    if (e.target === modal) closeSearchModal();
-  };
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('active')) {
-      closeSearchModal();
-    }
-  });
-
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      renderLiveSearchResults(e.target.value);
-    });
-  }
-
-  // Quick Topic Pills in Modal
-  modal.querySelectorAll('.search-quick-pill').forEach(pill => {
-    pill.onclick = () => {
-      const q = pill.getAttribute('data-query');
-      if (searchInput) {
-        searchInput.value = q;
-        searchInput.focus();
-      }
-      renderLiveSearchResults(q);
-    };
-  });
-}
-
-function setMetaTag(property, content) {
-  let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
-  if (!el) {
-    el = document.createElement('meta');
-    if (property.startsWith('og:') || property.startsWith('article:')) {
-      el.setAttribute('property', property);
-    } else {
-      el.setAttribute('name', property);
-    }
-    document.head.appendChild(el);
-  }
-  el.setAttribute('content', content);
-}
-
-function setCanonicalTag(url) {
-  let link = document.querySelector('link[rel="canonical"]');
-  if (!link) {
-    link = document.createElement('link');
-    link.setAttribute('rel', 'canonical');
-    document.head.appendChild(link);
-  }
-  link.setAttribute('href', url);
-}
-
-// Load Single Article Page
-let isArticleLoading = false;
-async function loadSingleArticle() {
-  if (isArticleLoading) return;
-  isArticleLoading = true;
-
-  const postContainer = document.getElementById('postContent');
-  // If Server-Side Rendering (SSR) already populated the article, do NOT wipe & re-download DOM (protects Core Web Vitals LCP & CLS)
-  if (postContainer && postContainer.getAttribute('data-ssr') === 'true') {
-    const inImgs = postContainer.querySelectorAll('img');
-    inImgs.forEach(img => {
-      img.referrerPolicy = 'no-referrer';
-      img.onerror = function() {
-        this.onerror = null;
-        this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
-      };
-    });
-    isArticleLoading = false;
-    return;
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  // Support both /post/slug and post.html?slug=slug
-  let slug = params.get('slug');
-  if (!slug) {
-    const pathMatch = window.location.pathname.match(/\/post\/(.+)/);
-    if (pathMatch) slug = pathMatch[1];
-  }
-  if (!slug) {
-    isArticleLoading = false;
-    return;
-  }
-  slug = slug.replace(/\/+$/, '').replace(/\.html$/i, '');
-
-  try {
-    const res = await fetch(`/api/post/${slug}`);
-    const data = await res.json();
-
-    if (data.success && data.post) {
-      const p = data.post;
-      const author = HUMAN_AUTHORS[Math.abs(hashString(p.slug)) % HUMAN_AUTHORS.length];
-
-      if (document.getElementById('pageTitle')) document.getElementById('pageTitle').innerText = `${p.title} — PRIME MEDIA`;
-      if (document.getElementById('metaDesc')) document.getElementById('metaDesc').content = p.metaDescription;
-
-      // Dynamic SEO Meta Tags for Social Sharing
-      const postUrl = `${window.location.origin}/post/${p.slug}`;
-      setMetaTag('og:type', 'article');
-      setMetaTag('og:title', p.title + ' — PRIME MEDIA');
-      setMetaTag('og:description', p.metaDescription);
-      setMetaTag('og:url', postUrl);
-      setMetaTag('og:image', p.imageUrl);
-      setMetaTag('og:site_name', 'PRIME MEDIA');
-      setMetaTag('article:published_time', p.publishedAt);
-      setMetaTag('twitter:card', 'summary_large_image');
-      setMetaTag('twitter:title', p.title + ' — PRIME MEDIA');
-      setMetaTag('twitter:description', p.metaDescription);
-      setMetaTag('twitter:image', p.imageUrl);
-      setCanonicalTag(postUrl);
-      if (typeof updateStickyShareUrls === 'function') updateStickyShareUrls();
-      if (document.getElementById('postTitle')) document.getElementById('postTitle').innerText = p.title;
-      if (document.getElementById('postLeadDesc')) document.getElementById('postLeadDesc').innerText = p.metaDescription;
-      if (document.getElementById('postFeaturedImg')) {
-        const featImg = document.getElementById('postFeaturedImg');
-        featImg.referrerPolicy = 'no-referrer';
-        featImg.onerror = function() {
-          this.onerror = null;
-          this.src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
-        };
-        featImg.src = p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
-      }
-      if (document.getElementById('postCategoryPill')) document.getElementById('postCategoryPill').innerText = (p.category || 'TECHNOLOGY').toUpperCase();
-
-      // Breadcrumb Dynamic Binding
-      if (document.getElementById('breadcrumbCategory')) {
-        document.getElementById('breadcrumbCategory').innerText = p.category || 'Technology';
-        document.getElementById('breadcrumbCategory').href = `/#category-${(p.category || 'technology').toLowerCase()}`;
-      }
-      if (document.getElementById('breadcrumbCurrent')) {
-        document.getElementById('breadcrumbCurrent').innerText = p.title;
-      }
-
-      // Author Byline & Bio Binding with E-E-A-T Links
-      if (document.getElementById('authorInitials')) {
-        const el = document.getElementById('authorInitials');
-        el.innerText = author.initials;
-        if (el.parentElement && el.parentElement.tagName === 'A') {
-          el.parentElement.href = `/author/${author.slug}`;
-        } else {
-          el.style.cursor = 'pointer';
-          el.onclick = () => window.location.href = `/author/${author.slug}`;
-        }
-      }
-      if (document.getElementById('bioAvatar')) {
-        const el = document.getElementById('bioAvatar');
-        el.innerText = author.initials;
-        if (el.parentElement && el.parentElement.tagName === 'A') {
-          el.parentElement.href = `/author/${author.slug}`;
-        } else {
-          el.style.cursor = 'pointer';
-          el.onclick = () => window.location.href = `/author/${author.slug}`;
-        }
-      }
-      if (document.getElementById('postAuthorName')) {
-        document.getElementById('postAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">By ${author.name}</a>`;
-      }
-      if (document.getElementById('bioAuthorName')) {
-        document.getElementById('bioAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: #0F172A; text-decoration: none;">${author.name}</a>`;
-      }
-      if (document.getElementById('bioAuthorRole')) {
-        document.getElementById('bioAuthorRole').innerHTML = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA. <a href="/author/${author.slug}" style="color: #2563EB; font-weight: 700; margin-left: 5px; text-decoration: none;">View Profile &amp; Articles &rarr;</a>`;
-      }
-      if (document.getElementById('postPublishDate')) {
-        document.getElementById('postPublishDate').innerHTML = `<a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${author.role}</a> • Published ${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
-      }
-      if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
-
-      let html = (p.contentHtml || '')
-        .replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '')
-        .replace(/<h1(\b[^>]*)>/gi, '<h2$1>')
-        .replace(/<\/h1>/gi, '</h2>');
-
-      // Clean up any old Photo Credit text
-      html = html.replace(/<div[^>]*>Photo Credit:.*?<\/div>/gi, '');
-
-      // Inject In-Article Recommended Widget after 2nd H2 for deep engagement
-      let h2Count = 0;
-      html = html.replace(/<h2>/g, (match) => {
-        h2Count++;
-        if (h2Count === 2) {
-          return `<div id="inArticleRecommendedPlaceholder"></div><h2>`;
-        }
-        return match;
-      });
-
-      if (document.getElementById('postContent')) {
-        const postContainer = document.getElementById('postContent');
-        postContainer.innerHTML = html;
-        // Shield all in-article photos from hotlink protection and broken links
-        const inImgs = postContainer.querySelectorAll('img');
-        inImgs.forEach(img => {
-          img.referrerPolicy = 'no-referrer';
-          img.onerror = function() {
-            this.onerror = null;
-            this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
-          };
-        });
-      }
-
-      // Load Recommended & Suggested Stories (Both Mid-Article & Bottom Grid)
-      loadRecommendedArticles(p.slug, p.category);
-    }
-  } catch (e) {
-    console.error('Error loading article:', e);
-  }
-}
-
-// Render Recommended Post Cards (Mid-Article Widget + Bottom Section)
-async function loadRecommendedArticles(currentSlug, category) {
-  const bottomGrid = document.getElementById('recommendedGrid');
-  const midPlaceholder = document.getElementById('inArticleRecommendedPlaceholder');
-
-  try {
-    const res = await fetch('/api/posts?limit=16');
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.posts)) {
-      // Exclude current active article
-      const otherPosts = data.posts.filter(p => p.slug !== currentSlug);
-      if (otherPosts.length === 0) return;
-
-      // 1. Render Mid-Article Recommended Section (Clean Native Article Grid)
-      if (midPlaceholder) {
-        const midPosts = otherPosts.slice(0, 2);
-        midPlaceholder.innerHTML = `
-          <div class="in-article-recommended" style="margin: 2rem 0; padding: 1.25rem 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;">
-            <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0 0 1rem 0; text-transform: uppercase; letter-spacing: 0.04em;">
-              Related Analysis
-            </h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
-              ${midPosts.map(p => `
-                <div style="display: flex; gap: 0.75rem; align-items: center; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.6rem;">
-                  <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
-                  <div style="flex: 1; min-width: 0;">
-                    <span style="font-size: 0.65rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'NEWS')}</span>
-                    <h5 style="font-family: var(--font-heading); font-size: 0.825rem; font-weight: 700; line-height: 1.3; margin: 0.2rem 0 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                      <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
-                    </h5>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      // 2. Render Bottom Grid (3 Posts in Sleek News Row / Card Format)
-      if (bottomGrid) {
-        const bottomPosts = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
-        bottomGrid.innerHTML = bottomPosts.map(p => `
-          <div class="recommended-card" style="display: flex; gap: 0.85rem; align-items: center; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; transition: transform 0.2s, box-shadow 0.2s;">
-            <a href="/post/${p.slug}" style="flex-shrink: 0; display: block;">
-              <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 95px; height: 70px; object-fit: cover; border-radius: 6px; display: block;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
-            </a>
-            <div style="flex: 1; min-width: 0;">
-              <span style="font-size: 0.68rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'WORLD NEWS')}</span>
-              <h4 style="font-family: var(--font-heading); font-size: 0.88rem; font-weight: 700; line-height: 1.35; margin: 0.25rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
-              </h4>
-              <div style="font-size: 0.72rem; color: #64748B;">
-                <span>${p.readTimeMinutes || 5} min read</span>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-  } catch (e) {
-    console.error('Error loading recommended articles:', e);
-  }
-}
-
-// Admin Control Panel Handlers
-let isAdminPanelInitialized = false;
-function initAdminPanel() {
-  if (isAdminPanelInitialized) return;
-  isAdminPanelInitialized = true;
-
-  function getAdminAuthHeaders() {
-    const token = sessionStorage.getItem('adminToken') || '';
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-  }
-
-  const loginModal = document.getElementById('adminLoginModal');
-  const loginForm = document.getElementById('adminLoginForm');
-  const passwordInput = document.getElementById('adminPasswordInput');
-  const loginError = document.getElementById('adminLoginError');
-  const logoutBtn = document.getElementById('adminLogoutBtn');
-
-  const changePassForm = document.getElementById('changePasswordForm');
-  const currentPassInput = document.getElementById('currentPassInput');
-  const newPassInput = document.getElementById('newPassInput');
-  const changePassStatus = document.getElementById('changePassStatus');
-
-  const triggerBtn = document.getElementById('triggerAutoBlogBtn');
-  const triggerStatus = document.getElementById('triggerStatus');
-  const topicInput = document.getElementById('customTopicInput');
-  const logsPre = document.getElementById('adminLogs');
-
-  const keysContainer = document.getElementById('serperKeysContainer');
-  const addKeyBtn = document.getElementById('addKeyBtn');
-  const saveSerperKeysBtn = document.getElementById('saveSerperKeysBtn');
-  const serperKeysStatus = document.getElementById('serperKeysStatus');
-
-  const topTopicsList = document.getElementById('topTopicsList');
-  const countryTrafficList = document.getElementById('countryTrafficList');
-
-  // Check Admin Authentication Token
-  function checkAdminAuth() {
-    const token = sessionStorage.getItem('adminToken');
-    if (token) {
-      if (loginModal) loginModal.style.display = 'none';
-      if (logoutBtn) logoutBtn.style.display = 'inline-block';
-      loadAdminDashboardData();
-    } else {
-      if (loginModal) loginModal.style.display = 'flex';
-    }
-  }
-
-  // Password Eye Toggle Show/Hide Handler
-  document.querySelectorAll('.toggle-pass-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = btn.getAttribute('data-target');
-      const input = document.getElementById(targetId);
-      if (input) {
-        const isPass = input.type === 'password';
-        input.type = isPass ? 'text' : 'password';
-        btn.innerText = isPass ? '🙈' : '👁️';
-      }
-    });
-  });
-
-  // Login Form Submission
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const password = passwordInput ? passwordInput.value.trim() : '';
-      if (!password) return;
-
-      if (loginError) loginError.style.display = 'none';
-
-      try {
-        const res = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
-        const data = await res.json();
-
-        if (data.success && data.token) {
-          sessionStorage.setItem('adminToken', data.token);
-          if (passwordInput) passwordInput.value = '';
-          checkAdminAuth();
-        } else {
-          if (loginError) {
-            loginError.innerText = data.error || data.detail || 'Incorrect password!';
-            loginError.style.display = 'block';
-          }
-        }
-      } catch (err) {
-        if (loginError) {
-          loginError.innerText = 'Server connection error!';
-          loginError.style.display = 'block';
-        }
-      }
-    });
-  }
-
-  // Logout Handler
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      sessionStorage.removeItem('adminToken');
-      checkAdminAuth();
-    });
-  }
-
-  // Change Admin Password Handler
-  if (changePassForm) {
-    changePassForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const currentPassword = currentPassInput ? currentPassInput.value.trim() : '';
-      const newPassword = newPassInput ? newPassInput.value.trim() : '';
-      const targetPass = newPassword || currentPassword;
-
-      if (!targetPass || targetPass.length < 4) {
-        if (changePassStatus) {
-          changePassStatus.style.color = '#DC2626';
-          changePassStatus.innerText = '❌ Password must be at least 4 characters!';
-        }
-        return;
-      }
-
-      if (changePassStatus) changePassStatus.innerText = '⌛ Updating password...';
-
-      try {
-        const token = sessionStorage.getItem('adminToken') || '';
-        const res = await fetch('/api/admin/change-password', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ currentPassword, newPassword: targetPass })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          if (changePassStatus) {
-            changePassStatus.style.color = '#059669';
-            changePassStatus.innerText = `✅ Password updated & saved to: "${data.newPassword}"`;
-          }
-          if (currentPassInput) currentPassInput.value = '';
-          if (newPassInput) newPassInput.value = '';
-        } else {
-          if (changePassStatus) {
-            changePassStatus.style.color = '#DC2626';
-            changePassStatus.innerText = `❌ ${data.error || 'Failed to update password'}`;
-          }
-        }
-      } catch (err) {
-        if (changePassStatus) {
-          changePassStatus.style.color = '#DC2626';
-          changePassStatus.innerText = '❌ Connection error!';
-        }
-      }
-    });
-  }
-
-  function loadAdminDashboardData() {
-    loadGeminiKeyStatus();
-    loadSerperKeysAndCredits();
-    loadAnalytics();
-    loadAdminArticlesList();
-    if (typeof loadTelegramConfig === 'function') loadTelegramConfig();
-    if (typeof loadUserbotConfig === 'function') loadUserbotConfig();
-    if (typeof loadTwitterConfig === 'function') loadTwitterConfig();
-    if (typeof loadCustomTwitterConfig === 'function') loadCustomTwitterConfig();
-    if (typeof loadRedditConfig === 'function') loadRedditConfig();
-  }
-
-  // Auto-refresh analytics and articles every 15 seconds while Admin is active
-  setInterval(() => {
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel && adminPanel.style.display !== 'none') {
-      loadAnalytics();
-      loadAdminArticlesList();
-    }
-  }, 15000);
-
-  // Admin Articles Manager State & Functions
-  let adminAllPosts = [];
-  let adminSearchQuery = '';
-  let adminPerPage = 10;
-
-  async function loadAdminArticlesList() {
-    const container = document.getElementById('adminArticlesList');
-    const badge = document.getElementById('adminArticlesCountBadge');
-    if (!container) return;
-
-    try {
-      const token = sessionStorage.getItem('adminToken') || '';
-      const res = await fetch('/api/admin/posts', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.status === 401) {
-        sessionStorage.removeItem('adminToken');
-        if (loginModal) loginModal.style.display = 'flex';
-        if (container) container.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: #64748B;">Admin session required. Please log in with password.</div>`;
-        return;
-      }
-      const data = await res.json();
-      if (data.success && Array.isArray(data.posts)) {
-        adminAllPosts = data.posts;
-        if (badge) badge.innerText = `${adminAllPosts.length} Total Articles`;
-        const statArts = document.getElementById('statTotalArticles');
-        if (statArts) statArts.innerText = adminAllPosts.length;
-        renderAdminArticlesList();
-      } else {
-        if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626;">Error: ${data.error || 'Failed to retrieve articles'}</div>`;
-      }
-    } catch (e) {
-      if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626; display: flex; align-items: center; justify-content: space-between;"><span>Error loading articles (${e.message})</span><button onclick="loadAdminArticlesList()" style="padding: 4px 10px; background: #2563EB; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Retry</button></div>`;
-    }
-  }
-
-  function renderAdminArticlesList() {
-    const container = document.getElementById('adminArticlesList');
-    if (!container) return;
-
-    // Filter by Search Query
-    let filtered = adminAllPosts;
-    if (adminSearchQuery.trim()) {
-      const q = adminSearchQuery.trim().toLowerCase();
-      filtered = filtered.filter(p => 
-        (p.title || '').toLowerCase().includes(q) || 
-        (p.category || '').toLowerCase().includes(q) ||
-        (p.slug || '').toLowerCase().includes(q)
-      );
-    }
-
-    // Slice by Show Per Page Dropdown
-    let displayPosts = filtered;
-    if (adminPerPage !== 'all') {
-      const count = parseInt(adminPerPage) || 10;
-      displayPosts = filtered.slice(0, count);
-    }
-
-    if (displayPosts.length === 0) {
-      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No articles found matching search criteria.</div>`;
-      return;
-    }
-
-    container.innerHTML = displayPosts.map(p => `
-      <div class="admin-article-row ${p.hidden ? 'is-hidden' : ''}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--admin-article-border, #F1F5F9); flex-wrap: wrap; gap: 0.75rem; background: ${p.hidden ? 'var(--admin-article-hidden-bg, #FFFBEB)' : 'var(--admin-article-bg, #FFFFFF)'};">
-        <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 260px;">
-          <img src="${p.imageUrl}" alt="${p.title}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0F172A;" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
-          <div>
-            <div style="font-weight: 700; font-size: 0.9rem; color: var(--admin-text-main, #0F172A); line-height: 1.3;">
-              <a href="/post/${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
-            </div>
-            <div style="font-size: 0.75rem; color: var(--admin-text-subtle, #64748B); margin-top: 0.2rem;">
-              📁 <strong>${p.category || 'News'}</strong> • 👁️ ${p.views || 0} views • 🗓️ ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </div>
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 0.65rem;">
-          <!-- Status Badge -->
-          <span style="font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 12px; background: ${p.hidden ? 'var(--badge-hidden-bg, #FEF3C7)' : 'var(--badge-public-bg, #DCFCE7)'}; color: ${p.hidden ? 'var(--badge-hidden-color, #D97706)' : 'var(--badge-public-color, #15803D)'};">
-            ${p.hidden ? '🙈 HIDDEN' : '🟢 PUBLIC'}
-          </span>
-
-          <!-- 📢 1-Click Social Broadcast Button -->
-          <button class="admin-broadcast-btn" data-slug="${p.slug}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #2563EB; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" title="Post this story immediately to Reddit & Twitter/X">
-            📢 Broadcast
-          </button>
-
-          <!-- Hide/Unhide Button -->
-          <button class="admin-toggle-btn" data-id="${p.id}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: ${p.hidden ? '#059669' : '#D97706'}; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
-            ${p.hidden ? '👁️ Unhide' : '🙈 Hide'}
-          </button>
-
-          <!-- Delete Button -->
-          <button class="admin-delete-btn" data-id="${p.id}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #DC2626; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
-            🗑️ Delete
-          </button>
-        </div>
-      </div>
-    `).join('');
-
-    // Bind Action Button Handlers
-    container.querySelectorAll('.admin-broadcast-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const slug = btn.getAttribute('data-slug');
-        const title = btn.getAttribute('data-title');
-        btn.disabled = true;
-        btn.innerText = '⌛ Posting...';
-
-        try {
-          const res = await fetch('/api/social/broadcast-post', {
-          headers: getAdminAuthHeaders(),
-            method: 'POST',
-            body: JSON.stringify({ slug })
-          });
-          const data = await res.json();
-          if (data.success && data.results) {
-            const r = data.results;
-            const redditMsg = r.reddit.attempted
-              ? (r.reddit.success ? '✅ Success' : `❌ ${r.reddit.message}`)
-              : `⚪ Not Configured (${r.reddit.message})`;
-            
-            const twMsg = r.customTwitter.attempted
-              ? (r.customTwitter.success ? '✅ Tweeted (Custom Bot)' : `❌ ${r.customTwitter.message}`)
-              : (r.twitterApi.attempted ? (r.twitterApi.success ? '✅ Tweeted (API)' : `❌ ${r.twitterApi.message}`) : `⚪ Not Configured`);
-
-            alert(`🚀 Social Broadcast Results for:\n"${title}"\n\n🔴 Reddit: ${redditMsg}\n🐥 X (Twitter): ${twMsg}`);
-            logMessage(`📢 Social Broadcast for "${title}": Reddit -> ${redditMsg}, X -> ${twMsg}`);
-          } else {
-            alert(`Broadcast failed: ${data.message || 'Unknown error'}`);
-          }
-        } catch (e) {
-          alert(`Broadcast error: ${e.message}`);
-        } finally {
-          btn.disabled = false;
-          btn.innerText = '📢 Broadcast';
-        }
-      });
-    });
-
-    container.querySelectorAll('.admin-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        btn.disabled = true;
-        try {
-          const token = sessionStorage.getItem('adminToken') || '';
-          const res = await fetch('/api/admin/post/toggle-visibility', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ id })
-          });
-          const data = await res.json();
-          if (data.success) {
-            cachedPosts = []; // Clear homepage cache
-            loadAdminArticlesList();
-            loadHomepagePosts();
-          }
-        } catch (e) {
-          alert('Error toggling post visibility');
-        }
-      });
-    });
-
-    container.querySelectorAll('.admin-delete-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const title = btn.getAttribute('data-title');
-        if (!confirm(`Are you sure you want to permanently delete:\n"${title}"?`)) return;
-
-        btn.disabled = true;
-        try {
-          const token = sessionStorage.getItem('adminToken') || '';
-          const res = await fetch('/api/admin/post/delete', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ id })
-          });
-          const data = await res.json();
-          if (data.success) {
-            logMessage(`🗑️ Article deleted: "${title}"`);
-            cachedPosts = []; // Clear homepage cache
-            loadAdminArticlesList();
-            loadHomepagePosts();
-          }
-        } catch (e) {
-          alert('Error deleting post');
-        }
-      });
-    });
-  }
-
-  // Bind Admin Search & Show Per Page Dropdown Listeners
-  const adminSearchInput = document.getElementById('adminArticleSearchInput');
-  if (adminSearchInput) {
-    adminSearchInput.addEventListener('input', (e) => {
-      adminSearchQuery = e.target.value;
-      renderAdminArticlesList();
-    });
-  }
-
-  const adminPerPageSelect = document.getElementById('adminArticlesPerPageSelect');
-  if (adminPerPageSelect) {
-    adminPerPageSelect.addEventListener('change', (e) => {
-      adminPerPage = e.target.value;
-      renderAdminArticlesList();
-    });
-  }
-
-  // Gemini AI Key Handlers
-  const geminiInput = document.getElementById('geminiApiKeyInput');
-  const saveGeminiBtn = document.getElementById('saveGeminiKeyBtn');
-  const geminiStatus = document.getElementById('geminiKeyStatus');
-
-  async function loadGeminiKeyStatus() {
-    if (!geminiStatus) return;
-    try {
-      const token = sessionStorage.getItem('adminToken') || '';
-      const res = await fetch('/api/gemini-key', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success && data.hasKey) {
-        geminiStatus.innerHTML = `✅ Gemini AI Active (${data.maskedKey}) • <strong>Writing 1,500-Word Deep Stories</strong>`;
-        if (geminiInput) geminiInput.placeholder = `Active Key: ${data.maskedKey} (Paste new to update)`;
-      } else {
-        geminiStatus.innerHTML = `⚠️ No Gemini Key Configured. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #2563EB; font-weight: 700;">Get Free Key from Google AI Studio ➔</a>`;
-      }
-    } catch (e) {}
-  }
-
-  if (saveGeminiBtn) {
-    saveGeminiBtn.addEventListener('click', async () => {
-      const apiKey = geminiInput ? geminiInput.value.trim() : '';
-      if (!apiKey) return alert('Please paste your Gemini API key!');
-
-      saveGeminiBtn.disabled = true;
-      saveGeminiBtn.innerText = '⌛ Saving Key...';
-
-      try {
-        const token = sessionStorage.getItem('adminToken') || '';
-        let res = await fetch('/api/save-gemini-key', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ apiKey })
-        });
-        
-        let rawText = await res.text();
-        let data = {};
-        try { data = JSON.parse(rawText); } catch(err) {
-          console.error('Non-JSON Response:', rawText);
-          throw new Error(rawText.substring(0, 100) || 'Server returned invalid response');
-        }
-
-        if (data.success) {
-          logMessage('✅ Gemini AI API Key saved & activated for 1,500-word deep story writing!');
-          alert('✅ Gemini AI API Key saved successfully!');
-          if (geminiInput) geminiInput.value = '';
-          loadGeminiKeyStatus();
-        } else {
-          alert(`❌ Error: ${data.error || 'Failed to save Gemini key'}`);
-        }
-      } catch (e) {
-        console.error('Gemini Key Save Error:', e);
-        alert(`❌ Error saving key: ${e.message}`);
-      } finally {
-        saveGeminiBtn.disabled = false;
-        saveGeminiBtn.innerText = '💾 Save Gemini Key';
-      }
-    });
-  }
-
-  function logMessage(msg) {
-    if (logsPre) {
-      const timestamp = new Date().toLocaleTimeString();
-      logsPre.innerText += `\n[${timestamp}] ${msg}`;
-      logsPre.scrollTop = logsPre.scrollHeight;
-    }
-  }
-
-  // Initial Auth Check
-  checkAdminAuth();
-
-  // 1. Auto-Publisher Button Handler
-  if (triggerBtn) {
-    triggerBtn.addEventListener('click', async () => {
-      const topic = topicInput ? topicInput.value.trim() : '';
-      triggerBtn.disabled = true;
-      triggerBtn.innerText = '⌛ Scanning & Publishing Story...';
-      if (triggerStatus) triggerStatus.innerText = '⚡ Fetching trends, real Serper photos & writing article...';
-
-      logMessage(`Initiated story generation ${topic ? `for topic: "${topic}"` : 'from live global news'}...`);
-
-      try {
-        const token = sessionStorage.getItem('adminToken') || '';
-        const res = await fetch('/api/trigger-autoblog', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ topic })
-        });
-        const data = await res.json();
-
-        if (data.success && data.post) {
-          const p = data.post;
-          logMessage(`✅ Successfully Published: "${p.title}"`);
-          if (triggerStatus) {
-            triggerStatus.innerHTML = `✅ Published! <a href="/post/${p.slug}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">View Published Story ➔</a>`;
-          }
-          if (topicInput) topicInput.value = '';
-          loadSerperKeysAndCredits();
-        } else {
-          logMessage(`❌ Error: ${data.error || 'Failed to auto-generate'}`);
-          if (triggerStatus) triggerStatus.innerText = `❌ ${data.error || 'Error generating article.'}`;
-          alert(`❌ Gemini AI Error:\n\n${data.error || 'Unknown error'}\n\nFix: Go to Admin Panel → Gemini AI Key → Save a fresh key from aistudio.google.com/app/apikey`);
-        }
-      } catch (e) {
-        logMessage(`❌ Connection Error: ${e.message}`);
-        if (triggerStatus) triggerStatus.innerText = '❌ Connection error.';
-      } finally {
-        triggerBtn.disabled = false;
-        triggerBtn.innerText = '🚀 Auto-Generate & Publish Story Now';
-      }
-    });
-  }
-
-  // 2. Load Dynamic Serper Keys with Live Credit Meter
-  async function loadSerperKeysAndCredits() {
-    if (!keysContainer) return;
-
-    try {
-      const token = sessionStorage.getItem('adminToken') || '';
-      const res = await fetch('/api/serper-keys', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-
-      keysContainer.innerHTML = '';
-
-      if (data.success && data.keyDetails && data.keyDetails.length > 0) {
-        let totalRemaining = 0;
-        data.keyDetails.forEach((item, index) => {
-          totalRemaining += item.balance;
-          createKeyRow(item.key, index + 1, item.balance, item.used, item.status);
-        });
-
-        if (serperKeysStatus) {
-          serperKeysStatus.innerHTML = `🔑 <strong>${data.keyDetails.length} Key(s) Configured</strong> • Total Credits Remaining: <strong>${totalRemaining.toLocaleString()}</strong>`;
-        }
-      } else {
-        createKeyRow('', 1, 2500, 0, 'READY');
-        if (serperKeysStatus) serperKeysStatus.innerText = 'No API Keys configured. Add your first Serper key above.';
-      }
-    } catch (e) {
-      console.error('Error loading Serper keys:', e);
-    }
-  }
-
-  function createKeyRow(keyValue = '', indexNumber = 1, balance = 2500, used = 0, status = 'READY') {
-    const row = document.createElement('div');
-    row.className = 'key-row';
-
-    let badgeClass = 'badge-ready';
-    if (status.includes('ACTIVE')) badgeClass = 'badge-active';
-    if (status.includes('EXHAUSTED')) badgeClass = 'badge-exhausted';
-
-    row.innerHTML = `
-      <div style="font-weight: 700; font-size: 0.85rem; width: 65px; color: #475569;">Key #${indexNumber}:</div>
-      <input type="text" class="key-input" value="${escapeHtml(keyValue)}" placeholder="Paste Serper API Key (e.g. 0be094de...)" />
-      
-      <div style="display: flex; flex-direction: column; align-items: flex-end; min-width: 140px;">
-        <span class="key-badge ${badgeClass}">${status}</span>
-        <div style="font-size: 0.725rem; color: #64748B; margin-top: 0.2rem;">
-          Remaining: <strong>${balance}</strong> | Used: <strong>${used}</strong>
-        </div>
-      </div>
-
-      <button type="button" class="remove-key-btn" style="background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" title="Remove this key">🗑️</button>
-    `;
-
-    row.querySelector('.remove-key-btn').addEventListener('click', () => {
-      row.remove();
-      updateKeyRowNumbers();
-    });
-
-    keysContainer.appendChild(row);
-  }
-
-  function updateKeyRowNumbers() {
-    const rows = keysContainer.querySelectorAll('.key-row');
-    rows.forEach((r, idx) => {
-      const label = r.querySelector('div');
-      if (label) label.innerText = `Key #${idx + 1}:`;
-    });
-  }
-
-  if (addKeyBtn) {
-    addKeyBtn.addEventListener('click', () => {
-      const currentCount = keysContainer.querySelectorAll('.key-row').length;
-      createKeyRow('', currentCount + 1, 2500, 0, 'READY');
-      logMessage(`Added Key #${currentCount + 1} input row.`);
-    });
-  }
-
-  if (saveSerperKeysBtn) {
-    saveSerperKeysBtn.addEventListener('click', async () => {
-      const inputs = keysContainer.querySelectorAll('.key-input');
-      const keysList = [];
-      inputs.forEach(i => {
-        if (i.value.trim().length > 5) keysList.push(i.value.trim());
-      });
-
-      saveSerperKeysBtn.disabled = true;
-      saveSerperKeysBtn.innerText = '⌛ Updating API Pool...';
-
-      try {
-        const token = sessionStorage.getItem('adminToken') || '';
-        const res = await fetch('/api/serper-keys', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ keys: keysList })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          logMessage(`✓ Successfully saved & updated ${data.count} Serper API Key(s)!`);
-          alert(`Successfully saved ${data.count} Serper API Key(s) to pool!`);
-          loadSerperKeysAndCredits();
-        }
-      } catch (e) {
-        logMessage(`❌ Error saving keys: ${e.message}`);
-      } finally {
-        saveSerperKeysBtn.disabled = false;
-        saveSerperKeysBtn.innerText = '💾 Save & Update All API Keys';
-      }
-    });
-  }
-
-  // Telegram Auto-Poster Admin Handlers
-  const telegramConfigForm = document.getElementById('telegramConfigForm');
-  const telegramBotTokenInput = document.getElementById('telegramBotTokenInput');
-  const telegramChannelIdInput = document.getElementById('telegramChannelIdInput');
-  const telegramMoviesRouteInput = document.getElementById('telegramMoviesRouteInput');
-  const telegramTechRouteInput = document.getElementById('telegramTechRouteInput');
-  const telegramBusinessRouteInput = document.getElementById('telegramBusinessRouteInput');
-  const telegramWorldRouteInput = document.getElementById('telegramWorldRouteInput');
-  const telegramAutoPostToggle = document.getElementById('telegramAutoPostToggle');
-  const testTelegramPostBtn = document.getElementById('testTelegramPostBtn');
-  const telegramStatus = document.getElementById('telegramStatus');
-
-  async function loadTelegramConfig() {
-    if (!telegramBotTokenInput) return;
-    try {
-      const res = await fetch('/api/telegram-config', { headers: getAdminAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.config) {
-        telegramBotTokenInput.value = data.config.botToken || '';
-        telegramChannelIdInput.value = data.config.channelId || '';
-        if (telegramMoviesRouteInput) telegramMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
-        if (telegramTechRouteInput) telegramTechRouteInput.value = data.config.categoryRouting?.tech || '';
-        if (telegramBusinessRouteInput) telegramBusinessRouteInput.value = data.config.categoryRouting?.business || '';
-        if (telegramWorldRouteInput) telegramWorldRouteInput.value = data.config.categoryRouting?.world || '';
-        telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
-      }
-    } catch (e) {
-      console.error('Error loading Telegram config:', e);
-    }
-  }
-
-  if (telegramConfigForm) {
-    telegramConfigForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (telegramStatus) telegramStatus.innerText = '⌛ Saving...';
-      try {
-        const res = await fetch('/api/save-telegram-config', {
-        headers: getAdminAuthHeaders(),
-          method: 'POST',
-          body: JSON.stringify({
-            botToken: telegramBotTokenInput.value.trim(),
-            channelId: telegramChannelIdInput.value.trim(),
-            categoryRouting: {
-              movies: telegramMoviesRouteInput ? telegramMoviesRouteInput.value.trim() : '',
-              tech: telegramTechRouteInput ? telegramTechRouteInput.value.trim() : '',
-              business: telegramBusinessRouteInput ? telegramBusinessRouteInput.value.trim() : '',
-              world: telegramWorldRouteInput ? telegramWorldRouteInput.value.trim() : ''
-            },
-            autoPostEnabled: telegramAutoPostToggle.checked
-          })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (telegramStatus) {
-            telegramStatus.style.color = '#059669';
-            telegramStatus.innerText = '✓ Category-Smart Telegram Settings Saved!';
-          }
-          logMessage('✓ Category-Smart Telegram Auto-Poster settings saved!');
-        } else {
-          if (telegramStatus) {
-            telegramStatus.style.color = '#DC2626';
-            telegramStatus.innerText = '❌ Failed to save Telegram settings.';
-          }
-        }
-      } catch (err) {
-        if (telegramStatus) {
-          telegramStatus.style.color = '#DC2626';
-          telegramStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  if (testTelegramPostBtn) {
-    testTelegramPostBtn.addEventListener('click', async () => {
-      if (telegramStatus) telegramStatus.innerText = '⌛ Sending test post...';
-      try {
-        const res = await fetch('/api/test-telegram-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          if (telegramStatus) {
-            telegramStatus.style.color = '#059669';
-            telegramStatus.innerText = '✓ Test Post Sent to Telegram Channel!';
-          }
-          alert('✓ Test post successfully sent to Telegram Channel!');
-          logMessage('✓ Test post sent to Telegram Channel!');
-        } else {
-          if (telegramStatus) {
-            telegramStatus.style.color = '#DC2626';
-            telegramStatus.innerText = `❌ ${data.message}`;
-          }
-          alert(`❌ Telegram Test Failed: ${data.message}`);
-        }
-      } catch (err) {
-        if (telegramStatus) {
-          telegramStatus.style.color = '#DC2626';
-          telegramStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  // Config loaded via loadAdminDashboardData once authenticated
-  // loadTelegramConfig();
-
-  // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Handlers
-  const userbotAuthBadge = document.getElementById('userbotAuthBadge');
-  const userbotApiIdInput = document.getElementById('userbotApiIdInput');
-  const userbotApiHashInput = document.getElementById('userbotApiHashInput');
-  const userbotPhoneInput = document.getElementById('userbotPhoneInput');
-  const sendUserbotCodeBtn = document.getElementById('sendUserbotCodeBtn');
-  const userbotOtpRow = document.getElementById('userbotOtpRow');
-  const userbotOtpInput = document.getElementById('userbotOtpInput');
-  const verifyUserbotCodeBtn = document.getElementById('verifyUserbotCodeBtn');
-  const userbotConfigForm = document.getElementById('userbotConfigForm');
-  const userbotTargetGroupsInput = document.getElementById('userbotTargetGroupsInput');
-  const userbotMoviesRouteInput = document.getElementById('userbotMoviesRouteInput');
-  const userbotTechRouteInput = document.getElementById('userbotTechRouteInput');
-  const userbotBusinessRouteInput = document.getElementById('userbotBusinessRouteInput');
-  const userbotWorldRouteInput = document.getElementById('userbotWorldRouteInput');
-  const userbotAutoPostToggle = document.getElementById('userbotAutoPostToggle');
-  const testUserbotPostBtn = document.getElementById('testUserbotPostBtn');
-  const userbotStatus = document.getElementById('userbotStatus');
-
-  async function loadUserbotConfig() {
-    if (!userbotTargetGroupsInput) return;
-    try {
-      const res = await fetch('/api/userbot-config', { headers: getAdminAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.config) {
-        if (userbotApiIdInput) userbotApiIdInput.value = data.config.apiId || '';
-        if (userbotApiHashInput) userbotApiHashInput.value = data.config.apiHash || '';
-        if (userbotPhoneInput) userbotPhoneInput.value = data.config.phoneNumber || '';
-        userbotTargetGroupsInput.value = data.config.targetGroups || '';
-        if (userbotMoviesRouteInput) userbotMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
-        if (userbotTechRouteInput) userbotTechRouteInput.value = data.config.categoryRouting?.tech || '';
-        if (userbotBusinessRouteInput) userbotBusinessRouteInput.value = data.config.categoryRouting?.business || '';
-        if (userbotWorldRouteInput) userbotWorldRouteInput.value = data.config.categoryRouting?.world || '';
-        userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
-
-        if (data.config.sessionString && data.config.sessionString.length > 10) {
-          if (userbotAuthBadge) {
-            userbotAuthBadge.style.background = '#DCFCE7';
-            userbotAuthBadge.style.color = '#15803D';
-            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error loading Userbot config:', e);
-    }
-  }
-
-  if (sendUserbotCodeBtn) {
-    sendUserbotCodeBtn.addEventListener('click', async () => {
-      const apiId = userbotApiIdInput.value.trim();
-      const apiHash = userbotApiHashInput.value.trim();
-      const phoneNumber = userbotPhoneInput.value.trim();
-
-      if (!apiId || !apiHash || !phoneNumber) {
-        alert('Please enter Telegram API ID, API Hash, and Phone Number.');
-        return;
-      }
-
-      sendUserbotCodeBtn.disabled = true;
-      sendUserbotCodeBtn.innerText = '⌛ Sending Code...';
-
-      try {
-        const res = await fetch('/api/userbot/send-code', {
-        headers: getAdminAuthHeaders(),
-          method: 'POST',
-          body: JSON.stringify({ apiId, apiHash, phoneNumber })
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert('✓ Login code sent to your Telegram app! Check your Telegram messages.');
-          if (userbotOtpRow) userbotOtpRow.style.display = 'block';
-        } else {
-          alert(`❌ Failed to send code: ${data.message}`);
-        }
-      } catch (err) {
-        alert(`❌ Network Error: ${err.message}`);
-      } finally {
-        sendUserbotCodeBtn.disabled = false;
-        sendUserbotCodeBtn.innerText = '📲 Send Login Code';
-      }
-    });
-  }
-
-  if (verifyUserbotCodeBtn) {
-    verifyUserbotCodeBtn.addEventListener('click', async () => {
-      const phoneCode = userbotOtpInput.value.trim();
-      if (!phoneCode) {
-        alert('Please enter the 5-digit Telegram code.');
-        return;
-      }
-
-      verifyUserbotCodeBtn.disabled = true;
-      verifyUserbotCodeBtn.innerText = '⌛ Verifying...';
-
-      try {
-        const res = await fetch('/api/userbot/verify-code', {
-        headers: getAdminAuthHeaders(),
-          method: 'POST',
-          body: JSON.stringify({ phoneCode })
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert('✓ Telegram Account Connected Successfully!');
-          if (userbotAuthBadge) {
-            userbotAuthBadge.style.background = '#DCFCE7';
-            userbotAuthBadge.style.color = '#15803D';
-            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
-          }
-          if (userbotOtpRow) userbotOtpRow.style.display = 'none';
-        } else {
-          alert(`❌ Verification Failed: ${data.message}`);
-        }
-      } catch (err) {
-        alert(`❌ Error: ${err.message}`);
-      } finally {
-        verifyUserbotCodeBtn.disabled = false;
-        verifyUserbotCodeBtn.innerText = '✓ Verify & Connect';
-      }
-    });
-  }
-
-  if (userbotConfigForm) {
-    userbotConfigForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (userbotStatus) userbotStatus.innerText = '⌛ Saving...';
-      try {
-        const res = await fetch('/api/save-userbot-config', {
-        headers: getAdminAuthHeaders(),
-          method: 'POST',
-          body: JSON.stringify({
-            targetGroups: userbotTargetGroupsInput.value.trim(),
-            categoryRouting: {
-              movies: userbotMoviesRouteInput ? userbotMoviesRouteInput.value.trim() : '',
-              tech: userbotTechRouteInput ? userbotTechRouteInput.value.trim() : '',
-              business: userbotBusinessRouteInput ? userbotBusinessRouteInput.value.trim() : '',
-              world: userbotWorldRouteInput ? userbotWorldRouteInput.value.trim() : ''
-            },
-            autoPostEnabled: userbotAutoPostToggle.checked
-          })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (userbotStatus) {
-            userbotStatus.style.color = '#059669';
-            userbotStatus.innerText = '✓ Userbot Settings Saved!';
-          }
-          logMessage('✓ Telegram Userbot settings saved!');
-        } else {
-          if (userbotStatus) {
-            userbotStatus.style.color = '#DC2626';
-            userbotStatus.innerText = '❌ Failed to save settings.';
-          }
-        }
-      } catch (err) {
-        if (userbotStatus) {
-          userbotStatus.style.color = '#DC2626';
-          userbotStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  if (testUserbotPostBtn) {
-    testUserbotPostBtn.addEventListener('click', async () => {
-      if (userbotStatus) userbotStatus.innerText = '⌛ Broadcasting via Userbot...';
-      try {
-        const res = await fetch('/api/test-userbot-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          if (userbotStatus) {
-            userbotStatus.style.color = '#059669';
-            userbotStatus.innerText = `✓ ${data.message}`;
-          }
-          alert(`✓ ${data.message}`);
-        } else {
-          if (userbotStatus) {
-            userbotStatus.style.color = '#DC2626';
-            userbotStatus.innerText = `❌ ${data.message}`;
-          }
-          alert(`❌ Userbot Test Failed: ${data.message}`);
-        }
-      } catch (err) {
-        if (userbotStatus) {
-          userbotStatus.style.color = '#DC2626';
-          userbotStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  // Config loaded via loadAdminDashboardData once authenticated
-  // loadUserbotConfig();
-
-  // Twitter / X Auto-Poster Admin Handlers
-  const twitterConfigForm = document.getElementById('twitterConfigForm');
-  const twitterApiKeyInput = document.getElementById('twitterApiKeyInput');
-  const twitterApiSecretInput = document.getElementById('twitterApiSecretInput');
-  const twitterAccessTokenInput = document.getElementById('twitterAccessTokenInput');
-  const twitterAccessSecretInput = document.getElementById('twitterAccessSecretInput');
-  const twitterAutoPostToggle = document.getElementById('twitterAutoPostToggle');
-  const testTwitterPostBtn = document.getElementById('testTwitterPostBtn');
-  const twitterStatus = document.getElementById('twitterStatus');
-
-  async function loadTwitterConfig() {
-    if (!twitterApiKeyInput) return;
-    try {
-      const res = await fetch('/api/twitter-config', { headers: getAdminAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.config) {
-        twitterApiKeyInput.value = data.config.apiKey || '';
-        twitterApiSecretInput.value = data.config.apiSecret || '';
-        twitterAccessTokenInput.value = data.config.accessToken || '';
-        twitterAccessSecretInput.value = data.config.accessSecret || '';
-        twitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
-      }
-    } catch (e) {
-      console.error('Error loading Twitter config:', e);
-    }
-  }
-
-  if (twitterConfigForm) {
-    twitterConfigForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (twitterStatus) twitterStatus.innerText = '⌛ Saving...';
-      try {
-        const res = await fetch('/api/save-twitter-config', {
-        headers: getAdminAuthHeaders(),
-          method: 'POST',
-          body: JSON.stringify({
-            apiKey: twitterApiKeyInput.value.trim(),
-            apiSecret: twitterApiSecretInput.value.trim(),
-            accessToken: twitterAccessTokenInput.value.trim(),
-            accessSecret: twitterAccessSecretInput.value.trim(),
-            autoPostEnabled: twitterAutoPostToggle.checked
-          })
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (twitterStatus) {
-            twitterStatus.style.color = '#059669';
-            twitterStatus.innerText = '✓ Twitter Settings Saved!';
-          }
-          logMessage('✓ Twitter Auto-Poster settings saved!');
-        } else {
-          if (twitterStatus) {
-            twitterStatus.style.color = '#DC2626';
-            twitterStatus.innerText = '❌ Failed to save Twitter settings.';
-          }
-        }
-      } catch (err) {
-        if (twitterStatus) {
-          twitterStatus.style.color = '#DC2626';
-          twitterStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  if (testTwitterPostBtn) {
-    testTwitterPostBtn.addEventListener('click', async () => {
-      if (twitterStatus) twitterStatus.innerText = '⌛ Sending test tweet to X...';
-      try {
-        const res = await fetch('/api/test-twitter-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          if (twitterStatus) {
-            twitterStatus.style.color = '#059669';
-            twitterStatus.innerText = '✓ Test Tweet Sent to Twitter/X!';
-          }
-          alert(`✓ Test Tweet successfully posted to X!\n${data.message}`);
-          logMessage('✓ Test Tweet sent to X!');
-        } else {
-          if (twitterStatus) {
-            twitterStatus.style.color = '#DC2626';
-            twitterStatus.innerText = `❌ ${data.message}`;
-          }
-          alert(`❌ Twitter Test Failed: ${data.message}`);
-        }
-      } catch (err) {
-        if (twitterStatus) {
-          twitterStatus.style.color = '#DC2626';
-          twitterStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  // Config loaded via loadAdminDashboardData once authenticated
-  // loadTwitterConfig();
-
-  // Custom Direct Cookie Twitter Bot Admin Handlers
-  const customTwitterConfigForm = document.getElementById('customTwitterConfigForm');
-  const customAuthTokenInput = document.getElementById('customAuthTokenInput');
-  const customCsrfTokenInput = document.getElementById('customCsrfTokenInput');
-  const customTwitterAutoPostToggle = document.getElementById('customTwitterAutoPostToggle');
-  const testCustomTwitterPostBtn = document.getElementById('testCustomTwitterPostBtn');
-  const customTwitterStatus = document.getElementById('customTwitterStatus');
-
-  async function loadCustomTwitterConfig() {
-    if (!customAuthTokenInput) return;
-    try {
-      const res = await fetch('/api/custom-twitter-config', { headers: getAdminAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.config) {
-        customAuthTokenInput.value = data.config.authToken || '';
-        customCsrfTokenInput.value = data.config.csrfToken || '';
-        customTwitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
-
-        const badge = document.getElementById('customTwitterStatusBadge');
-        if (badge) {
-          if (data.config.authToken && data.config.csrfToken) {
-            if (data.config.autoPostEnabled) {
-              badge.style.background = '#DCFCE7';
-              badge.style.color = '#15803D';
-              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
-            } else {
-              badge.style.background = '#FEF3C7';
-              badge.style.color = '#D97706';
-              badge.innerText = '🟠 READY (AUTO-POST OFF)';
-            }
-          } else {
-            badge.style.background = '#E2E8F0';
-            badge.style.color = '#475569';
-            badge.innerText = '⚪ NOT CONFIGURED';
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error loading Custom Twitter config:', e);
-    }
-  }
-
-  const saveCustomTwitterConfigBtn = document.getElementById('saveCustomTwitterConfigBtn');
-
-  async function handleSaveCustomTwitterConfig(e) {
-    if (e) e.preventDefault();
-    if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Saving...';
-    try {
-      const res = await fetch('/api/save-custom-twitter-config', {
-        headers: getAdminAuthHeaders(),
-        method: 'POST',
-        body: JSON.stringify({
-          authToken: customAuthTokenInput.value.trim(),
-          csrfToken: customCsrfTokenInput.value.trim(),
-          autoPostEnabled: customTwitterAutoPostToggle.checked
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (customTwitterStatus) {
-          customTwitterStatus.style.color = '#059669';
-          customTwitterStatus.innerText = '✓ Custom Twitter Bot Cookies Saved!';
-        }
-        alert('✓ Custom Twitter Bot Cookies Saved Successfully!');
-        logMessage('✓ Custom Twitter Bot cookies saved!');
-        loadCustomTwitterConfig();
-      } else {
-        if (customTwitterStatus) {
-          customTwitterStatus.style.color = '#DC2626';
-          customTwitterStatus.innerText = '❌ Failed to save Custom Bot cookies.';
-        }
-      }
-    } catch (err) {
-      if (customTwitterStatus) {
-        customTwitterStatus.style.color = '#DC2626';
-        customTwitterStatus.innerText = `❌ Error: ${err.message}`;
-      }
-    }
-  }
-
-  if (saveCustomTwitterConfigBtn) {
-    saveCustomTwitterConfigBtn.addEventListener('click', handleSaveCustomTwitterConfig);
-  }
-
-  if (customTwitterConfigForm) {
-    customTwitterConfigForm.addEventListener('submit', handleSaveCustomTwitterConfig);
-  }
-
-  const triggerXPostTestBtn = document.getElementById('triggerXPostTestBtn');
-  const xTestStatus = document.getElementById('xTestStatus');
-
-  async function executeXPostTest(sourceBtn, statusDisplay) {
-    if (sourceBtn) sourceBtn.disabled = true;
-    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
-    if (sourceBtn) {
-      sourceBtn.innerHTML = '⌛ <span style="font-size:0.85rem;">Posting to 𝕏...</span>';
-    }
-    if (statusDisplay) {
-      statusDisplay.style.display = 'block';
-      statusDisplay.style.color = '#2563EB';
-      statusDisplay.innerText = '⌛ Connecting to Cloud Bot, rendering 16:9 news card & publishing to @PrimeMediaSite on 𝕏...';
-    }
-
-    try {
-      const res = await fetch('/api/test-custom-twitter-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        const liveUrl = data.tweetUrl || 'https://x.com/PrimeMediaSite';
-        if (statusDisplay) {
-          statusDisplay.style.color = '#059669';
-          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message || 'Article published to 𝕏!'} <a href="${liveUrl}" target="_blank" style="color: #0284C7; font-weight: 700; text-decoration: underline; margin-left: 0.5rem;">View on 𝕏 &rarr;</a>`;
-        }
-        if (customTwitterStatus && statusDisplay !== customTwitterStatus) {
-          customTwitterStatus.style.color = '#059669';
-          customTwitterStatus.innerText = '✓ Test Tweet Sent to 𝕏!';
-        }
-        alert(`✅ 𝕏 Post Test Succeeded!\n\n${data.message || 'Article published to @PrimeMediaSite on X!'}\n\nView live on X: ${liveUrl}`);
-        logMessage('✓ Test Tweet sent to X!');
-      } else {
-        if (statusDisplay) {
-          statusDisplay.style.color = '#DC2626';
-          statusDisplay.innerText = `❌ ${data.message || 'Posting failed'}`;
-        }
-        alert(`❌ 𝕏 Post Test Failed: ${data.message}`);
-      }
-    } catch (err) {
-      if (statusDisplay) {
-        statusDisplay.style.color = '#DC2626';
-        statusDisplay.innerText = `❌ Error: ${err.message}`;
-      }
-      alert(`❌ Connection error: ${err.message}`);
-    } finally {
-      if (sourceBtn) {
-        sourceBtn.disabled = false;
-        sourceBtn.innerHTML = prevBtnHtml;
-      }
-    }
-  }
-
-  if (triggerXPostTestBtn) {
-    triggerXPostTestBtn.addEventListener('click', () => executeXPostTest(triggerXPostTestBtn, xTestStatus));
-  }
-
-  if (testCustomTwitterPostBtn) {
-    testCustomTwitterPostBtn.addEventListener('click', () => executeXPostTest(testCustomTwitterPostBtn, customTwitterStatus));
-  }
-
-  const triggerRedditPostTestBtn = document.getElementById('triggerRedditPostTestBtn');
-  const redditTestStatus = document.getElementById('redditTestStatus');
-
-  async function executeRedditPostTest(sourceBtn, statusDisplay) {
-    if (sourceBtn) sourceBtn.disabled = true;
-    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
-    if (sourceBtn) {
-      sourceBtn.innerHTML = '⏳ <span style="font-size:0.85rem;">Posting to Reddit...</span>';
-    }
-    if (statusDisplay) {
-      statusDisplay.style.display = 'block';
-      statusDisplay.style.color = '#FF4500';
-      statusDisplay.innerText = '🔴 Connecting to Cloud Bot & publishing article to Reddit...';
-    }
-
-    try {
-      const res = await fetch('/api/test-custom-reddit-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        if (statusDisplay) {
-          statusDisplay.style.color = '#15803D';
-          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message} <a href="https://www.reddit.com" target="_blank" style="color: #FF4500; font-weight: bold; margin-left: 6px;">View on Reddit ↗</a>`;
-        }
-      } else {
-        if (statusDisplay) {
-          statusDisplay.style.color = '#DC2626';
-          statusDisplay.innerText = `❌ ${data.message || 'Failed to post to Reddit.'}`;
-        }
-      }
-    } catch (err) {
-      if (statusDisplay) {
-        statusDisplay.style.color = '#DC2626';
-        statusDisplay.innerText = `❌ Network Error: ${err.message}`;
-      }
-    } finally {
-      if (sourceBtn) {
-        sourceBtn.disabled = false;
-        sourceBtn.innerHTML = prevBtnHtml;
-      }
-    }
-  }
-
-  if (triggerRedditPostTestBtn) {
-    triggerRedditPostTestBtn.addEventListener('click', () => executeRedditPostTest(triggerRedditPostTestBtn, redditTestStatus));
-  }
-
-  // Config loaded via loadAdminDashboardData once authenticated
-  // loadCustomTwitterConfig();
-
-  // Reddit Subreddit Auto-Poster Admin Handlers
-  const redditConfigForm = document.getElementById('redditConfigForm');
-  const redditClientIdInput = document.getElementById('redditClientIdInput');
-  const redditClientSecretInput = document.getElementById('redditClientSecretInput');
-  const redditUsernameInput = document.getElementById('redditUsernameInput');
-  const redditPasswordInput = document.getElementById('redditPasswordInput');
-  const redditSubredditInput = document.getElementById('redditSubredditInput');
-  const redditAutoPostToggle = document.getElementById('redditAutoPostToggle');
-  const saveRedditConfigBtn = document.getElementById('saveRedditConfigBtn');
-  const testRedditPostBtn = document.getElementById('testRedditPostBtn');
-  const redditStatus = document.getElementById('redditStatus');
-
-  async function loadRedditConfig() {
-    if (!redditClientIdInput) return;
-    try {
-      const res = await fetch('/api/reddit-config', { headers: getAdminAuthHeaders() });
-      const data = await res.json();
-      if (data.success && data.config) {
-        redditClientIdInput.value = data.config.clientId || '';
-        redditClientSecretInput.value = data.config.clientSecret || '';
-        redditUsernameInput.value = data.config.username || '';
-        redditPasswordInput.value = data.config.password || '';
-        redditSubredditInput.value = data.config.subreddit || '';
-        redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
-
-        const badge = document.getElementById('redditStatusBadge');
-        if (badge) {
-          if (data.config.clientId && data.config.clientSecret && data.config.username && data.config.password) {
-            if (data.config.autoPostEnabled) {
-              badge.style.background = '#DCFCE7';
-              badge.style.color = '#15803D';
-              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
-            } else {
-              badge.style.background = '#FEF3C7';
-              badge.style.color = '#D97706';
-              badge.innerText = '🟠 READY (AUTO-POST OFF)';
-            }
-          } else {
-            badge.style.background = '#E2E8F0';
-            badge.style.color = '#475569';
-            badge.innerText = '⚪ NOT CONFIGURED';
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error loading Reddit config:', e);
-    }
-  }
-
-  async function handleSaveRedditConfig(e) {
-    if (e) e.preventDefault();
-    if (redditStatus) redditStatus.innerText = '⌛ Saving Reddit Settings...';
-    try {
-      const res = await fetch('/api/save-reddit-config', {
-        headers: getAdminAuthHeaders(),
-        method: 'POST',
-        body: JSON.stringify({
-          clientId: redditClientIdInput.value.trim(),
-          clientSecret: redditClientSecretInput.value.trim(),
-          username: redditUsernameInput.value.trim(),
-          password: redditPasswordInput.value.trim(),
-          subreddit: redditSubredditInput.value.trim(),
-          autoPostEnabled: redditAutoPostToggle.checked
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (redditStatus) {
-          redditStatus.style.color = '#059669';
-          redditStatus.innerText = '✓ Reddit Settings Saved!';
-        }
-        alert('✓ Reddit Auto-Poster Settings Saved Successfully!');
-        logMessage('✓ Reddit Auto-Poster settings saved!');
-        loadRedditConfig();
-      } else {
-        if (redditStatus) {
-          redditStatus.style.color = '#DC2626';
-          redditStatus.innerText = '❌ Failed to save Reddit settings.';
-        }
-      }
-    } catch (err) {
-      if (redditStatus) {
-        redditStatus.style.color = '#DC2626';
-        redditStatus.innerText = `❌ Error: ${err.message}`;
-      }
-    }
-  }
-
-  if (saveRedditConfigBtn) saveRedditConfigBtn.addEventListener('click', handleSaveRedditConfig);
-  if (redditConfigForm) redditConfigForm.addEventListener('submit', handleSaveRedditConfig);
-
-  if (testRedditPostBtn) {
-    testRedditPostBtn.addEventListener('click', async () => {
-      if (redditStatus) redditStatus.innerText = '⌛ Sending test post to Reddit...';
-      try {
-        const res = await fetch('/api/test-reddit-post', {
-        headers: getAdminAuthHeaders(), method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          if (redditStatus) {
-            redditStatus.style.color = '#059669';
-            redditStatus.innerText = '✓ Test Post Sent to Reddit!';
-          }
-          alert(`✓ Test Post successfully posted to Reddit!\n${data.message}`);
-          logMessage('✓ Test Post sent to Reddit!');
-        } else {
-          if (redditStatus) {
-            redditStatus.style.color = '#DC2626';
-            redditStatus.innerText = `❌ ${data.message}`;
-          }
-          alert(`❌ Reddit Bot Test Failed: ${data.message}`);
-        }
-      } catch (err) {
-        if (redditStatus) {
-          redditStatus.style.color = '#DC2626';
-          redditStatus.innerText = `❌ Error: ${err.message}`;
-        }
-      }
-    });
-  }
-
-  // Config loaded via loadAdminDashboardData once authenticated
-  // loadRedditConfig();
-
-  async function loadAnalytics() {
-    if (!topTopicsList || !countryTrafficList) return;
-
-    try {
-      const token = sessionStorage.getItem('adminToken') || '';
-      const res = await fetch('/api/analytics', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        if (statTotalViews && typeof data.totalMonthlyViews !== 'undefined') statTotalViews.innerText = data.totalMonthlyViews;
-        if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length;
-
-        topTopicsList.innerHTML = '';
-        if (data.topTopics && data.topTopics.length > 0) {
-          data.topTopics.forEach(t => {
-            const div = document.createElement('div');
-            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
-            div.innerHTML = `
-              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                <strong>${escapeHtml(t.title)}</strong>
-                <div style="font-size: 0.725rem; color: #64748B;">Category: ${escapeHtml(t.category)}</div>
-              </div>
-              <div style="text-align: right; min-width: 90px; font-weight: 700; color: #2563EB;">
-                👁️ ${t.views.toLocaleString()}
-              </div>
-            `;
-            topTopicsList.appendChild(div);
-          });
-        } else {
-          topTopicsList.innerHTML = `<div style="color: #64748B; padding: 1rem 0; text-align: center;">⚡ Real-Time Article Tracking Active...</div>`;
-        }
-
-        countryTrafficList.innerHTML = '';
-        if (data.countryTraffic && data.countryTraffic.length > 0) {
-          data.countryTraffic.forEach(c => {
-            const div = document.createElement('div');
-            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;';
-            div.innerHTML = `
-              <div>
-                <strong>${escapeHtml(c.country)}</strong>
-                <div style="font-size: 0.725rem; color: #64748B;">Page Views: ${c.pageViews}</div>
-              </div>
-              <div style="font-weight: 700; color: #059669; font-size: 0.95rem;">
-                ${c.percent}
-              </div>
-            `;
-            countryTrafficList.appendChild(div);
-          });
-        } else {
-          countryTrafficList.innerHTML = `<div style="color: #64748B; padding: 1.25rem 0; text-align: center;">⚡ Real-Time IP Tracking Active<br/><small style="font-size: 0.8rem; color: #94A3B8;">Country views update dynamically as live readers visit your site.</small></div>`;
-        }
-      }
-    } catch (e) {
-      console.error('Error loading analytics:', e);
-    }
-  }
-
-}
-
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-window.togglePassVisibility = function(inputId, btnEl) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    const isPass = input.type === 'password';
-    input.type = isPass ? 'text' : 'password';
-    if (btnEl) btnEl.innerText = isPass ? '🙈' : '👁️';
-  }
-};
-
-async function loadAuthorPage() {
-  const grid = document.getElementById('authorArticlesGrid');
-  if (!grid) return;
-  if (grid.querySelectorAll('.author-post-card').length > 0) return;
-  const cleanSegments = window.location.pathname.split('/').filter(Boolean);
-  const rawSlug = cleanSegments.pop() || 'sarah-jenkins';
-  const authorSlug = rawSlug.replace(/\.html$/i, '');
-  try {
-    const res = await fetch(`/api/author/${authorSlug}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.posts && data.posts.length > 0) {
-      grid.innerHTML = data.posts.map(p => `
-        <article class="author-post-card">
-          <a href="/post/${escapeHtml(p.slug)}">
-            <img src="${p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(p.title)}" loading="lazy" />
-          </a>
-          <div class="author-post-content">
-            <span class="author-post-category">${escapeHtml(p.category || 'News')}</span>
-            <h3 class="author-post-title"><a href="/post/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h3>
-            <div class="author-post-meta">
-              <span>${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <span>${p.readTimeMinutes || 5} min read</span>
-            </div>
-          </div>
-        </article>
-      `).join('');
-    }
-  } catch (e) {}
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Always initialize Global Live Search Modal on all pages
-  initGlobalSearchModal();
-
-  // 📊 Reading Progress Bar Scroll Observer
-  window.addEventListener('scroll', () => {
-    const pb = document.getElementById('readingProgressBar');
-    if (!pb) return;
-    const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
-    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
-    pb.style.width = Math.min(100, Math.max(0, scrolled)) + '%';
-  }, { passive: true });
-
-  // 📱 Mobile Sticky Share Bar Handlers
-  function updateStickyShareUrls() {
-    const stickyWa = document.getElementById('stickyShareWa');
-    const stickyX = document.getElementById('stickyShareX');
-    const stickyTg = document.getElementById('stickyShareTg');
-
-    const pageUrl = encodeURIComponent(window.location.href);
-    const rawTitle = (document.getElementById('postTitle')?.innerText || document.title || '')
-      .replace(/\s*\|\s*Prime Media.*$/i, '')
-      .replace(/\s*—\s*PRIME MEDIA.*$/i, '')
-      .trim();
-    const pageTitle = encodeURIComponent(rawTitle);
-
-    if (stickyWa) stickyWa.href = `https://api.whatsapp.com/send?text=${pageTitle}%20-%20${pageUrl}`;
-    if (stickyX) stickyX.href = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`;
-    if (stickyTg) stickyTg.href = `https://t.me/share/url?url=${pageUrl}&text=${pageTitle}`;
-  }
-  updateStickyShareUrls();
-
-  const stickyCopy = document.getElementById('stickyShareCopy');
-  if (stickyCopy) {
-    stickyCopy.addEventListener('click', () => {
-      const url = window.location.href;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => {
-          showToast('Article link copied to clipboard! 📋');
-        }).catch(() => {
-          prompt('Copy article link:', url);
-        });
-      } else {
-        prompt('Copy article link:', url);
-      }
-    });
-  }
-
-  // 📬 Contact Desk Form Submission Handler
-  const contactForm = document.getElementById('contactForm');
-  if (contactForm) {
-    contactForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const statusDiv = document.getElementById('contactStatus');
-      const submitBtn = document.getElementById('contactSubmitBtn');
-      const name = document.getElementById('contactName')?.value.trim();
-      const email = document.getElementById('contactEmail')?.value.trim();
-      const subject = document.getElementById('contactSubject')?.value.trim();
-      const message = document.getElementById('contactMessage')?.value.trim();
-
-      if (!name || !email || !subject || !message) {
-        if (statusDiv) {
-          statusDiv.style.display = 'block';
-          statusDiv.style.background = '#FEE2E2';
-          statusDiv.style.color = '#991B1B';
-          statusDiv.style.border = '1px solid #F87171';
-          statusDiv.innerText = 'Please fill out all required fields.';
-        }
-        return;
-      }
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerText = 'Sending Message...';
-      }
-
-      try {
-        const res = await fetch('/api/contact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, subject, message })
-        });
-        const data = await res.json();
-        if (statusDiv) {
-          statusDiv.style.display = 'block';
-          if (data.success) {
-            statusDiv.style.background = '#DCFCE7';
-            statusDiv.style.color = '#166534';
-            statusDiv.style.border = '1px solid #86EFAC';
-            statusDiv.innerText = '✓ ' + (data.message || 'Message sent successfully!');
-            contactForm.reset();
-          } else {
-            statusDiv.style.background = '#FEE2E2';
-            statusDiv.style.color = '#991B1B';
-            statusDiv.style.border = '1px solid #F87171';
-            statusDiv.innerText = '❌ ' + (data.error || 'Failed to send message.');
-          }
-        }
-      } catch (err) {
-        if (statusDiv) {
-          statusDiv.style.display = 'block';
-          statusDiv.style.background = '#FEE2E2';
-          statusDiv.style.color = '#991B1B';
-          statusDiv.style.border = '1px solid #F87171';
-          statusDiv.innerText = '❌ Network connection error. Please try again.';
-        }
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerText = 'Send Message ➔';
-        }
-      }
-    });
-  }
-
-
-  if (document.getElementById('postsGrid')) {
-    loadHomepagePosts();
-    initCategoryFilter();
-  }
-  if (document.getElementById('postContent')) {
-    loadSingleArticle();
-  }
-  if (document.getElementById('authorArticlesGrid')) {
-    loadAuthorPage();
-  }
-  if (document.getElementById('triggerAutoBlogBtn') || document.getElementById('saveSerperKeysBtn')) {
-    initAdminPanel();
-  }
-
-  // Gracefully collapse unfilled manual ad slots so pages look 100% complete and editorial
-  setTimeout(() => {
-    document.querySelectorAll('.adsense-container, .sticky-side-ad').forEach(el => {
-      const hasAd = el.querySelector('iframe') || (el.querySelector('ins') && el.querySelector('ins').getAttribute('data-ad-status') === 'filled');
-      if (!hasAd) {
-        el.style.display = 'none';
-      }
-    });
-  }, 2500);
-});
+
+// 🌟 Global Floating Toast Feedback
+function showToast(msg) {
+  let toast = document.getElementById('globalToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.style.cssText = 'position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.3);transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.innerText = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
+// Client JavaScript for Prime Media
+
+const HUMAN_AUTHORS = [
+  { slug: 'sarah-jenkins', name: 'Sarah Jenkins', role: 'Senior Technology & AI Correspondent', initials: 'SJ' },
+  { slug: 'david-chen', name: 'David Chen', role: 'Global Financial & Macro Analyst', initials: 'DC' },
+  { slug: 'elena-rostova', name: 'Elena Rostova', role: 'Aerospace & Deep Science Editor', initials: 'ER' },
+  { slug: 'marcus-vance', name: 'Dr. Marcus Vance', role: 'Executive Editor & Policy Director', initials: 'MV' }
+];
+
+let currentCategory = 'ALL';
+let currentSearchQuery = '';
+let currentPage = 1;
+const POSTS_PER_PAGE = 12;
+let cachedPosts = [];
+
+// Load Homepage Grid Posts & Featured Hero with Live Search & Pagination
+async function loadHomepagePosts(category = null, page = null) {
+  const postsGrid = document.getElementById('postsGrid');
+  const featuredStory = document.getElementById('featuredStory');
+  const trendingSidebarList = document.getElementById('trendingSidebarList');
+  const headerTitle = document.getElementById('reportingHeaderTitle');
+  const paginationContainer = document.getElementById('paginationContainer');
+
+  if (!postsGrid) return;
+
+  if (category !== null) {
+    currentCategory = category;
+    currentPage = 1; // Reset to Page 1 on category change
+    sessionStorage.setItem('homepage_page', 1);
+  } else {
+    // Detect category from URL hash (#category-technology) or query param (?category=technology)
+    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramCat = urlParams.get('category');
+    const detectedCat = (hashMatch ? hashMatch[1] : null) || paramCat;
+    if (detectedCat && currentCategory === 'ALL') {
+      currentCategory = detectedCat;
+      currentPage = 1;
+      const targetBtn = document.querySelector(`.category-btn[data-category="${detectedCat}" i]`);
+      if (targetBtn) {
+        document.querySelectorAll('.category-btn[data-category]').forEach(b => {
+          b.classList.remove('active');
+          b.style.color = 'var(--text-muted)';
+        });
+        targetBtn.classList.add('active');
+        targetBtn.style.color = '#2563EB';
+      }
+    }
+  }
+
+  // Restore page number from URL or Session Storage when returning via Browser Back button
+  if (page !== null) {
+    currentPage = page;
+  } else {
+    const urlParams = new URLSearchParams(window.location.search);
+    const savedPage = parseInt(urlParams.get('page')) || parseInt(sessionStorage.getItem('homepage_page')) || 1;
+    currentPage = savedPage;
+  }
+
+  // Persist current page in Session Storage & URL query string
+  sessionStorage.setItem('homepage_page', currentPage);
+  try {
+    const newUrl = new URL(window.location.href);
+    if (currentPage > 1) {
+      newUrl.searchParams.set('page', currentPage);
+    } else {
+      newUrl.searchParams.delete('page');
+    }
+    window.history.replaceState(null, '', newUrl.toString());
+  } catch (e) {}
+
+  // Update Header Title
+  if (headerTitle) {
+    if (currentSearchQuery) {
+      headerTitle.innerText = `SEARCH RESULTS FOR "${currentSearchQuery.toUpperCase()}"`;
+    } else {
+      headerTitle.innerText = currentCategory === 'ALL' 
+        ? 'LATEST REPORTING — ALL HEADLINES' 
+        : `LATEST REPORTING — ${currentCategory.toUpperCase()}`;
+    }
+  }
+
+  const isInitialSsrHome = (category === null && page === null && currentPage === 1 && !currentSearchQuery && featuredStory && !featuredStory.innerText.includes('Loading lead headline'));
+
+  try {
+    if (cachedPosts.length === 0) {
+      const res = await fetch('/api/posts?limit=120');
+      const data = await res.json();
+      if (data.success && data.posts) {
+        cachedPosts = data.posts;
+      }
+    }
+
+    // If initial page 1 was already rendered by SSR, do not destroy & re-create DOM (prevents LCP reset & CLS)
+    if (isInitialSsrHome && cachedPosts.length > 0) {
+      document.querySelectorAll('.topic-pill').forEach(pill => {
+        pill.onclick = (e) => {
+          e.preventDefault();
+          const query = pill.getAttribute('data-query');
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput) searchInput.value = query;
+          currentSearchQuery = query;
+          currentPage = 1;
+          loadHomepagePosts();
+        };
+      });
+      const totalStream = Math.max(1, cachedPosts.length - 8);
+      const perPage = window.innerWidth < 768 ? 8 : (window.innerWidth <= 1024 ? 10 : 12);
+      renderPagination(Math.ceil(totalStream / perPage) || 1);
+      return;
+    }
+
+    if (cachedPosts.length > 0) {
+      // 1. Filter by Category
+      let filtered = currentCategory === 'ALL'
+        ? cachedPosts
+        : cachedPosts.filter(p => (p.category || '').toLowerCase().includes(currentCategory.toLowerCase()) || (p.title || '').toLowerCase().includes(currentCategory.toLowerCase()));
+
+      // 2. Filter by Search Query
+      if (currentSearchQuery.trim()) {
+        const q = currentSearchQuery.trim().toLowerCase();
+        filtered = filtered.filter(p => 
+          (p.title || '').toLowerCase().includes(q) || 
+          (p.metaDescription || '').toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (filtered.length === 0) {
+        postsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 2.5rem; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: 8px;">
+          No articles found matching "<strong>${escapeHtml(currentSearchQuery || currentCategory)}</strong>".
+        </div>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+      }
+
+      // 3. Dynamic Featured Hero & Trending Sidebar with Zero Duplication
+      const featuredSlugs = new Set();
+      const heroSection = document.getElementById('heroSection');
+      if (heroSection) heroSection.style.display = '';
+
+      if (featuredStory && filtered.length > 0) {
+        const lead = filtered[0];
+        featuredSlugs.add(lead.slug);
+        const author = HUMAN_AUTHORS[0];
+        const categoryTag = (currentCategory !== 'ALL') ? currentCategory : (lead.category || 'TOP STORY');
+        
+        // Update Red Breaking News Ticker
+        const breakingLink = document.getElementById('breakingHeadlineLink');
+        if (breakingLink) {
+          breakingLink.innerText = lead.title;
+          breakingLink.href = `/post/${lead.slug}`;
+        }
+
+        featuredStory.innerHTML = `
+          <span class="featured-badge">${escapeHtml(categoryTag.toUpperCase())}</span>
+          <a href="/post/${lead.slug}">
+            <img src="${lead.imageUrl}" alt="${escapeHtml(lead.title)}" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80'" />
+          </a>
+          <h2><a href="/post/${lead.slug}">${escapeHtml(lead.title)}</a></h2>
+          <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1rem;">${escapeHtml(lead.metaDescription)}</p>
+          <div style="font-size: 0.85rem; color: var(--text-subtle); font-weight: 600;">
+            By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;"><strong>${author.name}</strong></a> • ${new Date(lead.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
+        `;
+      }
+
+      if (trendingSidebarList) {
+        trendingSidebarList.innerHTML = '';
+        const sideItems = filtered.filter(p => !featuredSlugs.has(p.slug)).slice(0, 3);
+        sideItems.forEach(item => {
+          featuredSlugs.add(item.slug);
+          const div = document.createElement('div');
+          div.className = 'trending-sidebar-item';
+          div.innerHTML = `
+            <span style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(item.category || 'TRENDING')}</span>
+            <h4><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h4>
+          `;
+          trendingSidebarList.appendChild(div);
+        });
+      }
+
+      // 4. Render Layout Type 1: Visual Spotlight 4-Card Grid (Guaranteed Distinct from Hero & Headlines)
+      const spotlightGrid = document.getElementById('spotlightGrid');
+      const spotlightSection = document.getElementById('spotlightSection');
+      const candidateSpotlights = filtered.filter(p => !featuredSlugs.has(p.slug));
+
+      if (spotlightGrid) {
+        spotlightGrid.innerHTML = '';
+        const spotlightItems = candidateSpotlights.slice(0, 4);
+
+        if (spotlightItems.length > 0) {
+          if (spotlightSection) spotlightSection.style.display = '';
+          spotlightItems.forEach((post, i) => {
+            featuredSlugs.add(post.slug);
+            const author = HUMAN_AUTHORS[(i + 4) % HUMAN_AUTHORS.length];
+            const sCard = document.createElement('div');
+            sCard.className = 'spotlight-card';
+            sCard.innerHTML = `
+              <div class="spotlight-img-wrap">
+                <span class="spotlight-tag-overlay">${escapeHtml(post.category || 'SPECIAL REPORT')}</span>
+                <a href="/post/${post.slug}">
+                  <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="spotlight-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
+                </a>
+              </div>
+              <div class="spotlight-body">
+                <div style="font-size: 0.7rem; font-weight: 800; color: #DC2626; text-transform: uppercase; margin-bottom: 0.3rem;">${escapeHtml(post.category || 'SPECIAL REPORT')}</div>
+                <h4 class="spotlight-title">
+                  <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
+                </h4>
+                <div class="spotlight-meta">
+                  <span>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></span> • <span>${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              </div>
+            `;
+            spotlightGrid.appendChild(sCard);
+          });
+        } else if (spotlightSection) {
+          spotlightSection.style.display = 'none';
+        }
+      }
+
+      // 5. Render Ranked Most Read Sidebar (Right Column)
+      const mostReadList = document.getElementById('mostReadList');
+      if (mostReadList) {
+        mostReadList.innerHTML = '';
+        const rankedItems = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+        rankedItems.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'most-read-item';
+          div.innerHTML = `
+            <div class="rank-badge ${idx === 0 ? 'top-rank' : ''}">${idx + 1}</div>
+            <h5><a href="/post/${item.slug}">${escapeHtml(item.title)}</a></h5>
+          `;
+          mostReadList.appendChild(div);
+        });
+      }
+
+      // Initialize Trending Topic Pills Click Listeners
+      document.querySelectorAll('.topic-pill').forEach(pill => {
+        pill.onclick = (e) => {
+          e.preventDefault();
+          const query = pill.getAttribute('data-query');
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput) searchInput.value = query;
+          currentSearchQuery = query;
+          currentPage = 1;
+          loadHomepagePosts();
+        };
+      });
+
+      function getPostsPerPage() {
+        const width = window.innerWidth;
+        if (width < 768) {
+          return 8;  // Phone: 8 articles in sleek row feed
+        } else if (width <= 1024) {
+          return 10;
+        } else {
+          return 12;
+        }
+      }
+
+      // 6. News Stream (LATEST REPORTING — ALL HEADLINES)
+      // Exclude all articles already displayed in Hero and Spotlight so there is 100% unique content!
+      const streamPool = filtered.filter(p => !featuredSlugs.has(p.slug));
+      const activeStream = streamPool.length > 0 ? streamPool : filtered;
+
+      const postsPerPage = getPostsPerPage();
+      const totalPages = Math.ceil(activeStream.length / postsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const paginatedPosts = activeStream.slice(startIndex, startIndex + postsPerPage);
+
+      // 7. Render Layout Type 2: News Stream (Aaj Tak Row Format)
+      postsGrid.innerHTML = '';
+      paginatedPosts.forEach((post, index) => {
+        const author = HUMAN_AUTHORS[(index + startIndex + 8) % HUMAN_AUTHORS.length];
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <a href="/post/${post.slug}">
+            <img src="${post.imageUrl}" alt="${escapeHtml(post.title)}" class="card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80'" />
+          </a>
+          <div class="card-body">
+            <div class="card-category">${escapeHtml(post.category || 'REPORTING')}</div>
+            <h3 class="card-title">
+              <a href="/post/${post.slug}">${escapeHtml(post.title)}</a>
+            </h3>
+            <p class="card-desc">${escapeHtml(post.metaDescription)}</p>
+            <div class="card-author-meta">
+              <a href="/author/${author.slug}" style="text-decoration: none;"><div class="author-avatar">${author.initials}</div></a>
+              <div>
+                <strong>By <a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">${author.name}</a></strong> • ${new Date(post.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </div>
+            </div>
+          </div>
+        `;
+        postsGrid.appendChild(card);
+      });
+
+      // 8. Render Pagination Controls
+      renderPagination(totalPages);
+    } else {
+      postsGrid.innerHTML = '<div style="color: var(--text-subtle);">No published articles found.</div>';
+    }
+  } catch (e) {
+    postsGrid.innerHTML = `<div style="color: var(--text-subtle);">Error loading articles: ${e.message}</div>`;
+  }
+}
+
+// Render Pagination Buttons
+function renderPagination(totalPages) {
+  const container = document.getElementById('paginationContainer');
+  if (!container) return;
+
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = `
+    <button id="prevPageBtn" ${currentPage === 1 ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === 1 ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === 1 ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
+      ⬅️ Previous
+    </button>
+    <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; padding: 0 0.5rem;">
+      Page ${currentPage} of ${totalPages}
+    </span>
+    <button id="nextPageBtn" ${currentPage === totalPages ? 'disabled' : ''} style="padding: 0.5rem 1rem; background: ${currentPage === totalPages ? 'var(--bg-secondary)' : '#2563EB'}; color: ${currentPage === totalPages ? 'var(--text-muted)' : '#FFF'}; border: 1px solid var(--border-light); border-radius: 6px; font-weight: 700; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
+      Next ➡️
+    </button>
+  `;
+
+  container.innerHTML = html;
+
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+
+  if (prevBtn && currentPage > 1) {
+    prevBtn.addEventListener('click', () => {
+      loadHomepagePosts(null, currentPage - 1);
+      scrollToGridTop();
+    });
+  }
+
+  if (nextBtn && currentPage < totalPages) {
+    nextBtn.addEventListener('click', () => {
+      loadHomepagePosts(null, currentPage + 1);
+      scrollToGridTop();
+    });
+  }
+}
+
+function scrollToGridTop() {
+  const target = document.getElementById('reportingHeaderTitle');
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// Bind Category Navigation & Search Input Listeners
+function initCategoryFilter() {
+  const categoryBtns = document.querySelectorAll('.category-btn[data-category]');
+  categoryBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const targetCat = btn.getAttribute('data-category');
+      if (!targetCat) return; // Allow natural navigation for links without data-category
+      e.preventDefault();
+
+      // Update Active UI State
+      categoryBtns.forEach(b => {
+        b.classList.remove('active');
+        b.style.color = 'var(--text-muted)';
+      });
+      btn.classList.add('active');
+      btn.style.color = '#2563EB';
+
+      // Reset Search & Load Category
+      currentSearchQuery = '';
+      loadHomepagePosts(targetCat, 1);
+    });
+  });
+
+  // Reactive hashchange listener (enables instant category navigation from footer & breadcrumbs)
+  window.addEventListener('hashchange', () => {
+    const hashMatch = window.location.hash.match(/^#category-([a-zA-Z0-9_\-]+)/i);
+    if (hashMatch && hashMatch[1]) {
+      const cat = hashMatch[1];
+      const targetBtn = document.querySelector(`.category-btn[data-category="${cat}" i]`);
+      if (targetBtn) {
+        targetBtn.click();
+      } else {
+        loadHomepagePosts(cat, 1);
+      }
+    }
+  });
+}
+
+// 🔍 Global Live Search Modal System
+let cachedAllPosts = [];
+
+async function fetchAllPostsForSearch() {
+  if (cachedAllPosts.length > 0) return cachedAllPosts;
+  if (cachedPosts && cachedPosts.length > 0) {
+    cachedAllPosts = cachedPosts;
+    return cachedAllPosts;
+  }
+  try {
+    const res = await fetch('/api/posts');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.posts)) {
+      cachedAllPosts = data.posts;
+      return cachedAllPosts;
+    }
+  } catch (e) {
+    console.error('Error fetching posts for search:', e);
+  }
+  return [];
+}
+
+function initGlobalSearchModal() {
+  // 1. Ensure Search Modal DOM element exists on page
+  let modal = document.getElementById('globalSearchModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'globalSearchModal';
+    modal.className = 'search-modal-backdrop';
+    modal.innerHTML = `
+      <div class="search-modal-dialog">
+        <div class="search-modal-header">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="#64748B" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="modalSearchInput" class="search-modal-input" placeholder="Search news, reports, topics..." autocomplete="off" />
+          <button type="button" id="closeSearchModalBtn" class="search-modal-close" aria-label="Close search">✕</button>
+        </div>
+        <div class="search-modal-quick-tags">
+          <span class="search-quick-label">Trending:</span>
+          <span class="search-quick-pill" data-query="AI">AI &amp; Tech</span>
+          <span class="search-quick-pill" data-query="Stock Market">Stock Market</span>
+          <span class="search-quick-pill" data-query="Artificial Intelligence">AI &amp; Tech</span>
+          <span class="search-quick-pill" data-query="Economy">Global Economy</span>
+          <span class="search-quick-pill" data-query="Crypto">Crypto</span>
+          <span class="search-quick-pill" data-query="Space">Space</span>
+        </div>
+        <div id="modalSearchResults" class="search-modal-results">
+          <!-- Live results populated dynamically -->
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const searchInput = document.getElementById('modalSearchInput');
+  const searchResults = document.getElementById('modalSearchResults');
+  const closeBtn = document.getElementById('closeSearchModalBtn');
+
+  async function renderLiveSearchResults(query) {
+    const posts = await fetchAllPostsForSearch();
+    if (!searchResults) return;
+
+    let matched = posts;
+    const q = (query || '').trim().toLowerCase();
+
+    if (q) {
+      matched = posts.filter(p => 
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.metaDescription || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (matched.length === 0) {
+      searchResults.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: #64748B;">
+          <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 0.25rem;">No stories found</div>
+          <div style="font-size: 0.85rem;">No articles matched "<strong>${escapeHtml(query)}</strong>". Try another keyword.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const displayItems = matched.slice(0, 8);
+    searchResults.innerHTML = `
+      <div style="font-size: 0.72rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; padding-left: 0.2rem;">
+        ${q ? `Search Results (${matched.length})` : 'Top Trending & Latest Stories'}
+      </div>
+      ${displayItems.map(p => `
+        <a href="/post/${p.slug}" class="search-result-row">
+          <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" class="search-result-thumb" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
+          <div class="search-result-info">
+            <div class="search-result-category">${escapeHtml(p.category || 'NEWS')}</div>
+            <h5 class="search-result-title">${escapeHtml(p.title)}</h5>
+            <div class="search-result-date">${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          </div>
+          <span class="search-result-action">Read ➔</span>
+        </a>
+      `).join('')}
+    `;
+  }
+
+  function openSearchModal() {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (searchInput) {
+      searchInput.value = '';
+      setTimeout(() => searchInput.focus(), 80);
+    }
+    renderLiveSearchResults('');
+  }
+
+  function closeSearchModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Bind All Search Trigger Buttons
+  document.querySelectorAll('.global-search-trigger').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      openSearchModal();
+    };
+  });
+
+  if (closeBtn) closeBtn.onclick = closeSearchModal;
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeSearchModal();
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeSearchModal();
+    }
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      renderLiveSearchResults(e.target.value);
+    });
+  }
+
+  // Quick Topic Pills in Modal
+  modal.querySelectorAll('.search-quick-pill').forEach(pill => {
+    pill.onclick = () => {
+      const q = pill.getAttribute('data-query');
+      if (searchInput) {
+        searchInput.value = q;
+        searchInput.focus();
+      }
+      renderLiveSearchResults(q);
+    };
+  });
+}
+
+function setMetaTag(property, content) {
+  let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    if (property.startsWith('og:') || property.startsWith('article:')) {
+      el.setAttribute('property', property);
+    } else {
+      el.setAttribute('name', property);
+    }
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function setCanonicalTag(url) {
+  let link = document.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.setAttribute('rel', 'canonical');
+    document.head.appendChild(link);
+  }
+  link.setAttribute('href', url);
+}
+
+// Load Single Article Page
+let isArticleLoading = false;
+async function loadSingleArticle() {
+  if (isArticleLoading) return;
+  isArticleLoading = true;
+
+  const postContainer = document.getElementById('postContent');
+  // If Server-Side Rendering (SSR) already populated the article, do NOT wipe & re-download DOM (protects Core Web Vitals LCP & CLS)
+  if (postContainer && postContainer.getAttribute('data-ssr') === 'true') {
+    const inImgs = postContainer.querySelectorAll('img');
+    inImgs.forEach(img => {
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function() {
+        this.onerror = null;
+        this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+      };
+    });
+    isArticleLoading = false;
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  // Support both /post/slug and post.html?slug=slug
+  let slug = params.get('slug');
+  if (!slug) {
+    const pathMatch = window.location.pathname.match(/\/post\/(.+)/);
+    if (pathMatch) slug = pathMatch[1];
+  }
+  if (!slug) {
+    isArticleLoading = false;
+    return;
+  }
+  slug = slug.replace(/\/+$/, '').replace(/\.html$/i, '');
+
+  try {
+    const res = await fetch(`/api/post/${slug}`);
+    const data = await res.json();
+
+    if (data.success && data.post) {
+      const p = data.post;
+      const author = HUMAN_AUTHORS[Math.abs(hashString(p.slug)) % HUMAN_AUTHORS.length];
+
+      if (document.getElementById('pageTitle')) document.getElementById('pageTitle').innerText = `${p.title} — PRIME MEDIA`;
+      if (document.getElementById('metaDesc')) document.getElementById('metaDesc').content = p.metaDescription;
+
+      // Dynamic SEO Meta Tags for Social Sharing
+      const postUrl = `${window.location.origin}/post/${p.slug}`;
+      setMetaTag('og:type', 'article');
+      setMetaTag('og:title', p.title + ' — PRIME MEDIA');
+      setMetaTag('og:description', p.metaDescription);
+      setMetaTag('og:url', postUrl);
+      setMetaTag('og:image', p.imageUrl);
+      setMetaTag('og:site_name', 'PRIME MEDIA');
+      setMetaTag('article:published_time', p.publishedAt);
+      setMetaTag('twitter:card', 'summary_large_image');
+      setMetaTag('twitter:title', p.title + ' — PRIME MEDIA');
+      setMetaTag('twitter:description', p.metaDescription);
+      setMetaTag('twitter:image', p.imageUrl);
+      setCanonicalTag(postUrl);
+      if (typeof updateStickyShareUrls === 'function') updateStickyShareUrls();
+      if (document.getElementById('postTitle')) document.getElementById('postTitle').innerText = p.title;
+      if (document.getElementById('postLeadDesc')) document.getElementById('postLeadDesc').innerText = p.metaDescription;
+      if (document.getElementById('postFeaturedImg')) {
+        const featImg = document.getElementById('postFeaturedImg');
+        featImg.referrerPolicy = 'no-referrer';
+        featImg.onerror = function() {
+          this.onerror = null;
+          this.src = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+        };
+        featImg.src = p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=1200&q=80';
+      }
+      if (document.getElementById('postCategoryPill')) document.getElementById('postCategoryPill').innerText = (p.category || 'TECHNOLOGY').toUpperCase();
+
+      // Breadcrumb Dynamic Binding
+      if (document.getElementById('breadcrumbCategory')) {
+        document.getElementById('breadcrumbCategory').innerText = p.category || 'Technology';
+        document.getElementById('breadcrumbCategory').href = `/#category-${(p.category || 'technology').toLowerCase()}`;
+      }
+      if (document.getElementById('breadcrumbCurrent')) {
+        document.getElementById('breadcrumbCurrent').innerText = p.title;
+      }
+
+      // Author Byline & Bio Binding with E-E-A-T Links
+      if (document.getElementById('authorInitials')) {
+        const el = document.getElementById('authorInitials');
+        el.innerText = author.initials;
+        if (el.parentElement && el.parentElement.tagName === 'A') {
+          el.parentElement.href = `/author/${author.slug}`;
+        } else {
+          el.style.cursor = 'pointer';
+          el.onclick = () => window.location.href = `/author/${author.slug}`;
+        }
+      }
+      if (document.getElementById('bioAvatar')) {
+        const el = document.getElementById('bioAvatar');
+        el.innerText = author.initials;
+        if (el.parentElement && el.parentElement.tagName === 'A') {
+          el.parentElement.href = `/author/${author.slug}`;
+        } else {
+          el.style.cursor = 'pointer';
+          el.onclick = () => window.location.href = `/author/${author.slug}`;
+        }
+      }
+      if (document.getElementById('postAuthorName')) {
+        document.getElementById('postAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: inherit; text-decoration: none;">By ${author.name}</a>`;
+      }
+      if (document.getElementById('bioAuthorName')) {
+        document.getElementById('bioAuthorName').innerHTML = `<a href="/author/${author.slug}" style="color: #0F172A; text-decoration: none;">${author.name}</a>`;
+      }
+      if (document.getElementById('bioAuthorRole')) {
+        document.getElementById('bioAuthorRole').innerHTML = `${author.role} • Senior Correspondent covering global technology breakthroughs, digital market policies, and Silicon Valley innovations for PRIME MEDIA. <a href="/author/${author.slug}" style="color: #2563EB; font-weight: 700; margin-left: 5px; text-decoration: none;">View Profile &amp; Articles &rarr;</a>`;
+      }
+      if (document.getElementById('postPublishDate')) {
+        document.getElementById('postPublishDate').innerHTML = `<a href="/author/${author.slug}" style="color: #64748B; text-decoration: none;">${author.role}</a> • Published ${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+      }
+      if (document.getElementById('postReadTime')) document.getElementById('postReadTime').innerText = `${p.readTimeMinutes || 5} min read`;
+
+      let html = (p.contentHtml || '')
+        .replace(/^\s*<h1[^>]*>[\s\S]*?<\/h1>\s*/i, '')
+        .replace(/<h1(\b[^>]*)>/gi, '<h2$1>')
+        .replace(/<\/h1>/gi, '</h2>');
+
+      // Clean up any old Photo Credit text
+      html = html.replace(/<div[^>]*>Photo Credit:.*?<\/div>/gi, '');
+
+      // Inject In-Article Recommended Widget after 2nd H2 for deep engagement
+      let h2Count = 0;
+      html = html.replace(/<h2>/g, (match) => {
+        h2Count++;
+        if (h2Count === 2) {
+          return `<div id="inArticleRecommendedPlaceholder"></div><h2>`;
+        }
+        return match;
+      });
+
+      if (document.getElementById('postContent')) {
+        const postContainer = document.getElementById('postContent');
+        postContainer.innerHTML = html;
+        // Shield all in-article photos from hotlink protection and broken links
+        const inImgs = postContainer.querySelectorAll('img');
+        inImgs.forEach(img => {
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function() {
+            this.onerror = null;
+            this.src = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80';
+          };
+        });
+      }
+
+      // Load Recommended & Suggested Stories (Both Mid-Article & Bottom Grid)
+      loadRecommendedArticles(p.slug, p.category);
+    }
+  } catch (e) {
+    console.error('Error loading article:', e);
+  }
+}
+
+// Render Recommended Post Cards (Mid-Article Widget + Bottom Section)
+async function loadRecommendedArticles(currentSlug, category) {
+  const bottomGrid = document.getElementById('recommendedGrid');
+  const midPlaceholder = document.getElementById('inArticleRecommendedPlaceholder');
+
+  try {
+    const res = await fetch('/api/posts?limit=16');
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.posts)) {
+      // Exclude current active article
+      const otherPosts = data.posts.filter(p => p.slug !== currentSlug);
+      if (otherPosts.length === 0) return;
+
+      // 1. Render Mid-Article Recommended Section (Clean Native Article Grid)
+      if (midPlaceholder) {
+        const midPosts = otherPosts.slice(0, 2);
+        midPlaceholder.innerHTML = `
+          <div class="in-article-recommended" style="margin: 2rem 0; padding: 1.25rem 0; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0;">
+            <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #0F172A; margin: 0 0 1rem 0; text-transform: uppercase; letter-spacing: 0.04em;">
+              Related Analysis
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+              ${midPosts.map(p => `
+                <div style="display: flex; gap: 0.75rem; align-items: center; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 0.6rem;">
+                  <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
+                  <div style="flex: 1; min-width: 0;">
+                    <span style="font-size: 0.65rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'NEWS')}</span>
+                    <h5 style="font-family: var(--font-heading); font-size: 0.825rem; font-weight: 700; line-height: 1.3; margin: 0.2rem 0 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
+                    </h5>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Render Bottom Grid (3 Posts in Sleek News Row / Card Format)
+      if (bottomGrid) {
+        const bottomPosts = otherPosts.sort(() => 0.5 - Math.random()).slice(0, 3);
+        bottomGrid.innerHTML = bottomPosts.map(p => `
+          <div class="recommended-card" style="display: flex; gap: 0.85rem; align-items: center; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; transition: transform 0.2s, box-shadow 0.2s;">
+            <a href="/post/${p.slug}" style="flex-shrink: 0; display: block;">
+              <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" style="width: 95px; height: 70px; object-fit: cover; border-radius: 6px; display: block;" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'" />
+            </a>
+            <div style="flex: 1; min-width: 0;">
+              <span style="font-size: 0.68rem; font-weight: 800; color: #DC2626; text-transform: uppercase;">${escapeHtml(p.category || 'WORLD NEWS')}</span>
+              <h4 style="font-family: var(--font-heading); font-size: 0.88rem; font-weight: 700; line-height: 1.35; margin: 0.25rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                <a href="/post/${p.slug}" style="color: #0F172A; text-decoration: none;">${escapeHtml(p.title)}</a>
+              </h4>
+              <div style="font-size: 0.72rem; color: #64748B;">
+                <span>${p.readTimeMinutes || 5} min read</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Error loading recommended articles:', e);
+  }
+}
+
+// Admin Control Panel Handlers
+let isAdminPanelInitialized = false;
+function initAdminPanel() {
+  if (isAdminPanelInitialized) return;
+  isAdminPanelInitialized = true;
+
+  function getAdminAuthHeaders() {
+    const token = sessionStorage.getItem('adminToken') || '';
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  const loginModal = document.getElementById('adminLoginModal');
+  const loginForm = document.getElementById('adminLoginForm');
+  const passwordInput = document.getElementById('adminPasswordInput');
+  const loginError = document.getElementById('adminLoginError');
+  const logoutBtn = document.getElementById('adminLogoutBtn');
+
+  const changePassForm = document.getElementById('changePasswordForm');
+  const currentPassInput = document.getElementById('currentPassInput');
+  const newPassInput = document.getElementById('newPassInput');
+  const changePassStatus = document.getElementById('changePassStatus');
+
+  const triggerBtn = document.getElementById('triggerAutoBlogBtn');
+  const triggerStatus = document.getElementById('triggerStatus');
+  const topicInput = document.getElementById('customTopicInput');
+  const logsPre = document.getElementById('adminLogs');
+
+  const keysContainer = document.getElementById('serperKeysContainer');
+  const addKeyBtn = document.getElementById('addKeyBtn');
+  const saveSerperKeysBtn = document.getElementById('saveSerperKeysBtn');
+  const serperKeysStatus = document.getElementById('serperKeysStatus');
+
+  const topTopicsList = document.getElementById('topTopicsList');
+  const countryTrafficList = document.getElementById('countryTrafficList');
+
+  // Check Admin Authentication Token
+  function checkAdminAuth() {
+    const token = sessionStorage.getItem('adminToken');
+    if (token) {
+      if (loginModal) loginModal.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      loadAdminDashboardData();
+    } else {
+      if (loginModal) loginModal.style.display = 'flex';
+    }
+  }
+
+  // Password Eye Toggle Show/Hide Handler
+  document.querySelectorAll('.toggle-pass-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (input) {
+        const isPass = input.type === 'password';
+        input.type = isPass ? 'text' : 'password';
+        btn.innerText = isPass ? '🙈' : '👁️';
+      }
+    });
+  });
+
+  // Login Form Submission
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = passwordInput ? passwordInput.value.trim() : '';
+      if (!password) return;
+
+      if (loginError) loginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+
+        if (data.success && data.token) {
+          sessionStorage.setItem('adminToken', data.token);
+          if (passwordInput) passwordInput.value = '';
+          checkAdminAuth();
+        } else {
+          if (loginError) {
+            loginError.innerText = data.error || data.detail || 'Incorrect password!';
+            loginError.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (loginError) {
+          loginError.innerText = 'Server connection error!';
+          loginError.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  // Logout Handler
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.removeItem('adminToken');
+      checkAdminAuth();
+    });
+  }
+
+  // Change Admin Password Handler
+  if (changePassForm) {
+    changePassForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const currentPassword = currentPassInput ? currentPassInput.value.trim() : '';
+      const newPassword = newPassInput ? newPassInput.value.trim() : '';
+      const targetPass = newPassword || currentPassword;
+
+      if (!targetPass || targetPass.length < 4) {
+        if (changePassStatus) {
+          changePassStatus.style.color = '#DC2626';
+          changePassStatus.innerText = '❌ Password must be at least 4 characters!';
+        }
+        return;
+      }
+
+      if (changePassStatus) changePassStatus.innerText = '⌛ Updating password...';
+
+      try {
+        const token = sessionStorage.getItem('adminToken') || '';
+        const res = await fetch('/api/admin/change-password', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ currentPassword, newPassword: targetPass })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          if (changePassStatus) {
+            changePassStatus.style.color = '#059669';
+            changePassStatus.innerText = `✅ Password updated & saved to: "${data.newPassword}"`;
+          }
+          if (currentPassInput) currentPassInput.value = '';
+          if (newPassInput) newPassInput.value = '';
+        } else {
+          if (changePassStatus) {
+            changePassStatus.style.color = '#DC2626';
+            changePassStatus.innerText = `❌ ${data.error || 'Failed to update password'}`;
+          }
+        }
+      } catch (err) {
+        if (changePassStatus) {
+          changePassStatus.style.color = '#DC2626';
+          changePassStatus.innerText = '❌ Connection error!';
+        }
+      }
+    });
+  }
+
+  function loadAdminDashboardData() {
+    loadGeminiKeyStatus();
+    loadSerperKeysAndCredits();
+    loadAnalytics();
+    loadAdminArticlesList();
+    if (typeof loadTelegramConfig === 'function') loadTelegramConfig();
+    if (typeof loadUserbotConfig === 'function') loadUserbotConfig();
+    if (typeof loadTwitterConfig === 'function') loadTwitterConfig();
+    if (typeof loadCustomTwitterConfig === 'function') loadCustomTwitterConfig();
+    if (typeof loadRedditConfig === 'function') loadRedditConfig();
+  }
+
+  // Auto-refresh analytics and articles every 15 seconds while Admin is active
+  setInterval(() => {
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && adminPanel.style.display !== 'none') {
+      loadAnalytics();
+      loadAdminArticlesList();
+    }
+  }, 15000);
+
+  // Admin Articles Manager State & Functions
+  let adminAllPosts = [];
+  let adminSearchQuery = '';
+  let adminPerPage = 10;
+
+  async function loadAdminArticlesList() {
+    const container = document.getElementById('adminArticlesList');
+    const badge = document.getElementById('adminArticlesCountBadge');
+    if (!container) return;
+
+    try {
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/admin/posts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem('adminToken');
+        if (loginModal) loginModal.style.display = 'flex';
+        if (container) container.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: #64748B;">Admin session required. Please log in with password.</div>`;
+        return;
+      }
+      const data = await res.json();
+      if (data.success && Array.isArray(data.posts)) {
+        adminAllPosts = data.posts;
+        if (badge) badge.innerText = `${adminAllPosts.length} Total Articles`;
+        const statArts = document.getElementById('statTotalArticles');
+        if (statArts) statArts.innerText = adminAllPosts.length;
+        renderAdminArticlesList();
+      } else {
+        if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626;">Error: ${data.error || 'Failed to retrieve articles'}</div>`;
+      }
+    } catch (e) {
+      if (container) container.innerHTML = `<div style="padding: 1rem; color: #DC2626; display: flex; align-items: center; justify-content: space-between;"><span>Error loading articles (${e.message})</span><button onclick="loadAdminArticlesList()" style="padding: 4px 10px; background: #2563EB; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Retry</button></div>`;
+    }
+  }
+
+  function renderAdminArticlesList() {
+    const container = document.getElementById('adminArticlesList');
+    if (!container) return;
+
+    // Filter by Search Query
+    let filtered = adminAllPosts;
+    if (adminSearchQuery.trim()) {
+      const q = adminSearchQuery.trim().toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.slug || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Slice by Show Per Page Dropdown
+    let displayPosts = filtered;
+    if (adminPerPage !== 'all') {
+      const count = parseInt(adminPerPage) || 10;
+      displayPosts = filtered.slice(0, count);
+    }
+
+    if (displayPosts.length === 0) {
+      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">No articles found matching search criteria.</div>`;
+      return;
+    }
+
+    container.innerHTML = displayPosts.map(p => `
+      <div class="admin-article-row ${p.hidden ? 'is-hidden' : ''}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--admin-article-border, #F1F5F9); flex-wrap: wrap; gap: 0.75rem; background: ${p.hidden ? 'var(--admin-article-hidden-bg, #FFFBEB)' : 'var(--admin-article-bg, #FFFFFF)'};">
+        <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 260px;">
+          <img src="${p.imageUrl}" alt="${p.title}" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0F172A;" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=300&q=80'" />
+          <div>
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--admin-text-main, #0F172A); line-height: 1.3;">
+              <a href="/post/${p.slug}" target="_blank" style="color: inherit; text-decoration: none;">${escapeHtml(p.title)}</a>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--admin-text-subtle, #64748B); margin-top: 0.2rem;">
+              📁 <strong>${p.category || 'News'}</strong> • 👁️ ${p.views || 0} views • 🗓️ ${new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <!-- Status Badge -->
+          <span style="font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 12px; background: ${p.hidden ? 'var(--badge-hidden-bg, #FEF3C7)' : 'var(--badge-public-bg, #DCFCE7)'}; color: ${p.hidden ? 'var(--badge-hidden-color, #D97706)' : 'var(--badge-public-color, #15803D)'};">
+            ${p.hidden ? '🙈 HIDDEN' : '🟢 PUBLIC'}
+          </span>
+
+          <!-- 📢 1-Click Social Broadcast Button -->
+          <button class="admin-broadcast-btn" data-slug="${p.slug}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #2563EB; color: #FFF; border: none; border-radius: 4px; cursor: pointer;" title="Post this story immediately to Reddit & Twitter/X">
+            📢 Broadcast
+          </button>
+
+          <!-- Hide/Unhide Button -->
+          <button class="admin-toggle-btn" data-id="${p.id}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: ${p.hidden ? '#059669' : '#D97706'}; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
+            ${p.hidden ? '👁️ Unhide' : '🙈 Hide'}
+          </button>
+
+          <!-- Delete Button -->
+          <button class="admin-delete-btn" data-id="${p.id}" data-title="${escapeHtml(p.title)}" style="padding: 0.4rem 0.75rem; font-size: 0.775rem; font-weight: 700; background: #DC2626; color: #FFF; border: none; border-radius: 4px; cursor: pointer;">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Bind Action Button Handlers
+    container.querySelectorAll('.admin-broadcast-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.getAttribute('data-slug');
+        const title = btn.getAttribute('data-title');
+        btn.disabled = true;
+        btn.innerText = '⌛ Posting...';
+
+        try {
+          const res = await fetch('/api/social/broadcast-post', {
+          headers: getAdminAuthHeaders(),
+            method: 'POST',
+            body: JSON.stringify({ slug })
+          });
+          const data = await res.json();
+          if (data.success && data.results) {
+            const r = data.results;
+            const redditMsg = r.reddit.attempted
+              ? (r.reddit.success ? '✅ Success' : `❌ ${r.reddit.message}`)
+              : `⚪ Not Configured (${r.reddit.message})`;
+            
+            const twMsg = r.customTwitter.attempted
+              ? (r.customTwitter.success ? '✅ Tweeted (Custom Bot)' : `❌ ${r.customTwitter.message}`)
+              : (r.twitterApi.attempted ? (r.twitterApi.success ? '✅ Tweeted (API)' : `❌ ${r.twitterApi.message}`) : `⚪ Not Configured`);
+
+            alert(`🚀 Social Broadcast Results for:\n"${title}"\n\n🔴 Reddit: ${redditMsg}\n🐥 X (Twitter): ${twMsg}`);
+            logMessage(`📢 Social Broadcast for "${title}": Reddit -> ${redditMsg}, X -> ${twMsg}`);
+          } else {
+            alert(`Broadcast failed: ${data.message || 'Unknown error'}`);
+          }
+        } catch (e) {
+          alert(`Broadcast error: ${e.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = '📢 Broadcast';
+        }
+      });
+    });
+
+    container.querySelectorAll('.admin-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        try {
+          const token = sessionStorage.getItem('adminToken') || '';
+          const res = await fetch('/api/admin/post/toggle-visibility', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            cachedPosts = []; // Clear homepage cache
+            loadAdminArticlesList();
+            loadHomepagePosts();
+          }
+        } catch (e) {
+          alert('Error toggling post visibility');
+        }
+      });
+    });
+
+    container.querySelectorAll('.admin-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const title = btn.getAttribute('data-title');
+        if (!confirm(`Are you sure you want to permanently delete:\n"${title}"?`)) return;
+
+        btn.disabled = true;
+        try {
+          const token = sessionStorage.getItem('adminToken') || '';
+          const res = await fetch('/api/admin/post/delete', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            logMessage(`🗑️ Article deleted: "${title}"`);
+            cachedPosts = []; // Clear homepage cache
+            loadAdminArticlesList();
+            loadHomepagePosts();
+          }
+        } catch (e) {
+          alert('Error deleting post');
+        }
+      });
+    });
+  }
+
+  // Bind Admin Search & Show Per Page Dropdown Listeners
+  const adminSearchInput = document.getElementById('adminArticleSearchInput');
+  if (adminSearchInput) {
+    adminSearchInput.addEventListener('input', (e) => {
+      adminSearchQuery = e.target.value;
+      renderAdminArticlesList();
+    });
+  }
+
+  const adminPerPageSelect = document.getElementById('adminArticlesPerPageSelect');
+  if (adminPerPageSelect) {
+    adminPerPageSelect.addEventListener('change', (e) => {
+      adminPerPage = e.target.value;
+      renderAdminArticlesList();
+    });
+  }
+
+  // Gemini AI Key Handlers
+  const geminiInput = document.getElementById('geminiApiKeyInput');
+  const saveGeminiBtn = document.getElementById('saveGeminiKeyBtn');
+  const geminiStatus = document.getElementById('geminiKeyStatus');
+
+  async function loadGeminiKeyStatus() {
+    if (!geminiStatus) return;
+    try {
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/gemini-key', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && data.hasKey) {
+        geminiStatus.innerHTML = `✅ Gemini AI Active (${data.maskedKey}) • <strong>Writing 1,500-Word Deep Stories</strong>`;
+        if (geminiInput) geminiInput.placeholder = `Active Key: ${data.maskedKey} (Paste new to update)`;
+      } else {
+        geminiStatus.innerHTML = `⚠️ No Gemini Key Configured. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #2563EB; font-weight: 700;">Get Free Key from Google AI Studio ➔</a>`;
+      }
+    } catch (e) {}
+  }
+
+  if (saveGeminiBtn) {
+    saveGeminiBtn.addEventListener('click', async () => {
+      const apiKey = geminiInput ? geminiInput.value.trim() : '';
+      if (!apiKey) return alert('Please paste your Gemini API key!');
+
+      saveGeminiBtn.disabled = true;
+      saveGeminiBtn.innerText = '⌛ Saving Key...';
+
+      try {
+        const token = sessionStorage.getItem('adminToken') || '';
+        let res = await fetch('/api/save-gemini-key', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ apiKey })
+        });
+        
+        let rawText = await res.text();
+        let data = {};
+        try { data = JSON.parse(rawText); } catch(err) {
+          console.error('Non-JSON Response:', rawText);
+          throw new Error(rawText.substring(0, 100) || 'Server returned invalid response');
+        }
+
+        if (data.success) {
+          logMessage('✅ Gemini AI API Key saved & activated for 1,500-word deep story writing!');
+          alert('✅ Gemini AI API Key saved successfully!');
+          if (geminiInput) geminiInput.value = '';
+          loadGeminiKeyStatus();
+        } else {
+          alert(`❌ Error: ${data.error || 'Failed to save Gemini key'}`);
+        }
+      } catch (e) {
+        console.error('Gemini Key Save Error:', e);
+        alert(`❌ Error saving key: ${e.message}`);
+      } finally {
+        saveGeminiBtn.disabled = false;
+        saveGeminiBtn.innerText = '💾 Save Gemini Key';
+      }
+    });
+  }
+
+  function logMessage(msg) {
+    if (logsPre) {
+      const timestamp = new Date().toLocaleTimeString();
+      logsPre.innerText += `\n[${timestamp}] ${msg}`;
+      logsPre.scrollTop = logsPre.scrollHeight;
+    }
+  }
+
+  // Initial Auth Check
+  checkAdminAuth();
+
+  // 1. Auto-Publisher Button Handler
+  if (triggerBtn) {
+    triggerBtn.addEventListener('click', async () => {
+      const topic = topicInput ? topicInput.value.trim() : '';
+      triggerBtn.disabled = true;
+      triggerBtn.innerText = '⌛ Scanning & Publishing Story...';
+      if (triggerStatus) triggerStatus.innerText = '⚡ Fetching trends, real Serper photos & writing article...';
+
+      logMessage(`Initiated story generation ${topic ? `for topic: "${topic}"` : 'from live global news'}...`);
+
+      try {
+        const token = sessionStorage.getItem('adminToken') || '';
+        const res = await fetch('/api/trigger-autoblog', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ topic })
+        });
+        const data = await res.json();
+
+        if (data.success && data.post) {
+          const p = data.post;
+          logMessage(`✅ Successfully Published: "${p.title}"`);
+          if (triggerStatus) {
+            triggerStatus.innerHTML = `✅ Published! <a href="/post/${p.slug}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">View Published Story ➔</a>`;
+          }
+          if (topicInput) topicInput.value = '';
+          loadSerperKeysAndCredits();
+        } else {
+          logMessage(`❌ Error: ${data.error || 'Failed to auto-generate'}`);
+          if (triggerStatus) triggerStatus.innerText = `❌ ${data.error || 'Error generating article.'}`;
+          alert(`❌ Gemini AI Error:\n\n${data.error || 'Unknown error'}\n\nFix: Go to Admin Panel → Gemini AI Key → Save a fresh key from aistudio.google.com/app/apikey`);
+        }
+      } catch (e) {
+        logMessage(`❌ Connection Error: ${e.message}`);
+        if (triggerStatus) triggerStatus.innerText = '❌ Connection error.';
+      } finally {
+        triggerBtn.disabled = false;
+        triggerBtn.innerText = '🚀 Auto-Generate & Publish Story Now';
+      }
+    });
+  }
+
+  // 2. Load Dynamic Serper Keys with Live Credit Meter
+  async function loadSerperKeysAndCredits() {
+    if (!keysContainer) return;
+
+    try {
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/serper-keys', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      keysContainer.innerHTML = '';
+
+      if (data.success && data.keyDetails && data.keyDetails.length > 0) {
+        let totalRemaining = 0;
+        data.keyDetails.forEach((item, index) => {
+          totalRemaining += item.balance;
+          createKeyRow(item.key, index + 1, item.balance, item.used, item.status);
+        });
+
+        if (serperKeysStatus) {
+          serperKeysStatus.innerHTML = `🔑 <strong>${data.keyDetails.length} Key(s) Configured</strong> • Total Credits Remaining: <strong>${totalRemaining.toLocaleString()}</strong>`;
+        }
+      } else {
+        createKeyRow('', 1, 2500, 0, 'READY');
+        if (serperKeysStatus) serperKeysStatus.innerText = 'No API Keys configured. Add your first Serper key above.';
+      }
+    } catch (e) {
+      console.error('Error loading Serper keys:', e);
+    }
+  }
+
+  function createKeyRow(keyValue = '', indexNumber = 1, balance = 2500, used = 0, status = 'READY') {
+    const row = document.createElement('div');
+    row.className = 'key-row';
+
+    let badgeClass = 'badge-ready';
+    if (status.includes('ACTIVE')) badgeClass = 'badge-active';
+    if (status.includes('EXHAUSTED')) badgeClass = 'badge-exhausted';
+
+    row.innerHTML = `
+      <div style="font-weight: 700; font-size: 0.85rem; width: 65px; color: #475569;">Key #${indexNumber}:</div>
+      <input type="text" class="key-input" value="${escapeHtml(keyValue)}" placeholder="Paste Serper API Key (e.g. 0be094de...)" />
+      
+      <div style="display: flex; flex-direction: column; align-items: flex-end; min-width: 140px;">
+        <span class="key-badge ${badgeClass}">${status}</span>
+        <div style="font-size: 0.725rem; color: #64748B; margin-top: 0.2rem;">
+          Remaining: <strong>${balance}</strong> | Used: <strong>${used}</strong>
+        </div>
+      </div>
+
+      <button type="button" class="remove-key-btn" style="background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" title="Remove this key">🗑️</button>
+    `;
+
+    row.querySelector('.remove-key-btn').addEventListener('click', () => {
+      row.remove();
+      updateKeyRowNumbers();
+    });
+
+    keysContainer.appendChild(row);
+  }
+
+  function updateKeyRowNumbers() {
+    const rows = keysContainer.querySelectorAll('.key-row');
+    rows.forEach((r, idx) => {
+      const label = r.querySelector('div');
+      if (label) label.innerText = `Key #${idx + 1}:`;
+    });
+  }
+
+  if (addKeyBtn) {
+    addKeyBtn.addEventListener('click', () => {
+      const currentCount = keysContainer.querySelectorAll('.key-row').length;
+      createKeyRow('', currentCount + 1, 2500, 0, 'READY');
+      logMessage(`Added Key #${currentCount + 1} input row.`);
+    });
+  }
+
+  if (saveSerperKeysBtn) {
+    saveSerperKeysBtn.addEventListener('click', async () => {
+      const inputs = keysContainer.querySelectorAll('.key-input');
+      const keysList = [];
+      inputs.forEach(i => {
+        if (i.value.trim().length > 5) keysList.push(i.value.trim());
+      });
+
+      saveSerperKeysBtn.disabled = true;
+      saveSerperKeysBtn.innerText = '⌛ Updating API Pool...';
+
+      try {
+        const token = sessionStorage.getItem('adminToken') || '';
+        const res = await fetch('/api/serper-keys', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ keys: keysList })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          logMessage(`✓ Successfully saved & updated ${data.count} Serper API Key(s)!`);
+          alert(`Successfully saved ${data.count} Serper API Key(s) to pool!`);
+          loadSerperKeysAndCredits();
+        }
+      } catch (e) {
+        logMessage(`❌ Error saving keys: ${e.message}`);
+      } finally {
+        saveSerperKeysBtn.disabled = false;
+        saveSerperKeysBtn.innerText = '💾 Save & Update All API Keys';
+      }
+    });
+  }
+
+  // Telegram Auto-Poster Admin Handlers
+  const telegramConfigForm = document.getElementById('telegramConfigForm');
+  const telegramBotTokenInput = document.getElementById('telegramBotTokenInput');
+  const telegramChannelIdInput = document.getElementById('telegramChannelIdInput');
+  const telegramMoviesRouteInput = document.getElementById('telegramMoviesRouteInput');
+  const telegramTechRouteInput = document.getElementById('telegramTechRouteInput');
+  const telegramBusinessRouteInput = document.getElementById('telegramBusinessRouteInput');
+  const telegramWorldRouteInput = document.getElementById('telegramWorldRouteInput');
+  const telegramAutoPostToggle = document.getElementById('telegramAutoPostToggle');
+  const testTelegramPostBtn = document.getElementById('testTelegramPostBtn');
+  const telegramStatus = document.getElementById('telegramStatus');
+
+  async function loadTelegramConfig() {
+    if (!telegramBotTokenInput) return;
+    try {
+      const res = await fetch('/api/telegram-config', { headers: getAdminAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.config) {
+        telegramBotTokenInput.value = data.config.botToken || '';
+        telegramChannelIdInput.value = data.config.channelId || '';
+        if (telegramMoviesRouteInput) telegramMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
+        if (telegramTechRouteInput) telegramTechRouteInput.value = data.config.categoryRouting?.tech || '';
+        if (telegramBusinessRouteInput) telegramBusinessRouteInput.value = data.config.categoryRouting?.business || '';
+        if (telegramWorldRouteInput) telegramWorldRouteInput.value = data.config.categoryRouting?.world || '';
+        telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
+      }
+    } catch (e) {
+      console.error('Error loading Telegram config:', e);
+    }
+  }
+
+  if (telegramConfigForm) {
+    telegramConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (telegramStatus) telegramStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-telegram-config', {
+        headers: getAdminAuthHeaders(),
+          method: 'POST',
+          body: JSON.stringify({
+            botToken: telegramBotTokenInput.value.trim(),
+            channelId: telegramChannelIdInput.value.trim(),
+            categoryRouting: {
+              movies: telegramMoviesRouteInput ? telegramMoviesRouteInput.value.trim() : '',
+              tech: telegramTechRouteInput ? telegramTechRouteInput.value.trim() : '',
+              business: telegramBusinessRouteInput ? telegramBusinessRouteInput.value.trim() : '',
+              world: telegramWorldRouteInput ? telegramWorldRouteInput.value.trim() : ''
+            },
+            autoPostEnabled: telegramAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#059669';
+            telegramStatus.innerText = '✓ Category-Smart Telegram Settings Saved!';
+          }
+          logMessage('✓ Category-Smart Telegram Auto-Poster settings saved!');
+        } else {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#DC2626';
+            telegramStatus.innerText = '❌ Failed to save Telegram settings.';
+          }
+        }
+      } catch (err) {
+        if (telegramStatus) {
+          telegramStatus.style.color = '#DC2626';
+          telegramStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testTelegramPostBtn) {
+    testTelegramPostBtn.addEventListener('click', async () => {
+      if (telegramStatus) telegramStatus.innerText = '⌛ Sending test post...';
+      try {
+        const res = await fetch('/api/test-telegram-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#059669';
+            telegramStatus.innerText = '✓ Test Post Sent to Telegram Channel!';
+          }
+          alert('✓ Test post successfully sent to Telegram Channel!');
+          logMessage('✓ Test post sent to Telegram Channel!');
+        } else {
+          if (telegramStatus) {
+            telegramStatus.style.color = '#DC2626';
+            telegramStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Telegram Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (telegramStatus) {
+          telegramStatus.style.color = '#DC2626';
+          telegramStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadTelegramConfig();
+
+  // 🚀 Telegram Userbot (MTProto Account Auto-Poster) Handlers
+  const userbotAuthBadge = document.getElementById('userbotAuthBadge');
+  const userbotApiIdInput = document.getElementById('userbotApiIdInput');
+  const userbotApiHashInput = document.getElementById('userbotApiHashInput');
+  const userbotPhoneInput = document.getElementById('userbotPhoneInput');
+  const sendUserbotCodeBtn = document.getElementById('sendUserbotCodeBtn');
+  const userbotOtpRow = document.getElementById('userbotOtpRow');
+  const userbotOtpInput = document.getElementById('userbotOtpInput');
+  const verifyUserbotCodeBtn = document.getElementById('verifyUserbotCodeBtn');
+  const userbotConfigForm = document.getElementById('userbotConfigForm');
+  const userbotTargetGroupsInput = document.getElementById('userbotTargetGroupsInput');
+  const userbotMoviesRouteInput = document.getElementById('userbotMoviesRouteInput');
+  const userbotTechRouteInput = document.getElementById('userbotTechRouteInput');
+  const userbotBusinessRouteInput = document.getElementById('userbotBusinessRouteInput');
+  const userbotWorldRouteInput = document.getElementById('userbotWorldRouteInput');
+  const userbotAutoPostToggle = document.getElementById('userbotAutoPostToggle');
+  const testUserbotPostBtn = document.getElementById('testUserbotPostBtn');
+  const userbotStatus = document.getElementById('userbotStatus');
+
+  async function loadUserbotConfig() {
+    if (!userbotTargetGroupsInput) return;
+    try {
+      const res = await fetch('/api/userbot-config', { headers: getAdminAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.config) {
+        if (userbotApiIdInput) userbotApiIdInput.value = data.config.apiId || '';
+        if (userbotApiHashInput) userbotApiHashInput.value = data.config.apiHash || '';
+        if (userbotPhoneInput) userbotPhoneInput.value = data.config.phoneNumber || '';
+        userbotTargetGroupsInput.value = data.config.targetGroups || '';
+        if (userbotMoviesRouteInput) userbotMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
+        if (userbotTechRouteInput) userbotTechRouteInput.value = data.config.categoryRouting?.tech || '';
+        if (userbotBusinessRouteInput) userbotBusinessRouteInput.value = data.config.categoryRouting?.business || '';
+        if (userbotWorldRouteInput) userbotWorldRouteInput.value = data.config.categoryRouting?.world || '';
+        userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        if (data.config.sessionString && data.config.sessionString.length > 10) {
+          if (userbotAuthBadge) {
+            userbotAuthBadge.style.background = '#DCFCE7';
+            userbotAuthBadge.style.color = '#15803D';
+            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading Userbot config:', e);
+    }
+  }
+
+  if (sendUserbotCodeBtn) {
+    sendUserbotCodeBtn.addEventListener('click', async () => {
+      const apiId = userbotApiIdInput.value.trim();
+      const apiHash = userbotApiHashInput.value.trim();
+      const phoneNumber = userbotPhoneInput.value.trim();
+
+      if (!apiId || !apiHash || !phoneNumber) {
+        alert('Please enter Telegram API ID, API Hash, and Phone Number.');
+        return;
+      }
+
+      sendUserbotCodeBtn.disabled = true;
+      sendUserbotCodeBtn.innerText = '⌛ Sending Code...';
+
+      try {
+        const res = await fetch('/api/userbot/send-code', {
+        headers: getAdminAuthHeaders(),
+          method: 'POST',
+          body: JSON.stringify({ apiId, apiHash, phoneNumber })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✓ Login code sent to your Telegram app! Check your Telegram messages.');
+          if (userbotOtpRow) userbotOtpRow.style.display = 'block';
+        } else {
+          alert(`❌ Failed to send code: ${data.message}`);
+        }
+      } catch (err) {
+        alert(`❌ Network Error: ${err.message}`);
+      } finally {
+        sendUserbotCodeBtn.disabled = false;
+        sendUserbotCodeBtn.innerText = '📲 Send Login Code';
+      }
+    });
+  }
+
+  if (verifyUserbotCodeBtn) {
+    verifyUserbotCodeBtn.addEventListener('click', async () => {
+      const phoneCode = userbotOtpInput.value.trim();
+      if (!phoneCode) {
+        alert('Please enter the 5-digit Telegram code.');
+        return;
+      }
+
+      verifyUserbotCodeBtn.disabled = true;
+      verifyUserbotCodeBtn.innerText = '⌛ Verifying...';
+
+      try {
+        const res = await fetch('/api/userbot/verify-code', {
+        headers: getAdminAuthHeaders(),
+          method: 'POST',
+          body: JSON.stringify({ phoneCode })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✓ Telegram Account Connected Successfully!');
+          if (userbotAuthBadge) {
+            userbotAuthBadge.style.background = '#DCFCE7';
+            userbotAuthBadge.style.color = '#15803D';
+            userbotAuthBadge.innerText = '🟢 CONNECTED (ACTIVE)';
+          }
+          if (userbotOtpRow) userbotOtpRow.style.display = 'none';
+        } else {
+          alert(`❌ Verification Failed: ${data.message}`);
+        }
+      } catch (err) {
+        alert(`❌ Error: ${err.message}`);
+      } finally {
+        verifyUserbotCodeBtn.disabled = false;
+        verifyUserbotCodeBtn.innerText = '✓ Verify & Connect';
+      }
+    });
+  }
+
+  if (userbotConfigForm) {
+    userbotConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (userbotStatus) userbotStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-userbot-config', {
+        headers: getAdminAuthHeaders(),
+          method: 'POST',
+          body: JSON.stringify({
+            targetGroups: userbotTargetGroupsInput.value.trim(),
+            categoryRouting: {
+              movies: userbotMoviesRouteInput ? userbotMoviesRouteInput.value.trim() : '',
+              tech: userbotTechRouteInput ? userbotTechRouteInput.value.trim() : '',
+              business: userbotBusinessRouteInput ? userbotBusinessRouteInput.value.trim() : '',
+              world: userbotWorldRouteInput ? userbotWorldRouteInput.value.trim() : ''
+            },
+            autoPostEnabled: userbotAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#059669';
+            userbotStatus.innerText = '✓ Userbot Settings Saved!';
+          }
+          logMessage('✓ Telegram Userbot settings saved!');
+        } else {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#DC2626';
+            userbotStatus.innerText = '❌ Failed to save settings.';
+          }
+        }
+      } catch (err) {
+        if (userbotStatus) {
+          userbotStatus.style.color = '#DC2626';
+          userbotStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testUserbotPostBtn) {
+    testUserbotPostBtn.addEventListener('click', async () => {
+      if (userbotStatus) userbotStatus.innerText = '⌛ Broadcasting via Userbot...';
+      try {
+        const res = await fetch('/api/test-userbot-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#059669';
+            userbotStatus.innerText = `✓ ${data.message}`;
+          }
+          alert(`✓ ${data.message}`);
+        } else {
+          if (userbotStatus) {
+            userbotStatus.style.color = '#DC2626';
+            userbotStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Userbot Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (userbotStatus) {
+          userbotStatus.style.color = '#DC2626';
+          userbotStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadUserbotConfig();
+
+  // Twitter / X Auto-Poster Admin Handlers
+  const twitterConfigForm = document.getElementById('twitterConfigForm');
+  const twitterApiKeyInput = document.getElementById('twitterApiKeyInput');
+  const twitterApiSecretInput = document.getElementById('twitterApiSecretInput');
+  const twitterAccessTokenInput = document.getElementById('twitterAccessTokenInput');
+  const twitterAccessSecretInput = document.getElementById('twitterAccessSecretInput');
+  const twitterAutoPostToggle = document.getElementById('twitterAutoPostToggle');
+  const testTwitterPostBtn = document.getElementById('testTwitterPostBtn');
+  const twitterStatus = document.getElementById('twitterStatus');
+
+  async function loadTwitterConfig() {
+    if (!twitterApiKeyInput) return;
+    try {
+      const res = await fetch('/api/twitter-config', { headers: getAdminAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.config) {
+        twitterApiKeyInput.value = data.config.apiKey || '';
+        twitterApiSecretInput.value = data.config.apiSecret || '';
+        twitterAccessTokenInput.value = data.config.accessToken || '';
+        twitterAccessSecretInput.value = data.config.accessSecret || '';
+        twitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+      }
+    } catch (e) {
+      console.error('Error loading Twitter config:', e);
+    }
+  }
+
+  if (twitterConfigForm) {
+    twitterConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (twitterStatus) twitterStatus.innerText = '⌛ Saving...';
+      try {
+        const res = await fetch('/api/save-twitter-config', {
+        headers: getAdminAuthHeaders(),
+          method: 'POST',
+          body: JSON.stringify({
+            apiKey: twitterApiKeyInput.value.trim(),
+            apiSecret: twitterApiSecretInput.value.trim(),
+            accessToken: twitterAccessTokenInput.value.trim(),
+            accessSecret: twitterAccessSecretInput.value.trim(),
+            autoPostEnabled: twitterAutoPostToggle.checked
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#059669';
+            twitterStatus.innerText = '✓ Twitter Settings Saved!';
+          }
+          logMessage('✓ Twitter Auto-Poster settings saved!');
+        } else {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#DC2626';
+            twitterStatus.innerText = '❌ Failed to save Twitter settings.';
+          }
+        }
+      } catch (err) {
+        if (twitterStatus) {
+          twitterStatus.style.color = '#DC2626';
+          twitterStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  if (testTwitterPostBtn) {
+    testTwitterPostBtn.addEventListener('click', async () => {
+      if (twitterStatus) twitterStatus.innerText = '⌛ Sending test tweet to X...';
+      try {
+        const res = await fetch('/api/test-twitter-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#059669';
+            twitterStatus.innerText = '✓ Test Tweet Sent to Twitter/X!';
+          }
+          alert(`✓ Test Tweet successfully posted to X!\n${data.message}`);
+          logMessage('✓ Test Tweet sent to X!');
+        } else {
+          if (twitterStatus) {
+            twitterStatus.style.color = '#DC2626';
+            twitterStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Twitter Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (twitterStatus) {
+          twitterStatus.style.color = '#DC2626';
+          twitterStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadTwitterConfig();
+
+  // Custom Direct Cookie Twitter Bot Admin Handlers
+  const customTwitterConfigForm = document.getElementById('customTwitterConfigForm');
+  const customAuthTokenInput = document.getElementById('customAuthTokenInput');
+  const customCsrfTokenInput = document.getElementById('customCsrfTokenInput');
+  const customTwitterAutoPostToggle = document.getElementById('customTwitterAutoPostToggle');
+  const testCustomTwitterPostBtn = document.getElementById('testCustomTwitterPostBtn');
+  const customTwitterStatus = document.getElementById('customTwitterStatus');
+
+  async function loadCustomTwitterConfig() {
+    if (!customAuthTokenInput) return;
+    try {
+      const res = await fetch('/api/custom-twitter-config', { headers: getAdminAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.config) {
+        customAuthTokenInput.value = data.config.authToken || '';
+        customCsrfTokenInput.value = data.config.csrfToken || '';
+        customTwitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        const badge = document.getElementById('customTwitterStatusBadge');
+        if (badge) {
+          if (data.config.authToken && data.config.csrfToken) {
+            if (data.config.autoPostEnabled) {
+              badge.style.background = '#DCFCE7';
+              badge.style.color = '#15803D';
+              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
+            } else {
+              badge.style.background = '#FEF3C7';
+              badge.style.color = '#D97706';
+              badge.innerText = '🟠 READY (AUTO-POST OFF)';
+            }
+          } else {
+            badge.style.background = '#E2E8F0';
+            badge.style.color = '#475569';
+            badge.innerText = '⚪ NOT CONFIGURED';
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading Custom Twitter config:', e);
+    }
+  }
+
+  const saveCustomTwitterConfigBtn = document.getElementById('saveCustomTwitterConfigBtn');
+
+  async function handleSaveCustomTwitterConfig(e) {
+    if (e) e.preventDefault();
+    if (customTwitterStatus) customTwitterStatus.innerText = '⌛ Saving...';
+    try {
+      const res = await fetch('/api/save-custom-twitter-config', {
+        headers: getAdminAuthHeaders(),
+        method: 'POST',
+        body: JSON.stringify({
+          authToken: customAuthTokenInput.value.trim(),
+          csrfToken: customCsrfTokenInput.value.trim(),
+          autoPostEnabled: customTwitterAutoPostToggle.checked
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (customTwitterStatus) {
+          customTwitterStatus.style.color = '#059669';
+          customTwitterStatus.innerText = '✓ Custom Twitter Bot Cookies Saved!';
+        }
+        alert('✓ Custom Twitter Bot Cookies Saved Successfully!');
+        logMessage('✓ Custom Twitter Bot cookies saved!');
+        loadCustomTwitterConfig();
+      } else {
+        if (customTwitterStatus) {
+          customTwitterStatus.style.color = '#DC2626';
+          customTwitterStatus.innerText = '❌ Failed to save Custom Bot cookies.';
+        }
+      }
+    } catch (err) {
+      if (customTwitterStatus) {
+        customTwitterStatus.style.color = '#DC2626';
+        customTwitterStatus.innerText = `❌ Error: ${err.message}`;
+      }
+    }
+  }
+
+  if (saveCustomTwitterConfigBtn) {
+    saveCustomTwitterConfigBtn.addEventListener('click', handleSaveCustomTwitterConfig);
+  }
+
+  if (customTwitterConfigForm) {
+    customTwitterConfigForm.addEventListener('submit', handleSaveCustomTwitterConfig);
+  }
+
+  const triggerXPostTestBtn = document.getElementById('triggerXPostTestBtn');
+  const xTestStatus = document.getElementById('xTestStatus');
+
+  async function executeXPostTest(sourceBtn, statusDisplay) {
+    if (sourceBtn) sourceBtn.disabled = true;
+    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
+    if (sourceBtn) {
+      sourceBtn.innerHTML = '⌛ <span style="font-size:0.85rem;">Posting to 𝕏...</span>';
+    }
+    if (statusDisplay) {
+      statusDisplay.style.display = 'block';
+      statusDisplay.style.color = '#2563EB';
+      statusDisplay.innerText = '⌛ Connecting to Cloud Bot, rendering 16:9 news card & publishing to @PrimeMediaSite on 𝕏...';
+    }
+
+    try {
+      const res = await fetch('/api/test-custom-twitter-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const liveUrl = data.tweetUrl || 'https://x.com/PrimeMediaSite';
+        if (statusDisplay) {
+          statusDisplay.style.color = '#059669';
+          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message || 'Article published to 𝕏!'} <a href="${liveUrl}" target="_blank" style="color: #0284C7; font-weight: 700; text-decoration: underline; margin-left: 0.5rem;">View on 𝕏 &rarr;</a>`;
+        }
+        if (customTwitterStatus && statusDisplay !== customTwitterStatus) {
+          customTwitterStatus.style.color = '#059669';
+          customTwitterStatus.innerText = '✓ Test Tweet Sent to 𝕏!';
+        }
+        alert(`✅ 𝕏 Post Test Succeeded!\n\n${data.message || 'Article published to @PrimeMediaSite on X!'}\n\nView live on X: ${liveUrl}`);
+        logMessage('✓ Test Tweet sent to X!');
+      } else {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#DC2626';
+          statusDisplay.innerText = `❌ ${data.message || 'Posting failed'}`;
+        }
+        alert(`❌ 𝕏 Post Test Failed: ${data.message}`);
+      }
+    } catch (err) {
+      if (statusDisplay) {
+        statusDisplay.style.color = '#DC2626';
+        statusDisplay.innerText = `❌ Error: ${err.message}`;
+      }
+      alert(`❌ Connection error: ${err.message}`);
+    } finally {
+      if (sourceBtn) {
+        sourceBtn.disabled = false;
+        sourceBtn.innerHTML = prevBtnHtml;
+      }
+    }
+  }
+
+  if (triggerXPostTestBtn) {
+    triggerXPostTestBtn.addEventListener('click', () => executeXPostTest(triggerXPostTestBtn, xTestStatus));
+  }
+
+  if (testCustomTwitterPostBtn) {
+    testCustomTwitterPostBtn.addEventListener('click', () => executeXPostTest(testCustomTwitterPostBtn, customTwitterStatus));
+  }
+
+  const triggerRedditPostTestBtn = document.getElementById('triggerRedditPostTestBtn');
+  const redditTestStatus = document.getElementById('redditTestStatus');
+
+  async function executeRedditPostTest(sourceBtn, statusDisplay) {
+    if (sourceBtn) sourceBtn.disabled = true;
+    const prevBtnHtml = sourceBtn ? sourceBtn.innerHTML : '';
+    if (sourceBtn) {
+      sourceBtn.innerHTML = '⏳ <span style="font-size:0.85rem;">Posting to Reddit...</span>';
+    }
+    if (statusDisplay) {
+      statusDisplay.style.display = 'block';
+      statusDisplay.style.color = '#FF4500';
+      statusDisplay.innerText = '🔴 Connecting to Cloud Bot & publishing article to Reddit...';
+    }
+
+    try {
+      const res = await fetch('/api/test-custom-reddit-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#15803D';
+          statusDisplay.innerHTML = `✅ <strong>Success!</strong> ${data.message} <a href="https://www.reddit.com" target="_blank" style="color: #FF4500; font-weight: bold; margin-left: 6px;">View on Reddit ↗</a>`;
+        }
+      } else {
+        if (statusDisplay) {
+          statusDisplay.style.color = '#DC2626';
+          statusDisplay.innerText = `❌ ${data.message || 'Failed to post to Reddit.'}`;
+        }
+      }
+    } catch (err) {
+      if (statusDisplay) {
+        statusDisplay.style.color = '#DC2626';
+        statusDisplay.innerText = `❌ Network Error: ${err.message}`;
+      }
+    } finally {
+      if (sourceBtn) {
+        sourceBtn.disabled = false;
+        sourceBtn.innerHTML = prevBtnHtml;
+      }
+    }
+  }
+
+  if (triggerRedditPostTestBtn) {
+    triggerRedditPostTestBtn.addEventListener('click', () => executeRedditPostTest(triggerRedditPostTestBtn, redditTestStatus));
+  }
+
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadCustomTwitterConfig();
+
+  // Reddit Subreddit Auto-Poster Admin Handlers
+  const redditConfigForm = document.getElementById('redditConfigForm');
+  const redditClientIdInput = document.getElementById('redditClientIdInput');
+  const redditClientSecretInput = document.getElementById('redditClientSecretInput');
+  const redditUsernameInput = document.getElementById('redditUsernameInput');
+  const redditPasswordInput = document.getElementById('redditPasswordInput');
+  const redditSubredditInput = document.getElementById('redditSubredditInput');
+  const redditAutoPostToggle = document.getElementById('redditAutoPostToggle');
+  const saveRedditConfigBtn = document.getElementById('saveRedditConfigBtn');
+  const testRedditPostBtn = document.getElementById('testRedditPostBtn');
+  const redditStatus = document.getElementById('redditStatus');
+
+  async function loadRedditConfig() {
+    if (!redditClientIdInput) return;
+    try {
+      const res = await fetch('/api/reddit-config', { headers: getAdminAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.config) {
+        redditClientIdInput.value = data.config.clientId || '';
+        redditClientSecretInput.value = data.config.clientSecret || '';
+        redditUsernameInput.value = data.config.username || '';
+        redditPasswordInput.value = data.config.password || '';
+        redditSubredditInput.value = data.config.subreddit || '';
+        redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
+
+        const badge = document.getElementById('redditStatusBadge');
+        if (badge) {
+          if (data.config.clientId && data.config.clientSecret && data.config.username && data.config.password) {
+            if (data.config.autoPostEnabled) {
+              badge.style.background = '#DCFCE7';
+              badge.style.color = '#15803D';
+              badge.innerText = '🟢 ACTIVE (AUTOPILOT ON)';
+            } else {
+              badge.style.background = '#FEF3C7';
+              badge.style.color = '#D97706';
+              badge.innerText = '🟠 READY (AUTO-POST OFF)';
+            }
+          } else {
+            badge.style.background = '#E2E8F0';
+            badge.style.color = '#475569';
+            badge.innerText = '⚪ NOT CONFIGURED';
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading Reddit config:', e);
+    }
+  }
+
+  async function handleSaveRedditConfig(e) {
+    if (e) e.preventDefault();
+    if (redditStatus) redditStatus.innerText = '⌛ Saving Reddit Settings...';
+    try {
+      const res = await fetch('/api/save-reddit-config', {
+        headers: getAdminAuthHeaders(),
+        method: 'POST',
+        body: JSON.stringify({
+          clientId: redditClientIdInput.value.trim(),
+          clientSecret: redditClientSecretInput.value.trim(),
+          username: redditUsernameInput.value.trim(),
+          password: redditPasswordInput.value.trim(),
+          subreddit: redditSubredditInput.value.trim(),
+          autoPostEnabled: redditAutoPostToggle.checked
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (redditStatus) {
+          redditStatus.style.color = '#059669';
+          redditStatus.innerText = '✓ Reddit Settings Saved!';
+        }
+        alert('✓ Reddit Auto-Poster Settings Saved Successfully!');
+        logMessage('✓ Reddit Auto-Poster settings saved!');
+        loadRedditConfig();
+      } else {
+        if (redditStatus) {
+          redditStatus.style.color = '#DC2626';
+          redditStatus.innerText = '❌ Failed to save Reddit settings.';
+        }
+      }
+    } catch (err) {
+      if (redditStatus) {
+        redditStatus.style.color = '#DC2626';
+        redditStatus.innerText = `❌ Error: ${err.message}`;
+      }
+    }
+  }
+
+  if (saveRedditConfigBtn) saveRedditConfigBtn.addEventListener('click', handleSaveRedditConfig);
+  if (redditConfigForm) redditConfigForm.addEventListener('submit', handleSaveRedditConfig);
+
+  if (testRedditPostBtn) {
+    testRedditPostBtn.addEventListener('click', async () => {
+      if (redditStatus) redditStatus.innerText = '⌛ Sending test post to Reddit...';
+      try {
+        const res = await fetch('/api/test-reddit-post', {
+        headers: getAdminAuthHeaders(), method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          if (redditStatus) {
+            redditStatus.style.color = '#059669';
+            redditStatus.innerText = '✓ Test Post Sent to Reddit!';
+          }
+          alert(`✓ Test Post successfully posted to Reddit!\n${data.message}`);
+          logMessage('✓ Test Post sent to Reddit!');
+        } else {
+          if (redditStatus) {
+            redditStatus.style.color = '#DC2626';
+            redditStatus.innerText = `❌ ${data.message}`;
+          }
+          alert(`❌ Reddit Bot Test Failed: ${data.message}`);
+        }
+      } catch (err) {
+        if (redditStatus) {
+          redditStatus.style.color = '#DC2626';
+          redditStatus.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  // Config loaded via loadAdminDashboardData once authenticated
+  // loadRedditConfig();
+
+  async function loadAnalytics() {
+    if (!topTopicsList || !countryTrafficList) return;
+
+    try {
+      const token = sessionStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/analytics', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (statTotalViews && typeof data.totalMonthlyViews !== 'undefined') statTotalViews.innerText = data.totalMonthlyViews;
+        if (statTotalArticles) statTotalArticles.innerText = adminAllPosts.length;
+
+        topTopicsList.innerHTML = '';
+        if (data.topTopics && data.topTopics.length > 0) {
+          data.topTopics.forEach(t => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;';
+            div.innerHTML = `
+              <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <strong>${escapeHtml(t.title)}</strong>
+                <div style="font-size: 0.725rem; color: #64748B;">Category: ${escapeHtml(t.category)}</div>
+              </div>
+              <div style="text-align: right; min-width: 90px; font-weight: 700; color: #2563EB;">
+                👁️ ${t.views.toLocaleString()}
+              </div>
+            `;
+            topTopicsList.appendChild(div);
+          });
+        } else {
+          topTopicsList.innerHTML = `<div style="color: #64748B; padding: 1rem 0; text-align: center;">⚡ Real-Time Article Tracking Active...</div>`;
+        }
+
+        countryTrafficList.innerHTML = '';
+        if (data.countryTraffic && data.countryTraffic.length > 0) {
+          data.countryTraffic.forEach(c => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;';
+            div.innerHTML = `
+              <div>
+                <strong>${escapeHtml(c.country)}</strong>
+                <div style="font-size: 0.725rem; color: #64748B;">Page Views: ${c.pageViews}</div>
+              </div>
+              <div style="font-weight: 700; color: #059669; font-size: 0.95rem;">
+                ${c.percent}
+              </div>
+            `;
+            countryTrafficList.appendChild(div);
+          });
+        } else {
+          countryTrafficList.innerHTML = `<div style="color: #64748B; padding: 1.25rem 0; text-align: center;">⚡ Real-Time IP Tracking Active<br/><small style="font-size: 0.8rem; color: #94A3B8;">Country views update dynamically as live readers visit your site.</small></div>`;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading analytics:', e);
+    }
+  }
+
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.togglePassVisibility = function(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    if (btnEl) btnEl.innerText = isPass ? '🙈' : '👁️';
+  }
+};
+
+async function loadAuthorPage() {
+  const grid = document.getElementById('authorArticlesGrid');
+  if (!grid) return;
+  if (grid.querySelectorAll('.author-post-card').length > 0) return;
+  const cleanSegments = window.location.pathname.split('/').filter(Boolean);
+  const rawSlug = cleanSegments.pop() || 'sarah-jenkins';
+  const authorSlug = rawSlug.replace(/\.html$/i, '');
+  try {
+    const res = await fetch(`/api/author/${authorSlug}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.posts && data.posts.length > 0) {
+      grid.innerHTML = data.posts.map(p => `
+        <article class="author-post-card">
+          <a href="/post/${escapeHtml(p.slug)}">
+            <img src="${p.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(p.title)}" loading="lazy" />
+          </a>
+          <div class="author-post-content">
+            <span class="author-post-category">${escapeHtml(p.category || 'News')}</span>
+            <h3 class="author-post-title"><a href="/post/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h3>
+            <div class="author-post-meta">
+              <span>${new Date(p.publishedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span>${p.readTimeMinutes || 5} min read</span>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+  } catch (e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Always initialize Global Live Search Modal on all pages
+  initGlobalSearchModal();
+
+  // 📊 Reading Progress Bar Scroll Observer
+  window.addEventListener('scroll', () => {
+    const pb = document.getElementById('readingProgressBar');
+    if (!pb) return;
+    const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+    pb.style.width = Math.min(100, Math.max(0, scrolled)) + '%';
+  }, { passive: true });
+
+  // 📱 Mobile Sticky & Desktop Article Share Handlers
+  function updateStickyShareUrls() {
+    const stickyWa = document.getElementById('stickyShareWa');
+    const stickyX = document.getElementById('stickyShareX');
+    const stickyTg = document.getElementById('stickyShareTg');
+    const deskWa = document.getElementById('desktopShareWa');
+    const deskX = document.getElementById('desktopShareX');
+    const deskTg = document.getElementById('desktopShareTg');
+
+    const pageUrl = encodeURIComponent(window.location.href);
+    const rawTitle = (document.getElementById('postTitle')?.innerText || document.title || '')
+      .replace(/\s*\|\s*Prime Media.*$/i, '')
+      .replace(/\s*—\s*PRIME MEDIA.*$/i, '')
+      .trim();
+    const pageTitle = encodeURIComponent(rawTitle);
+
+    const waHref = `https://api.whatsapp.com/send?text=${pageTitle}%20-%20${pageUrl}`;
+    const xHref = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`;
+    const tgHref = `https://t.me/share/url?url=${pageUrl}&text=${pageTitle}`;
+
+    if (stickyWa) stickyWa.href = waHref;
+    if (stickyX) stickyX.href = xHref;
+    if (stickyTg) stickyTg.href = tgHref;
+    if (deskWa) deskWa.href = waHref;
+    if (deskX) deskX.href = xHref;
+    if (deskTg) deskTg.href = tgHref;
+  }
+  updateStickyShareUrls();
+
+  function copyArticleUrl() {
+    const url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Article link copied to clipboard! 📋');
+      }).catch(() => {
+        prompt('Copy article link:', url);
+      });
+    } else {
+      prompt('Copy article link:', url);
+    }
+  }
+
+  const stickyCopy = document.getElementById('stickyShareCopy');
+  if (stickyCopy) {
+    stickyCopy.addEventListener('click', copyArticleUrl);
+  }
+  const deskCopy = document.getElementById('desktopShareCopy');
+  if (deskCopy) {
+    deskCopy.addEventListener('click', copyArticleUrl);
+  }
+
+  // 📬 Contact Desk Form Submission Handler
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusDiv = document.getElementById('contactStatus');
+      const submitBtn = document.getElementById('contactSubmitBtn');
+      const name = document.getElementById('contactName')?.value.trim();
+      const email = document.getElementById('contactEmail')?.value.trim();
+      const subject = document.getElementById('contactSubject')?.value.trim();
+      const message = document.getElementById('contactMessage')?.value.trim();
+
+      if (!name || !email || !subject || !message) {
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#FEE2E2';
+          statusDiv.style.color = '#991B1B';
+          statusDiv.style.border = '1px solid #F87171';
+          statusDiv.innerText = 'Please fill out all required fields.';
+        }
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sending Message...';
+      }
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, subject, message })
+        });
+        const data = await res.json();
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          if (data.success) {
+            statusDiv.style.background = '#DCFCE7';
+            statusDiv.style.color = '#166534';
+            statusDiv.style.border = '1px solid #86EFAC';
+            statusDiv.innerText = '✓ ' + (data.message || 'Message sent successfully!');
+            contactForm.reset();
+          } else {
+            statusDiv.style.background = '#FEE2E2';
+            statusDiv.style.color = '#991B1B';
+            statusDiv.style.border = '1px solid #F87171';
+            statusDiv.innerText = '❌ ' + (data.error || 'Failed to send message.');
+          }
+        }
+      } catch (err) {
+        if (statusDiv) {
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#FEE2E2';
+          statusDiv.style.color = '#991B1B';
+          statusDiv.style.border = '1px solid #F87171';
+          statusDiv.innerText = '❌ Network connection error. Please try again.';
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Send Message ➔';
+        }
+      }
+    });
+  }
+
+
+  if (document.getElementById('postsGrid')) {
+    loadHomepagePosts();
+    initCategoryFilter();
+  }
+  if (document.getElementById('postContent')) {
+    loadSingleArticle();
+  }
+  if (document.getElementById('authorArticlesGrid')) {
+    loadAuthorPage();
+  }
+  if (document.getElementById('triggerAutoBlogBtn') || document.getElementById('saveSerperKeysBtn')) {
+    initAdminPanel();
+  }
+
+  // Gracefully collapse unfilled manual ad slots so pages look 100% complete and editorial
+  setTimeout(() => {
+    document.querySelectorAll('.adsense-container, .sticky-side-ad').forEach(el => {
+      const hasAd = el.querySelector('iframe') || (el.querySelector('ins') && el.querySelector('ins').getAttribute('data-ad-status') === 'filled');
+      if (!hasAd) {
+        el.style.display = 'none';
+      }
+    });
+  }, 2500);
+});

@@ -2262,3 +2262,46 @@ img {
     padding-bottom: 60px;
   }
 }
+
+
+/* Desktop Article Share Bar */
+.desktop-share-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+.desktop-share-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  margin-right: 0.15rem;
+}
+.desktop-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #CBD5E1;
+  background: #F8FAFC;
+  color: #334155;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.desktop-share-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.desktop-share-btn.share-wa:hover { background: #25D366; color: #FFF; border-color: #25D366; }
+.desktop-share-btn.share-x:hover { background: #0F172A; color: #FFF; border-color: #0F172A; }
+.desktop-share-btn.share-tg:hover { background: #0088cc; color: #FFF; border-color: #0088cc; }
+.desktop-share-btn.share-copy:hover { background: #2563EB; color: #FFF; border-color: #2563EB; }
+@media (max-width: 768px) {
+  .desktop-share-bar {
+    display: none !important;
+  }
+}
