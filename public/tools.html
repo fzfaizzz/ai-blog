@@ -1,582 +1,586 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <!-- Google AdSense Official Script & Account Tag -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9492642167600744" crossorigin="anonymous"></script>
-  <meta name="google-adsense-account" content="ca-pub-9492642167600744">
-
-  <!-- Google Analytics 4 (GA4) Tag -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XV3SRSPLBM"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-XV3SRSPLBM');
-  </script>
-
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Tech Tools, AI Calculators & Utilities — PRIME MEDIA</title>
-  <meta name="description" content="Free interactive utilities by Prime Media: AI Model Token & Cost Calculator, Reading Time & Readability Analyzer, and Tech Investment Calculator.">
-  <link rel="canonical" href="https://primemedia.site/tools.html">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Interactive Tech Tools & AI Calculators — Prime Media">
-  <meta property="og:description" content="Free utilities for engineers, researchers, and journalists: Calculate AI API token expenses, test article readability, and estimate tech investments.">
-  <meta property="og:url" content="https://primemedia.site/tools.html">
-  <meta property="og:site_name" content="Prime Media">
-  <link rel="stylesheet" href="/style.css">
-  <link rel="shortcut icon" href="/favicon.ico">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-  <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0F172A">
-  <style>
-    .tools-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-    @media (min-width: 900px) {
-      .tools-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-    .tool-box {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 1.75rem;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    }
-    .tool-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: #2563EB;
-      background: #EFF6FF;
-      padding: 0.25rem 0.6rem;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.75rem;
-    }
-    .tool-title {
-      font-family: var(--font-heading);
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: #0F172A;
-      margin: 0 0 0.5rem 0;
-    }
-    .tool-desc {
-      font-size: 0.88rem;
-      color: #475569;
-      line-height: 1.5;
-      margin-bottom: 1.25rem;
-    }
-    .tool-form-group {
-      margin-bottom: 1rem;
-    }
-    .tool-label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #334155;
-      margin-bottom: 0.35rem;
-    }
-    .tool-input, .tool-select, .tool-textarea {
-      width: 100%;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid #CBD5E1;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      background: #F8FAFC;
-      color: #0F172A;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .tool-input:focus, .tool-select:focus, .tool-textarea:focus {
-      border-color: #2563EB;
-      background: #FFFFFF;
-    }
-    .tool-btn {
-      width: 100%;
-      background: #2563EB;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 6px;
-      padding: 0.75rem;
-      font-weight: 700;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .tool-btn:hover {
-      background: #1D4ED8;
-    }
-    .tool-result {
-      margin-top: 1.25rem;
-      padding: 1rem;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 8px;
-      display: none;
-    }
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.4rem 0;
-      border-bottom: 1px solid #E2E8F0;
-      font-size: 0.88rem;
-    }
-    .result-row:last-child {
-      border-bottom: none;
-      font-weight: 800;
-      color: #059669;
-      font-size: 1rem;
-      padding-top: 0.6rem;
-    }
-    .tool-share-pill {
-      font-size: 0.78rem;
-      font-weight: 700;
-      padding: 0.35rem 0.65rem;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .tool-share-pill:active {
-      transform: scale(0.97);
-    }
-    .share-wa { background: #16A34A; color: #FFFFFF; }
-    .share-x { background: #0F172A; color: #FFFFFF; }
-    .share-copy { background: #E2E8F0; color: #0F172A; }
-    .share-copy:hover { background: #CBD5E1; }
-  </style>
-</head>
-<body>
-  <!-- 🌟 Top Thin Utility Bar -->
-  <div class="top-utility-bar">
-    <div class="container">
-      <span class="top-brand-text">Prime Media</span>
-      <div class="top-utility-links">
-        <a href="/about.html">About</a>
-        <span class="top-utility-divider">|</span>
-        <a href="/privacy.html">Privacy</a>
-        <span class="top-utility-divider">|</span>
-        <a href="/terms.html">Terms</a>
-        <span class="top-utility-divider">|</span>
-        <a href="/disclaimer.html">Disclaimer</a>
-        <span class="top-utility-divider">|</span>
-        <a href="/contact.html">Contact</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- 🌟 Main News Navigation Header -->
-  <header class="main-news-header">
-    <div class="container header-flex-row">
-      <div class="header-logo-3d-wrap">
-        <a href="/" class="logo-3d-badge" title="Prime Media Home">
-          <img src="/logo2.png" alt="Prime Media Logo" />
-        </a>
-      </div>
-
-      <nav class="header-nav-center">
-        <ul class="category-nav-bar">
-          <li><a href="/#category-technology">Technology</a></li>
-          <li><a href="/#category-business">Business &amp; Markets</a></li>
-          <li><a href="/#category-ai">AI &amp; Tech</a></li>
-          <li><a href="/#category-world">World News</a></li>
-          <li><a href="/#category-science">Science &amp; Space</a></li>
-          <li><a href="/tools.html" style="color: #2563EB; font-weight: 800;">Interactive Tools</a></li>
-        </ul>
-      </nav>
-
-      <div class="header-right-tools">
-        <button type="button" class="global-search-trigger" id="globalSearchBtn" aria-label="Search Prime Media" title="Search News">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- 🛠️ Main Tools Container -->
-  <main class="container" style="max-width: 1040px; margin: 2.5rem auto; padding: 0 1rem;">
-    <div style="text-align: center; margin-bottom: 2.5rem;">
-      <span style="font-size: 0.78rem; font-weight: 800; color: #DC2626; text-transform: uppercase; letter-spacing: 1px;">UTILITY SUITE</span>
-      <h1 style="font-family: var(--font-heading); font-size: 2.25rem; font-weight: 900; color: #0F172A; margin: 0.35rem 0 0.75rem 0;">
-        Prime Media Technical Utilities &amp; Calculators
-      </h1>
-      <p style="font-size: 1.05rem; color: #475569; max-width: 680px; margin: 0 auto; line-height: 1.6;">
-        Free high-precision tools designed for software engineers, market analysts, and journalists. Calculate LLM API infrastructure costs, analyze text readability, and simulate tech investment growth.
-      </p>
-    </div>
-
-    <div class="tools-grid">
-      <!-- Tool 1: AI Model API Cost & Token Calculator -->
-      <div class="tool-box">
-        <span class="tool-badge">ARTIFICIAL INTELLIGENCE</span>
-        <h2 class="tool-title">AI Token &amp; API Cost Calculator</h2>
-        <p class="tool-desc">Estimate monthly enterprise LLM inference budgets across OpenAI, Anthropic, Google Gemini, and DeepSeek.</p>
-
-        <div class="tool-form-group">
-          <label class="tool-label">Select Frontier AI Model</label>
-          <select id="aiModelSelect" class="tool-select">
-            <option value="gpt4o">GPT-4o ($2.50 / $10.00 per 1M tokens)</option>
-            <option value="claude35">Claude 3.5 Sonnet ($3.00 / $15.00 per 1M tokens)</option>
-            <option value="gemini15flash" selected>Google Gemini 1.5 Flash ($0.075 / $0.30 per 1M tokens)</option>
-            <option value="gemini15pro">Google Gemini 1.5 Pro ($1.25 / $5.00 per 1M tokens)</option>
-            <option value="deepseekv3">DeepSeek V3 ($0.14 / $0.28 per 1M tokens)</option>
-          </select>
-        </div>
-
-        <div class="tool-form-group">
-          <label class="tool-label">Input Tokens (Prompt Context per Month)</label>
-          <input type="number" id="inputTokens" class="tool-input" value="1000000" min="1000" step="50000" />
-        </div>
-
-        <div class="tool-form-group">
-          <label class="tool-label">Output Tokens (Generated Content per Month)</label>
-          <input type="number" id="outputTokens" class="tool-input" value="500000" min="1000" step="25000" />
-        </div>
-
-        <button type="button" class="tool-btn" onclick="calculateAiCost()">Calculate Estimated Cost ➔</button>
-
-        <div id="aiCostResult" class="tool-result">
-          <div class="result-row">
-            <span>Input Prompt Cost:</span>
-            <span id="inputCost">$0.00</span>
-          </div>
-          <div class="result-row">
-            <span>Output Generation Cost:</span>
-            <span id="outputCost">$0.00</span>
-          </div>
-          <div class="result-row">
-            <span>Total Monthly API Expense:</span>
-            <span id="totalCost">$0.00</span>
-          </div>
-          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Calculation:</span>
-            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('ai', 'wa')">WhatsApp</button>
-              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('ai', 'x')">X (Twitter)</button>
-              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('ai', 'copy')">Copy Link</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tool 2: Editorial Readability & Dwell-Time Analyzer -->
-      <div class="tool-box">
-        <span class="tool-badge" style="color: #059669; background: #ECFDF5;">JOURNALISM &amp; SEO</span>
-        <h2 class="tool-title">Readability &amp; Dwell-Time Analyzer</h2>
-        <p class="tool-desc">Analyze article reading time, word count, character density, and reading grade level for news stories.</p>
-
-        <div class="tool-form-group">
-          <label class="tool-label">Paste Article Text or Draft</label>
-          <textarea id="articleText" class="tool-textarea" rows="6" placeholder="Paste your article or dispatch text here to analyze readability..."></textarea>
-        </div>
-
-        <button type="button" class="tool-btn" style="background: #059669;" onclick="analyzeReadability()">Analyze Text Metrics ➔</button>
-
-        <div id="readabilityResult" class="tool-result">
-          <div class="result-row">
-            <span>Word Count:</span>
-            <span id="wordCount">0 words</span>
-          </div>
-          <div class="result-row">
-            <span>Character Count:</span>
-            <span id="charCount">0 characters</span>
-          </div>
-          <div class="result-row">
-            <span>Average Reading Time (220 WPM):</span>
-            <span id="readTime">0 min</span>
-          </div>
-          <div class="result-row">
-            <span>Estimated User Dwell Time:</span>
-            <span id="dwellTime">0 seconds</span>
-          </div>
-          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Metric:</span>
-            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('read', 'wa')">WhatsApp</button>
-              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('read', 'x')">X (Twitter)</button>
-              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('read', 'copy')">Copy Link</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tool 3: Tech DCA & Compound Return Calculator -->
-      <div class="tool-box" style="grid-column: 1 / -1;">
-        <span class="tool-badge" style="color: #7C3AED; background: #F5F3FF;">FINANCIAL MARKETS</span>
-        <h2 class="tool-title">Tech Stock &amp; Index DCA Compound Growth Simulator</h2>
-        <p class="tool-desc">Simulate recurring systematic investments into leading tech indices (Nasdaq 100, S&amp;P 500) over long-term investment horizons.</p>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-          <div class="tool-form-group">
-            <label class="tool-label">Monthly Investment Amount ($)</label>
-            <input type="number" id="monthlyInv" class="tool-input" value="500" min="10" step="50" />
-          </div>
-          <div class="tool-form-group">
-            <label class="tool-label">Expected Annual Return Rate (%)</label>
-            <input type="number" id="annualRate" class="tool-input" value="12" min="1" max="50" step="0.5" />
-          </div>
-          <div class="tool-form-group">
-            <label class="tool-label">Investment Horizon (Years)</label>
-            <input type="number" id="investYears" class="tool-input" value="10" min="1" max="40" step="1" />
-          </div>
-        </div>
-
-        <button type="button" class="tool-btn" style="background: #7C3AED;" onclick="calculateDca()">Calculate Compound Future Wealth ➔</button>
-
-        <div id="dcaResult" class="tool-result">
-          <div class="result-row">
-            <span>Total Capital Invested:</span>
-            <span id="totalInvested">$0</span>
-          </div>
-          <div class="result-row">
-            <span>Total Compound Interest Earned:</span>
-            <span id="totalInterest">$0</span>
-          </div>
-          <div class="result-row">
-            <span>Estimated Portfolio Value:</span>
-            <span id="futureValue" style="color: #7C3AED;">$0</span>
-          </div>
-          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Forecast:</span>
-            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('dca', 'wa')">WhatsApp</button>
-              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('dca', 'x')">X (Twitter)</button>
-              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('dca', 'copy')">Copy Link</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- 🏛️ Prestigious 4-Column Newsroom Footer -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-col">
-        <h4 style="color: #FFFFFF; font-size: 1.1rem; letter-spacing: 1px;">PRIME MEDIA</h4>
-        <p>Prime Media is an independent digital news organization delivering real-time reporting on technology breakthroughs, global market movements, artificial intelligence, and world affairs.</p>
-        <div style="font-size: 0.78rem; color: #64748B;">Global Bureau Network • Fact-Checked Journalism</div>
-      </div>
-      <div class="footer-col">
-        <h4>News Desks</h4>
-        <ul class="footer-nav-list">
-          <li><a href="/#category-technology">Technology &amp; Gadgets</a></li>
-          <li><a href="/#category-business">Business &amp; Markets</a></li>
-          <li><a href="/#category-ai">Artificial Intelligence</a></li>
-          <li><a href="/#category-world">World &amp; Geopolitics</a></li>
-          <li><a href="/#category-science">Science &amp; Space</a></li>
-          <li><a href="/tools.html">Interactive Tools</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Editorial Standards</h4>
-        <ul class="footer-nav-list">
-          <li><a href="/about.html">About Prime Media</a></li>
-          <li><a href="/about.html#ethics">Fact-Checking Policy</a></li>
-          <li><a href="/about.html#standards">Editorial Guidelines</a></li>
-          <li><a href="/contact.html#corrections">Corrections Desk</a></li>
-          <li><a href="/contact.html#tips">Send News Tips</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Trust &amp; Legal</h4>
-        <ul class="footer-nav-list">
-          <li><a href="/privacy.html">Privacy Policy</a></li>
-          <li><a href="/terms.html">Terms of Service</a></li>
-          <li><a href="/disclaimer.html">Editorial Disclaimer</a></li>
-          <li><a href="/contact.html">Contact Newsroom</a></li>
-          <li><a href="/sitemap.xml">XML Sitemap</a></li>
-          <li><a href="/feed.xml">RSS Wire Feed</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="container footer-bottom-bar">
-      <div>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</div>
-      <div>Independent Digital Journalism • Encrypted &amp; Secure</div>
-    </div>
-  </footer>
-
-  <script>
-    function formatCost(val) {
-      if (val === 0) return '$0.00';
-      if (val < 0.0001) return '< $0.0001';
-      if (val < 0.01) return '$' + val.toFixed(4);
-      return '$' + val.toFixed(2);
-    }
-
-    // Tool 1: AI Cost Calculator Logic
-    function calculateAiCost() {
-      const model = document.getElementById('aiModelSelect').value;
-      const inp = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('inputTokens').value) || 0));
-      const out = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('outputTokens').value) || 0));
-
-      const rates = {
-        gpt4o: { in: 2.50, out: 10.00 },
-        claude35: { in: 3.00, out: 15.00 },
-        gemini15flash: { in: 0.075, out: 0.30 },
-        gemini15pro: { in: 1.25, out: 5.00 },
-        deepseekv3: { in: 0.14, out: 0.28 }
-      };
-
-      const rate = rates[model] || rates.gemini15flash;
-      const inpCost = (inp / 1000000) * rate.in;
-      const outCost = (out / 1000000) * rate.out;
-      const total = inpCost + outCost;
-
-      document.getElementById('inputCost').innerText = formatCost(inpCost);
-      document.getElementById('outputCost').innerText = formatCost(outCost);
-      document.getElementById('totalCost').innerText = formatCost(total);
-      document.getElementById('aiCostResult').style.display = 'block';
-    }
-
-    // Tool 2: Readability Analyzer Logic
-    function analyzeReadability() {
-      const text = document.getElementById('articleText').value.trim();
-      if (!text) {
-        alert('Please enter or paste text to analyze.');
-        return;
-      }
-
-      const words = text.split(/\s+/).filter(w => w.length > 0);
-      const wordCount = words.length;
-      const charCount = text.length;
-      const readMin = (wordCount / 220);
-      const readMinFormatted = readMin < 1 ? '< 1 min read' : Math.ceil(readMin) + ' min read';
-      const dwellSeconds = Math.round(readMin * 60 * 0.85);
-
-      document.getElementById('wordCount').innerText = wordCount.toLocaleString() + ' words';
-      document.getElementById('charCount').innerText = charCount.toLocaleString() + ' chars';
-      document.getElementById('readTime').innerText = readMinFormatted;
-      document.getElementById('dwellTime').innerText = dwellSeconds + ' seconds';
-      document.getElementById('readabilityResult').style.display = 'block';
-    }
-
-    // Tool 3: DCA Compound Calculator Logic
-    function calculateDca() {
-      const monthly = Math.max(0, Math.min(100000000, parseFloat(document.getElementById('monthlyInv').value) || 0));
-      const annualRate = Math.max(0, Math.min(500, parseFloat(document.getElementById('annualRate').value) || 0)) / 100;
-      const years = Math.max(1, Math.min(60, parseFloat(document.getElementById('investYears').value) || 1));
-
-      const months = years * 12;
-      const monthlyRate = annualRate / 12;
-
-      let totalWealth = 0;
-      for (let m = 0; m < months; m++) {
-        totalWealth = (totalWealth + monthly) * (1 + monthlyRate);
-      }
-
-      const totalInvested = monthly * months;
-      const totalInterest = Math.max(0, totalWealth - totalInvested);
-
-      document.getElementById('totalInvested').innerText = '$' + Math.round(totalInvested).toLocaleString();
-      document.getElementById('totalInterest').innerText = '$' + Math.round(totalInterest).toLocaleString();
-      document.getElementById('futureValue').innerText = '$' + Math.round(totalWealth).toLocaleString();
-      document.getElementById('dcaResult').style.display = 'block';
-    }
-
-    // 🌟 Viral Share & Deep Link Flywheel for Utilities
-    function showToolToast(msg) {
-      let toast = document.getElementById('toolToast');
-      if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toolToast';
-        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.25);transition:opacity 0.3s;pointer-events:none;';
-        document.body.appendChild(toast);
-      }
-      toast.innerText = msg;
-      toast.style.opacity = '1';
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-    }
-
-    function shareCalculation(tool, channel) {
-      // Auto compute before sharing so values are always fresh
-      if (tool === 'ai') calculateAiCost();
-      else if (tool === 'dca') calculateDca();
-      else if (tool === 'read') analyzeReadability();
-
-      let shareText = '';
-      let baseToolUrl = window.location.origin ? (window.location.origin + '/tools.html') : 'https://primemedia.site/tools.html';
-      let shareUrl = baseToolUrl;
-
-      if (tool === 'ai') {
-        const model = document.getElementById('aiModelSelect').value;
-        const inp = document.getElementById('inputTokens').value;
-        const out = document.getElementById('outputTokens').value;
-        const total = document.getElementById('totalCost').innerText;
-        shareUrl += `?tool=ai&model=${encodeURIComponent(model)}&in=${inp}&out=${out}`;
-        shareText = `Estimated monthly LLM API expense: ${total} on Prime Media AI Cost Calculator. Check yours:`;
-      } else if (tool === 'dca') {
-        const monthly = document.getElementById('monthlyInv').value;
-        const rate = document.getElementById('annualRate').value;
-        const years = document.getElementById('investYears').value;
-        const total = document.getElementById('futureValue').innerText;
-        shareUrl += `?tool=dca&monthly=${monthly}&rate=${rate}&years=${years}`;
-        shareText = `Calculated my tech wealth growth: $${monthly}/mo at ${rate}% over ${years} yrs grows to ${total}! Simulate yours:`;
-      } else if (tool === 'read') {
-        const wc = document.getElementById('wordCount').innerText;
-        const rt = document.getElementById('readTime').innerText;
-        shareUrl += `?tool=read`;
-        shareText = `Analyzed my draft readability: ${wc}, reading time ${rt} on Prime Media Utilities! Test your content:`;
-      }
-
-      if (channel === 'wa') {
-        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
-      } else if (channel === 'x') {
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-      } else if (channel === 'copy') {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(shareUrl).then(() => {
-            showToolToast('Shareable link copied to clipboard! 📋');
-          }).catch(() => {
-            prompt('Copy this link to share:', shareUrl);
-          });
-        } else {
-          prompt('Copy this link to share:', shareUrl);
-        }
-      }
-    }
-
-    // Auto-calculate if user arrives via a shared deep link
-    window.addEventListener('DOMContentLoaded', () => {
-      const p = new URLSearchParams(window.location.search);
-      const tool = p.get('tool');
-      if (tool === 'ai') {
-        if (p.get('model')) document.getElementById('aiModelSelect').value = p.get('model');
-        if (p.get('in')) document.getElementById('inputTokens').value = p.get('in');
-        if (p.get('out')) document.getElementById('outputTokens').value = p.get('out');
-        calculateAiCost();
-      } else if (tool === 'dca') {
-        if (p.get('monthly')) document.getElementById('monthlyInv').value = p.get('monthly');
-        if (p.get('rate')) document.getElementById('annualRate').value = p.get('rate');
-        if (p.get('years')) document.getElementById('investYears').value = p.get('years');
-        calculateDca();
-      } else if (tool === 'read') {
-        const readTool = document.getElementById('articleText');
-        if (readTool) readTool.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-  </script>
-  <script src="/blog.js" defer></script>
-</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google AdSense Official Script & Account Tag -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9492642167600744" crossorigin="anonymous"></script>
+  <meta name="google-adsense-account" content="ca-pub-9492642167600744">
+
+  <!-- Google Analytics 4 (GA4) Tag -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XV3SRSPLBM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XV3SRSPLBM');
+  </script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Tech Tools, AI Calculators & Utilities — PRIME MEDIA</title>
+  <meta name="description" content="Free interactive utilities by Prime Media: AI Model Token & Cost Calculator, Reading Time & Readability Analyzer, and Tech Investment Calculator.">
+  <link rel="canonical" href="https://primemedia.site/tools.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Interactive Tech Tools & AI Calculators — Prime Media">
+  <meta property="og:description" content="Free utilities for engineers, researchers, and journalists: Calculate AI API token expenses, test article readability, and estimate tech investments.">
+  <meta property="og:url" content="https://primemedia.site/tools.html">
+  <meta property="og:site_name" content="Prime Media">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0F172A">
+  <style>
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    @media (min-width: 900px) {
+      .tools-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .tool-box {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 1.75rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .tool-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #2563EB;
+      background: #EFF6FF;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+    }
+    .tool-title {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 0 0 0.5rem 0;
+    }
+    .tool-desc {
+      font-size: 0.88rem;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .tool-form-group {
+      margin-bottom: 1rem;
+    }
+    .tool-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 0.35rem;
+    }
+    .tool-input, .tool-select, .tool-textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: #F8FAFC;
+      color: #0F172A;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .tool-input:focus, .tool-select:focus, .tool-textarea:focus {
+      border-color: #2563EB;
+      background: #FFFFFF;
+    }
+    .tool-btn {
+      width: 100%;
+      background: #2563EB;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tool-btn:hover {
+      background: #1D4ED8;
+    }
+    .tool-result {
+      margin-top: 1.25rem;
+      padding: 1rem;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      display: none;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #E2E8F0;
+      font-size: 0.88rem;
+    }
+    .result-row:last-child {
+      border-bottom: none;
+      font-weight: 800;
+      color: #059669;
+      font-size: 1rem;
+      padding-top: 0.6rem;
+    }
+    .tool-share-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .tool-share-pill:active {
+      transform: scale(0.97);
+    }
+    .share-wa { background: #16A34A; color: #FFFFFF; }
+    .share-x { background: #0F172A; color: #FFFFFF; }
+    .share-copy { background: #E2E8F0; color: #0F172A; }
+    .share-copy:hover { background: #CBD5E1; }
+  </style>
+</head>
+<body>
+  <!-- 🌟 Top Thin Utility Bar -->
+  <div class="top-utility-bar">
+    <div class="container">
+      <span class="top-brand-text">Prime Media</span>
+      <div class="top-utility-links">
+        <a href="/about.html">About</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/privacy.html">Privacy</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/terms.html">Terms</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/disclaimer.html">Disclaimer</a>
+        <span class="top-utility-divider">|</span>
+        <a href="/contact.html">Contact</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 Main News Navigation Header -->
+  <header class="main-news-header">
+    <div class="container header-flex-row">
+      <div class="header-logo-3d-wrap">
+        <a href="/" class="logo-3d-badge" title="Prime Media Home">
+          <img src="/logo2.png" alt="Prime Media Logo" />
+        </a>
+      </div>
+
+      <nav class="header-nav-center">
+        <ul class="category-nav-bar">
+          <li><a href="/#category-technology">Technology</a></li>
+          <li><a href="/#category-business">Business &amp; Markets</a></li>
+          <li><a href="/#category-ai">AI &amp; Tech</a></li>
+          <li><a href="/#category-world">World News</a></li>
+          <li><a href="/#category-science">Science &amp; Space</a></li>
+          <li><a href="/tools.html" style="color: #2563EB; font-weight: 800;">Interactive Tools</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-right-tools">
+        <button type="button" class="global-search-trigger" id="globalSearchBtn" aria-label="Search Prime Media" title="Search News">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 🛠️ Main Tools Container -->
+  <main class="container" style="max-width: 1040px; margin: 2.5rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2.5rem;">
+      <span style="font-size: 0.78rem; font-weight: 800; color: #DC2626; text-transform: uppercase; letter-spacing: 1px;">UTILITY SUITE</span>
+      <h1 style="font-family: var(--font-heading); font-size: 2.25rem; font-weight: 900; color: #0F172A; margin: 0.35rem 0 0.75rem 0;">
+        Prime Media Technical Utilities &amp; Calculators
+      </h1>
+      <p style="font-size: 1.05rem; color: #475569; max-width: 680px; margin: 0 auto; line-height: 1.6;">
+        Free high-precision tools designed for software engineers, market analysts, and journalists. Calculate LLM API infrastructure costs, analyze text readability, and simulate tech investment growth.
+      </p>
+    </div>
+
+    <div class="tools-grid">
+      <!-- Tool 1: AI Model API Cost & Token Calculator -->
+      <div class="tool-box">
+        <span class="tool-badge">ARTIFICIAL INTELLIGENCE</span>
+        <h2 class="tool-title">AI Token &amp; API Cost Calculator</h2>
+        <p class="tool-desc">Estimate monthly enterprise LLM inference budgets across OpenAI, Anthropic, Google Gemini, and DeepSeek.</p>
+
+        <div class="tool-form-group">
+          <label class="tool-label">Select Frontier AI Model</label>
+          <select id="aiModelSelect" class="tool-select">
+            <option value="gpt4o">GPT-4o ($2.50 / $10.00 per 1M tokens)</option>
+            <option value="claude35">Claude 3.5 Sonnet ($3.00 / $15.00 per 1M tokens)</option>
+            <option value="gemini15flash" selected>Google Gemini 1.5 Flash ($0.075 / $0.30 per 1M tokens)</option>
+            <option value="gemini15pro">Google Gemini 1.5 Pro ($1.25 / $5.00 per 1M tokens)</option>
+            <option value="deepseekv3">DeepSeek V3 ($0.14 / $0.28 per 1M tokens)</option>
+          </select>
+        </div>
+
+        <div class="tool-form-group">
+          <label class="tool-label">Input Tokens (Prompt Context per Month)</label>
+          <input type="number" id="inputTokens" class="tool-input" value="1000000" min="1000" step="50000" />
+        </div>
+
+        <div class="tool-form-group">
+          <label class="tool-label">Output Tokens (Generated Content per Month)</label>
+          <input type="number" id="outputTokens" class="tool-input" value="500000" min="1000" step="25000" />
+        </div>
+
+        <button type="button" class="tool-btn" onclick="calculateAiCost()">Calculate Estimated Cost ➔</button>
+
+        <div id="aiCostResult" class="tool-result">
+          <div class="result-row">
+            <span>Input Prompt Cost:</span>
+            <span id="inputCost">$0.00</span>
+          </div>
+          <div class="result-row">
+            <span>Output Generation Cost:</span>
+            <span id="outputCost">$0.00</span>
+          </div>
+          <div class="result-row">
+            <span>Total Monthly API Expense:</span>
+            <span id="totalCost">$0.00</span>
+          </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Calculation:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('ai', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('ai', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('ai', 'copy')">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool 2: Editorial Readability & Dwell-Time Analyzer -->
+      <div class="tool-box">
+        <span class="tool-badge" style="color: #059669; background: #ECFDF5;">JOURNALISM &amp; SEO</span>
+        <h2 class="tool-title">Readability &amp; Dwell-Time Analyzer</h2>
+        <p class="tool-desc">Analyze article reading time, word count, character density, and reading grade level for news stories.</p>
+
+        <div class="tool-form-group">
+          <label class="tool-label">Paste Article Text or Draft</label>
+          <textarea id="articleText" class="tool-textarea" rows="6" placeholder="Paste your article or dispatch text here to analyze readability..."></textarea>
+        </div>
+
+        <button type="button" class="tool-btn" style="background: #059669;" onclick="analyzeReadability()">Analyze Text Metrics ➔</button>
+
+        <div id="readabilityResult" class="tool-result">
+          <div class="result-row">
+            <span>Word Count:</span>
+            <span id="wordCount">0 words</span>
+          </div>
+          <div class="result-row">
+            <span>Character Count:</span>
+            <span id="charCount">0 characters</span>
+          </div>
+          <div class="result-row">
+            <span>Average Reading Time (220 WPM):</span>
+            <span id="readTime">0 min</span>
+          </div>
+          <div class="result-row">
+            <span>Estimated User Dwell Time:</span>
+            <span id="dwellTime">0 seconds</span>
+          </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Metric:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('read', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('read', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('read', 'copy')">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool 3: Tech DCA & Compound Return Calculator -->
+      <div class="tool-box" style="grid-column: 1 / -1;">
+        <span class="tool-badge" style="color: #7C3AED; background: #F5F3FF;">FINANCIAL MARKETS</span>
+        <h2 class="tool-title">Tech Stock &amp; Index DCA Compound Growth Simulator</h2>
+        <p class="tool-desc">Simulate recurring systematic investments into leading tech indices (Nasdaq 100, S&amp;P 500) over long-term investment horizons.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+          <div class="tool-form-group">
+            <label class="tool-label">Monthly Investment Amount ($)</label>
+            <input type="number" id="monthlyInv" class="tool-input" value="500" min="10" step="50" />
+          </div>
+          <div class="tool-form-group">
+            <label class="tool-label">Expected Annual Return Rate (%)</label>
+            <input type="number" id="annualRate" class="tool-input" value="12" min="1" max="50" step="0.5" />
+          </div>
+          <div class="tool-form-group">
+            <label class="tool-label">Investment Horizon (Years)</label>
+            <input type="number" id="investYears" class="tool-input" value="10" min="1" max="40" step="1" />
+          </div>
+        </div>
+
+        <button type="button" class="tool-btn" style="background: #7C3AED;" onclick="calculateDca()">Calculate Compound Future Wealth ➔</button>
+
+        <div id="dcaResult" class="tool-result">
+          <div class="result-row">
+            <span>Total Capital Invested:</span>
+            <span id="totalInvested">$0</span>
+          </div>
+          <div class="result-row">
+            <span>Total Compound Interest Earned:</span>
+            <span id="totalInterest">$0</span>
+          </div>
+          <div class="result-row">
+            <span>Estimated Portfolio Value:</span>
+            <span id="futureValue" style="color: #7C3AED;">$0</span>
+          </div>
+          <div class="tool-share-bar" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #CBD5E1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Share This Forecast:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="tool-share-pill share-wa" onclick="shareCalculation('dca', 'wa')">WhatsApp</button>
+              <button type="button" class="tool-share-pill share-x" onclick="shareCalculation('dca', 'x')">X (Twitter)</button>
+              <button type="button" class="tool-share-pill share-copy" onclick="shareCalculation('dca', 'copy')">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 🏛️ Prestigious 4-Column Newsroom Footer -->
+  <footer>
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <h4 style="color: #FFFFFF; font-size: 1.1rem; letter-spacing: 1px;">PRIME MEDIA</h4>
+        <p>Prime Media is an independent digital news organization delivering real-time reporting on technology breakthroughs, global market movements, artificial intelligence, and world affairs.</p>
+        <div style="font-size: 0.78rem; color: #64748B;">Global Bureau Network • Fact-Checked Journalism</div>
+      </div>
+      <div class="footer-col">
+        <h4>News Desks</h4>
+        <ul class="footer-nav-list">
+          <li><a href="/#category-technology">Technology &amp; Gadgets</a></li>
+          <li><a href="/#category-business">Business &amp; Markets</a></li>
+          <li><a href="/#category-ai">Artificial Intelligence</a></li>
+          <li><a href="/#category-world">World &amp; Geopolitics</a></li>
+          <li><a href="/#category-science">Science &amp; Space</a></li>
+          <li><a href="/tools.html">Interactive Tools</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Editorial Standards</h4>
+        <ul class="footer-nav-list">
+          <li><a href="/about.html">About Prime Media</a></li>
+          <li><a href="/about.html#ethics">Fact-Checking Policy</a></li>
+          <li><a href="/about.html#standards">Editorial Guidelines</a></li>
+          <li><a href="/contact.html#corrections">Corrections Desk</a></li>
+          <li><a href="/contact.html#tips">Send News Tips</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Trust &amp; Legal</h4>
+        <ul class="footer-nav-list">
+          <li><a href="/privacy.html">Privacy Policy</a></li>
+          <li><a href="/terms.html">Terms of Service</a></li>
+          <li><a href="/disclaimer.html">Editorial Disclaimer</a></li>
+          <li><a href="/contact.html">Contact Newsroom</a></li>
+          <li><a href="/sitemap.xml">XML Sitemap</a></li>
+          <li><a href="/feed.xml">RSS Wire Feed</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom-bar">
+      <div>© 2026 PRIME MEDIA Publishing Group. All rights reserved.</div>
+      <div>Independent Digital Journalism • Encrypted &amp; Secure</div>
+    </div>
+  </footer>
+
+  <script>
+    function formatCost(val) {
+      if (val === 0) return '$0.00';
+      if (val < 0.0001) return '< $0.0001';
+      if (val < 0.01) return '$' + val.toFixed(4);
+      return '$' + val.toFixed(2);
+    }
+
+    // Tool 1: AI Cost Calculator Logic
+    function calculateAiCost() {
+      const model = document.getElementById('aiModelSelect').value;
+      const inp = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('inputTokens').value) || 0));
+      const out = Math.max(0, Math.min(1000000000, parseFloat(document.getElementById('outputTokens').value) || 0));
+
+      const rates = {
+        gpt4o: { in: 2.50, out: 10.00 },
+        claude35: { in: 3.00, out: 15.00 },
+        gemini15flash: { in: 0.075, out: 0.30 },
+        gemini15pro: { in: 1.25, out: 5.00 },
+        deepseekv3: { in: 0.14, out: 0.28 }
+      };
+
+      const rate = rates[model] || rates.gemini15flash;
+      const inpCost = (inp / 1000000) * rate.in;
+      const outCost = (out / 1000000) * rate.out;
+      const total = inpCost + outCost;
+
+      document.getElementById('inputCost').innerText = formatCost(inpCost);
+      document.getElementById('outputCost').innerText = formatCost(outCost);
+      document.getElementById('totalCost').innerText = formatCost(total);
+      document.getElementById('aiCostResult').style.display = 'block';
+    }
+
+    // Tool 2: Readability Analyzer Logic
+    function analyzeReadability() {
+      const text = document.getElementById('articleText').value.trim();
+      if (!text) {
+        alert('Please enter or paste text to analyze.');
+        return false;
+      }
+
+      const words = text.split(/\s+/).filter(w => w.length > 0);
+      const wordCount = words.length;
+      const charCount = text.length;
+      const readMin = (wordCount / 220);
+      const readMinFormatted = readMin < 1 ? '< 1 min read' : Math.ceil(readMin) + ' min read';
+      const dwellSeconds = Math.round(readMin * 60 * 0.85);
+
+      document.getElementById('wordCount').innerText = wordCount.toLocaleString() + ' words';
+      document.getElementById('charCount').innerText = charCount.toLocaleString() + ' chars';
+      document.getElementById('readTime').innerText = readMinFormatted;
+      document.getElementById('dwellTime').innerText = dwellSeconds + ' seconds';
+      document.getElementById('readabilityResult').style.display = 'block';
+      return true;
+    }
+
+    // Tool 3: DCA Compound Calculator Logic
+    function calculateDca() {
+      const monthly = Math.max(0, Math.min(100000000, parseFloat(document.getElementById('monthlyInv').value) || 0));
+      const annualRate = Math.max(0, Math.min(500, parseFloat(document.getElementById('annualRate').value) || 0)) / 100;
+      const years = Math.max(1, Math.min(60, parseFloat(document.getElementById('investYears').value) || 1));
+
+      const months = years * 12;
+      const monthlyRate = annualRate / 12;
+
+      let totalWealth = 0;
+      for (let m = 0; m < months; m++) {
+        totalWealth = (totalWealth + monthly) * (1 + monthlyRate);
+      }
+
+      const totalInvested = monthly * months;
+      const totalInterest = Math.max(0, totalWealth - totalInvested);
+
+      document.getElementById('totalInvested').innerText = '$' + Math.round(totalInvested).toLocaleString();
+      document.getElementById('totalInterest').innerText = '$' + Math.round(totalInterest).toLocaleString();
+      document.getElementById('futureValue').innerText = '$' + Math.round(totalWealth).toLocaleString();
+      document.getElementById('dcaResult').style.display = 'block';
+    }
+
+    // 🌟 Viral Share & Deep Link Flywheel for Utilities
+    function showToolToast(msg) {
+      let toast = document.getElementById('toolToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toolToast';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#FFFFFF;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.25);transition:opacity 0.3s;pointer-events:none;';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.style.opacity = '1';
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+
+    function shareCalculation(tool, channel) {
+      // Auto compute before sharing so values are always fresh
+      if (tool === 'ai') calculateAiCost();
+      else if (tool === 'dca') calculateDca();
+      else if (tool === 'read') {
+        const ok = analyzeReadability();
+        if (!ok) return;
+      }
+
+      let shareText = '';
+      let baseToolUrl = window.location.origin ? (window.location.origin + '/tools.html') : 'https://primemedia.site/tools.html';
+      let shareUrl = baseToolUrl;
+
+      if (tool === 'ai') {
+        const model = document.getElementById('aiModelSelect').value;
+        const inp = document.getElementById('inputTokens').value;
+        const out = document.getElementById('outputTokens').value;
+        const total = document.getElementById('totalCost').innerText;
+        shareUrl += `?tool=ai&model=${encodeURIComponent(model)}&in=${inp}&out=${out}`;
+        shareText = `Estimated monthly LLM API expense: ${total} on Prime Media AI Cost Calculator. Check yours:`;
+      } else if (tool === 'dca') {
+        const monthly = document.getElementById('monthlyInv').value;
+        const rate = document.getElementById('annualRate').value;
+        const years = document.getElementById('investYears').value;
+        const total = document.getElementById('futureValue').innerText;
+        shareUrl += `?tool=dca&monthly=${monthly}&rate=${rate}&years=${years}`;
+        shareText = `Calculated my tech wealth growth: $${monthly}/mo at ${rate}% over ${years} yrs grows to ${total}! Simulate yours:`;
+      } else if (tool === 'read') {
+        const wc = document.getElementById('wordCount').innerText;
+        const rt = document.getElementById('readTime').innerText;
+        shareUrl += `?tool=read`;
+        shareText = `Analyzed my draft readability: ${wc}, reading time ${rt} on Prime Media Utilities! Test your content:`;
+      }
+
+      if (channel === 'wa') {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
+      } else if (channel === 'x') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+      } else if (channel === 'copy') {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            showToolToast('Shareable link copied to clipboard! 📋');
+          }).catch(() => {
+            prompt('Copy this link to share:', shareUrl);
+          });
+        } else {
+          prompt('Copy this link to share:', shareUrl);
+        }
+      }
+    }
+
+    // Auto-calculate if user arrives via a shared deep link
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
+      const tool = p.get('tool');
+      if (tool === 'ai') {
+        if (p.get('model')) document.getElementById('aiModelSelect').value = p.get('model');
+        if (p.get('in')) document.getElementById('inputTokens').value = p.get('in');
+        if (p.get('out')) document.getElementById('outputTokens').value = p.get('out');
+        calculateAiCost();
+      } else if (tool === 'dca') {
+        if (p.get('monthly')) document.getElementById('monthlyInv').value = p.get('monthly');
+        if (p.get('rate')) document.getElementById('annualRate').value = p.get('rate');
+        if (p.get('years')) document.getElementById('investYears').value = p.get('years');
+        calculateDca();
+      } else if (tool === 'read') {
+        const readTool = document.getElementById('articleText');
+        if (readTool) readTool.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  </script>
+  <script src="/blog.js" defer></script>
+</body>
 </html>

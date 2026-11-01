@@ -453,7 +453,7 @@ function initGlobalSearchModal() {
         </div>
         <div class="search-modal-quick-tags">
           <span class="search-quick-label">Trending:</span>
-          <span class="search-quick-pill" data-query="Nvidia">Nvidia AI</span>
+          <span class="search-quick-pill" data-query="AI">AI &amp; Tech</span>
           <span class="search-quick-pill" data-query="Stock Market">Stock Market</span>
           <span class="search-quick-pill" data-query="Artificial Intelligence">AI &amp; Tech</span>
           <span class="search-quick-pill" data-query="Economy">Global Economy</span>
@@ -2298,11 +2298,14 @@ document.addEventListener('DOMContentLoaded', () => {
     pb.style.width = Math.min(100, Math.max(0, scrolled)) + '%';
   }, { passive: true });
 
-  // 📱 Mobile Sticky Share Bar Handlers
+  // 📱 Mobile Sticky & Desktop Article Share Handlers
   function updateStickyShareUrls() {
     const stickyWa = document.getElementById('stickyShareWa');
     const stickyX = document.getElementById('stickyShareX');
     const stickyTg = document.getElementById('stickyShareTg');
+    const deskWa = document.getElementById('desktopShareWa');
+    const deskX = document.getElementById('desktopShareX');
+    const deskTg = document.getElementById('desktopShareTg');
 
     const pageUrl = encodeURIComponent(window.location.href);
     const rawTitle = (document.getElementById('postTitle')?.innerText || document.title || '')
@@ -2311,15 +2314,20 @@ document.addEventListener('DOMContentLoaded', () => {
       .trim();
     const pageTitle = encodeURIComponent(rawTitle);
 
-    if (stickyWa) stickyWa.href = `https://api.whatsapp.com/send?text=${pageTitle}%20-%20${pageUrl}`;
-    if (stickyX) stickyX.href = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`;
-    if (stickyTg) stickyTg.href = `https://t.me/share/url?url=${pageUrl}&text=${pageTitle}`;
+    const waHref = `https://api.whatsapp.com/send?text=${pageTitle}%20-%20${pageUrl}`;
+    const xHref = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${pageTitle}`;
+    const tgHref = `https://t.me/share/url?url=${pageUrl}&text=${pageTitle}`;
+
+    if (stickyWa) stickyWa.href = waHref;
+    if (stickyX) stickyX.href = xHref;
+    if (stickyTg) stickyTg.href = tgHref;
+    if (deskWa) deskWa.href = waHref;
+    if (deskX) deskX.href = xHref;
+    if (deskTg) deskTg.href = tgHref;
   }
   updateStickyShareUrls();
 
-  const stickyCopy = document.getElementById('stickyShareCopy');
-  if (stickyCopy) {
-    stickyCopy.addEventListener('click', () => {
+  function copyArticleUrl() {
       const url = window.location.href;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
@@ -2330,7 +2338,15 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         prompt('Copy article link:', url);
       }
-    });
+  }
+
+  const stickyCopy = document.getElementById('stickyShareCopy');
+  if (stickyCopy) {
+    stickyCopy.addEventListener('click', copyArticleUrl);
+  }
+  const deskCopy = document.getElementById('desktopShareCopy');
+  if (deskCopy) {
+    deskCopy.addEventListener('click', copyArticleUrl);
   }
 
   // 📬 Contact Desk Form Submission Handler

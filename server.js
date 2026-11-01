@@ -607,7 +607,9 @@ app.get('/author/:slug', (req, res) => {
 
 // JSON API endpoint for Author Profile & Posts
 app.get('/api/author/:slug', (req, res) => {
-  const author = getAuthorBySlug(req.params.slug);
+  try {
+    const rawSlug = req.params.slug ? req.params.slug.replace(/[^a-z0-9\-_]/gi, '').toLowerCase() : '';
+    const author = getAuthorBySlug(rawSlug);
   if (!author) {
     return res.status(404).json({ success: false, error: 'Author not found' });
   }
@@ -625,6 +627,10 @@ app.get('/api/author/:slug', (req, res) => {
       readTimeMinutes: p.readTimeMinutes
     }))
   });
+  } catch (err) {
+    console.error('Error in /api/author/:slug:', err);
+    res.status(500).json({ success: false, error: 'Internal server error retrieving author profile' });
+  }
 });
 
 // Official Google AdSense ads.txt Route (Optimized per AdSense Crawler & Cloudflare Best Practices)
@@ -782,6 +788,7 @@ function escapeXml(str) {
 
 // Dynamic Ultra-Clean XML Sitemap for Google Search Console & Fast Indexing
 app.get('/sitemap.xml', (req, res) => {
+  try {
   const posts = getAllPosts();
   const baseUrl = BASE_CANONICAL_URL;
 
@@ -824,10 +831,15 @@ app.get('/sitemap.xml', (req, res) => {
 
   res.header('Content-Type', 'application/xml');
   res.send(xml);
+  } catch (err) {
+    console.error('Error in /sitemap.xml:', err);
+    res.status(500).send('Error generating XML sitemap');
+  }
 });
 
 // Dedicated Google News XML Sitemap for Google News Publisher Center (Only recent news < 48 hours)
 app.get('/news-sitemap.xml', (req, res) => {
+  try {
   const posts = getAllPosts();
   const baseUrl = BASE_CANONICAL_URL;
 
@@ -844,8 +856,8 @@ app.get('/news-sitemap.xml', (req, res) => {
   }).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, 15);
 
   recentNews.forEach(post => {
-    const postDate = new Date(post.publishedAt);
-    const isoDate = postDate.toISOString();
+    const postDate = new Date(post.publishedAt || Date.now());
+    const isoDate = isNaN(postDate.getTime()) ? new Date().toISOString() : postDate.toISOString();
 
     xml += `  <url>\n`;
     xml += `    <loc>${baseUrl}/post/${escapeXml(post.slug)}</loc>\n`;
@@ -857,6 +869,10 @@ app.get('/news-sitemap.xml', (req, res) => {
 
   res.header('Content-Type', 'application/xml');
   res.send(xml);
+  } catch (err) {
+    console.error('Error in /news-sitemap.xml:', err);
+    res.status(500).send('Error generating Google News sitemap');
+  }
 });
 
 // Official RSS 2.0 Feed Endpoints for Google News, Feedly, Flipboard & RSS Auto-Posters
@@ -1556,17 +1572,27 @@ app.post('/api/save-gemini-key', requireAdminAuth, handlePostGeminiKey);
 
 // 5. 100% Real-Time Traffic Analytics & Top Performing Topics API
 app.get('/api/analytics', requireAdminAuth, (req, res) => {
+  try {
   const analyticsData = getRealAnalyticsData();
   res.json({
     success: true,
     ...analyticsData
   });
+  } catch (err) {
+    console.error('Error in /api/analytics:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 5b. Admin Article Management APIs (Search, Hide, Delete, Show Per Page)
 app.get('/api/admin/posts', requireAdminAuth, (req, res) => {
+  try {
   const posts = getAllPosts(true); // Return all posts including hidden ones
   res.json({ success: true, count: posts.length, posts });
+  } catch (err) {
+    console.error('Error in /api/admin/posts:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/admin/post/toggle-visibility', requireAdminAuth, (req, res) => {
@@ -1627,6 +1653,7 @@ app.post('/api/admin/indexnow/submit-all', requireAdminAuth, async (req, res) =>
 
 // 6. Admin Authentication Endpoints
 app.post('/api/admin/login', (req, res) => {
+  try {
   const { password } = req.body || {};
   const activePassword = process.env.ADMIN_PASSWORD || appSettings.adminPassword || 'admin123';
   
@@ -1636,6 +1663,10 @@ app.post('/api/admin/login', (req, res) => {
   }
   
   return res.status(401).json({ success: false, error: 'Incorrect Admin Password!' });
+  } catch (err) {
+    console.error('Error in /api/admin/login:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/admin/change-password', (req, res) => {
