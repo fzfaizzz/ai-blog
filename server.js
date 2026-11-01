@@ -924,8 +924,7 @@ app.get('/api/posts', (req, res) => {
       success: true,
       count: previewPosts.length,
       totalCount: posts.length,
-      posts: previewPosts,
-      serperKeysCount: getSerperKeys().length
+      posts: previewPosts
     });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Internal server error', message: err.message });
@@ -961,7 +960,7 @@ app.get('/api/post/:slug', async (req, res) => {
 });
 
 // 2.5 Diagnostic: Test Gemini API Key Connection
-app.get('/api/test-gemini', async (req, res) => {
+app.get('/api/test-gemini', requireAdminAuth, async (req, res) => {
   const https = await import('https');
   const keys = getGeminiKeys();
   
@@ -1428,7 +1427,7 @@ app.post('/api/trigger-autoblog', requireAdminAuth, async (req, res) => {
 });
 
 // 🩺 Live Database Health & Diagnostics Endpoint
-app.get('/api/db-status', async (req, res) => {
+app.get('/api/db-status', requireAdminAuth, async (req, res) => {
   try {
     const status = getConnectionStatus();
     const dbHandle = await connectDB();
@@ -1747,7 +1746,7 @@ app.post('/api/contact', express.json(), (req, res) => {
 });
 
 // Admin Route to Read Contact Desk Messages
-app.get('/api/admin/contact-messages', (req, res) => {
+app.get('/api/admin/contact-messages', requireAdminAuth, (req, res) => {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
   const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
   if (!isValidAdminToken(token)) {

@@ -1468,12 +1468,12 @@ function initAdminPanel() {
       const data = await res.json();
       if (data.success && data.config) {
         telegramBotTokenInput.value = data.config.botToken || '';
-        telegramChannelIdInput.value = data.config.channelId || '';
+        if (telegramChannelIdInput) telegramChannelIdInput.value = data.config.channelId || '';
         if (telegramMoviesRouteInput) telegramMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
         if (telegramTechRouteInput) telegramTechRouteInput.value = data.config.categoryRouting?.tech || '';
         if (telegramBusinessRouteInput) telegramBusinessRouteInput.value = data.config.categoryRouting?.business || '';
         if (telegramWorldRouteInput) telegramWorldRouteInput.value = data.config.categoryRouting?.world || '';
-        telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
+        if (telegramAutoPostToggle) telegramAutoPostToggle.checked = !!data.config.autoPostEnabled;
       }
     } catch (e) {
       console.error('Error loading Telegram config:', e);
@@ -1583,12 +1583,12 @@ function initAdminPanel() {
         if (userbotApiIdInput) userbotApiIdInput.value = data.config.apiId || '';
         if (userbotApiHashInput) userbotApiHashInput.value = data.config.apiHash || '';
         if (userbotPhoneInput) userbotPhoneInput.value = data.config.phoneNumber || '';
-        userbotTargetGroupsInput.value = data.config.targetGroups || '';
+        if (userbotTargetGroupsInput) userbotTargetGroupsInput.value = data.config.targetGroups || '';
         if (userbotMoviesRouteInput) userbotMoviesRouteInput.value = data.config.categoryRouting?.movies || '';
         if (userbotTechRouteInput) userbotTechRouteInput.value = data.config.categoryRouting?.tech || '';
         if (userbotBusinessRouteInput) userbotBusinessRouteInput.value = data.config.categoryRouting?.business || '';
         if (userbotWorldRouteInput) userbotWorldRouteInput.value = data.config.categoryRouting?.world || '';
-        userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
+        if (userbotAutoPostToggle) userbotAutoPostToggle.checked = !!data.config.autoPostEnabled;
 
         if (data.config.sessionString && data.config.sessionString.length > 10) {
           if (userbotAuthBadge) {
@@ -1766,11 +1766,11 @@ function initAdminPanel() {
       const res = await fetch('/api/twitter-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
-        twitterApiKeyInput.value = data.config.apiKey || '';
-        twitterApiSecretInput.value = data.config.apiSecret || '';
-        twitterAccessTokenInput.value = data.config.accessToken || '';
-        twitterAccessSecretInput.value = data.config.accessSecret || '';
-        twitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+        if (twitterApiKeyInput) twitterApiKeyInput.value = data.config.apiKey || '';
+        if (twitterApiSecretInput) twitterApiSecretInput.value = data.config.apiSecret || '';
+        if (twitterAccessTokenInput) twitterAccessTokenInput.value = data.config.accessToken || '';
+        if (twitterAccessSecretInput) twitterAccessSecretInput.value = data.config.accessSecret || '';
+        if (twitterAutoPostToggle) twitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
       }
     } catch (e) {
       console.error('Error loading Twitter config:', e);
@@ -1863,8 +1863,8 @@ function initAdminPanel() {
       const data = await res.json();
       if (data.success && data.config) {
         customAuthTokenInput.value = data.config.authToken || '';
-        customCsrfTokenInput.value = data.config.csrfToken || '';
-        customTwitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
+        if (customCsrfTokenInput) customCsrfTokenInput.value = data.config.csrfToken || '';
+        if (customTwitterAutoPostToggle) customTwitterAutoPostToggle.checked = !!data.config.autoPostEnabled;
 
         const badge = document.getElementById('customTwitterStatusBadge');
         if (badge) {
@@ -2064,12 +2064,12 @@ function initAdminPanel() {
       const res = await fetch('/api/reddit-config', { headers: getAdminAuthHeaders() });
       const data = await res.json();
       if (data.success && data.config) {
-        redditClientIdInput.value = data.config.clientId || '';
-        redditClientSecretInput.value = data.config.clientSecret || '';
-        redditUsernameInput.value = data.config.username || '';
-        redditPasswordInput.value = data.config.password || '';
-        redditSubredditInput.value = data.config.subreddit || '';
-        redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
+        if (redditClientIdInput) redditClientIdInput.value = data.config.clientId || '';
+        if (redditClientSecretInput) redditClientSecretInput.value = data.config.clientSecret || '';
+        if (redditUsernameInput) redditUsernameInput.value = data.config.username || '';
+        if (redditPasswordInput) redditPasswordInput.value = data.config.password || '';
+        if (redditSubredditInput) redditSubredditInput.value = data.config.subreddit || '';
+        if (redditAutoPostToggle) redditAutoPostToggle.checked = !!data.config.autoPostEnabled;
 
         const badge = document.getElementById('redditStatusBadge');
         if (badge) {
