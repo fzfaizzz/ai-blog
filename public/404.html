@@ -142,7 +142,7 @@
   </footer>
 
   <script>
-    fetch('/api/posts')
+    fetch('/api/posts?limit=4')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.success && Array.isArray(data.posts)) {

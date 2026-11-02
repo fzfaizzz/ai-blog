@@ -422,7 +422,7 @@ async function fetchAllPostsForSearch() {
     return cachedAllPosts;
   }
   try {
-    const res = await fetch('/api/posts');
+    const res = await fetch('/api/posts?limit=150');
     const data = await res.json();
     if (data.success && Array.isArray(data.posts)) {
       cachedAllPosts = data.posts;
@@ -485,6 +485,17 @@ function initGlobalSearchModal() {
         (p.metaDescription || '').toLowerCase().includes(q) ||
         (p.category || '').toLowerCase().includes(q)
       );
+
+      // Deep Server Search fallback if local top 150 had no hits
+      if (matched.length === 0 && q.length >= 2) {
+        try {
+          const sRes = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+          const sData = await sRes.json();
+          if (sData.success && Array.isArray(sData.posts) && sData.posts.length > 0) {
+            matched = sData.posts;
+          }
+        } catch(err) {}
+      }
     }
 
     if (matched.length === 0) {

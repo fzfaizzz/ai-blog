@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 });
 
 // Clean Aliases & Defensive Navigation Redirects for Policy Pages
-const POLICY_PAGES = ['about', 'privacy', 'terms', 'disclaimer', 'contact', 'tools'];
+const POLICY_PAGES = ['about', 'privacy', 'terms', 'disclaimer', 'contact', 'tools', 'admin'];
 POLICY_PAGES.forEach((page) => {
   app.get(`/${page}`, (req, res) => res.redirect(301, `/${page}.html`));
   app.get(`/post/${page}.html`, (req, res) => res.redirect(301, `/${page}.html`));
@@ -68,6 +68,7 @@ app.get(['/privacy-policy', '/privacy-policy.html', '/privacy-policy/'], (req, r
 app.get(['/terms-of-service', '/terms-of-service.html', '/terms-and-conditions', '/terms-of-use'], (req, res) => res.redirect(301, '/terms.html'));
 app.get(['/about-us', '/about-us.html'], (req, res) => res.redirect(301, '/about.html'));
 app.get(['/contact-us', '/contact-us.html'], (req, res) => res.redirect(301, '/contact.html'));
+app.get(['/author', '/authors'], (req, res) => res.redirect(301, '/about.html'));
 app.get('/post/sitemap.xml', (req, res) => res.redirect(301, '/sitemap.xml'));
 
 app.use(cors());
@@ -924,7 +925,7 @@ app.get('/feed.xml', handleRssFeed);
 app.get('/feed', handleRssFeed);
 app.get('/rss', handleRssFeed);
 
-// 1. Get All Posts (For Homepage - Lightweight Optimized Payload)
+// 1. Get All Posts (For Homepage & Client Listing - Lightweight Optimized Payload)
 app.get('/api/posts', (req, res) => {
   try {
     let posts = getAllPosts();
@@ -932,14 +933,46 @@ app.get('/api/posts', (req, res) => {
       const cat = req.query.category.trim().toLowerCase();
       posts = posts.filter(p => (p.category || '').toLowerCase() === cat);
     }
+    if (req.query.q && req.query.q.trim()) {
+      const q = req.query.q.trim().toLowerCase();
+      posts = posts.filter(p => 
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.metaDescription || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+    }
     const limit = parseInt(req.query.limit, 10);
-    const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : posts;
+    const sliced = (!isNaN(limit) && limit > 0) ? posts.slice(0, limit) : (req.query.all === 'true' ? posts : posts.slice(0, 60));
     // Strip heavy article HTML from overview list to keep homepage payload fast
     const previewPosts = sliced.map(({ contentHtml, ...rest }) => rest);
     res.json({
       success: true,
       count: previewPosts.length,
       totalCount: posts.length,
+      posts: previewPosts
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Internal server error', message: err.message });
+  }
+});
+
+// 1.1 Dedicated Live Instant Search API
+app.get('/api/search', (req, res) => {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q) {
+      return res.json({ success: true, count: 0, posts: [] });
+    }
+    const allPosts = getAllPosts();
+    const matched = allPosts.filter(p =>
+      (p.title || '').toLowerCase().includes(q) ||
+      (p.metaDescription || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q)
+    ).slice(0, 20);
+    const previewPosts = matched.map(({ contentHtml, ...rest }) => rest);
+    res.json({
+      success: true,
+      count: previewPosts.length,
       posts: previewPosts
     });
   } catch (err) {
