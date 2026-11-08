@@ -2,6 +2,23 @@
 // Author Profiles, Bios, Credentials, and E-E-A-T metadata for Prime Media
 
 export const AUTHORS = {
+  "faiz-akhtar": {
+    slug: "faiz-akhtar",
+    name: "Faiz Akhtar",
+    role: "Founder & Publisher, Chief Editorial Technologist",
+    initials: "FA",
+    email: "publisher@primemedia.site",
+    bio: "Faiz Akhtar is the Founder and Publisher of Prime Media, directing overall publishing systems, technical infrastructure, and algorithmic verification standards across enterprise artificial intelligence, cloud compute, and global markets.",
+    education: "B.Tech Computer Science & Engineering, Distributed Systems Specialist",
+    beats: ["Enterprise AI", "Cloud Infrastructure", "System Architecture", "Publishing Technology"],
+    location: "Global Digital / New Delhi",
+    articlesCount: 220,
+    social: {
+      twitter: "https://x.com/PrimeMediaHQ",
+      linkedin: "https://www.linkedin.com/company/primemedia-news",
+      muckrack: "https://muckrack.com"
+    }
+  },
   "sarah-jenkins": {
     slug: "sarah-jenkins",
     name: "Sarah Jenkins",

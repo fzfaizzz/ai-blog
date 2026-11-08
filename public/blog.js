@@ -17,6 +17,7 @@ function showToast(msg) {
 // Client JavaScript for Prime Media
 
 const HUMAN_AUTHORS = [
+  { slug: 'faiz-akhtar', name: 'Faiz Akhtar', role: 'Founder & Publisher', initials: 'FA' },
   { slug: 'sarah-jenkins', name: 'Sarah Jenkins', role: 'Senior Technology & AI Correspondent', initials: 'SJ' },
   { slug: 'david-chen', name: 'David Chen', role: 'Global Financial & Macro Analyst', initials: 'DC' },
   { slug: 'elena-rostova', name: 'Elena Rostova', role: 'Aerospace & Deep Science Editor', initials: 'ER' },

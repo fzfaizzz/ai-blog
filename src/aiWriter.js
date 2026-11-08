@@ -69,27 +69,26 @@ function callGeminiApiSingle(newsObj, imageSet, apiKey, modelName = 'gemini-flas
     const date = newsObj.date || 'Today';
     const snippet = newsObj.fullStoryText || newsObj.snippet || '';
 
-    const prompt = `You are a Senior Bureau Chief & Chief Investigative Editor at The Wall Street Journal, Financial Times, and Bloomberg.
-Write a comprehensive, authoritative, high-dwell-time, 1,200 to 1,600-word investigative report covering the FULL STORY on: "${topic}".
+    const prompt = `You are the Lead Technical Analyst and Senior Editor at Prime Media (primemedia.site).
+Write an original, comprehensive, deeply researched, high-dwell-time 1,200 to 1,600-word investigative report covering: "${topic}".
 
-Primary Wire Source: ${source}
-Publication Time: ${date}
-Raw Story Context & Facts:
+Story Context & Factual Baseline:
 ${snippet}
+Primary Wire Reference: ${source} (${date})
 
-CRITICAL EDITORIAL & ADSENSE QUALITY STANDARDS:
-1. HIGH-CTR VIRAL HEADLINE: Craft an irresistible, authoritative front-page headline that drives high click-through rates. It must be compelling, urgent, and hook readers instantly while strictly adhering to factual accuracy.
-2. ELIMINATE "LOW-VALUE CONTENT" (COMPREHENSIVE DEPTH): Provide exhaustive depth, technical details, historical context, and direct implications. Avoid generic fluff or repetitive summaries. Every section must deliver concrete facts, dates, real-world impacts, and executive insights.
-3. HIGH-VALUE TIER-1 ADVERTISER & CPC OPTIMIZATION: Naturally incorporate high-relevance enterprise, financial, and tech terminology (such as enterprise ROI, infrastructure scalability, capital allocation, valuation multiples, risk mitigation, cloud compute architecture, regulatory compliance, and market liquidity). This signals premium High-eCPM advertiser intent to Google AdSense / Google Ad Manager.
-4. TARGET LONG-TAIL QUERIES & "PEOPLE ALSO ASK" FAQS: Include a dedicated, rich "Frequently Asked Questions (People Also Ask)" section with 3 to 4 detailed questions and comprehensive answers addressing user queries and long-tail search intent.
-5. REQUIRED ARTICLE ARCHITECTURE:
-   - Executive Takeaways: 3-4 bullet points highlighting the most vital facts.
-   - Comprehensive Narrative: Background, catalytic events, and deep breakdown.
-   - Verified Data / Metrics Breakdown Table (HTML <table>) comparing key numbers, dates, or specifications.
-   - Industry & Market Implications: Who wins, who loses, and broader economic impact.
-   - People Also Ask (FAQ): 3-4 high-intent questions and authoritative answers.
-   - Future Outlook: What comes next and key milestones to watch.
-6. FORMATTING: Use engaging HTML headings (<h2>, <h3>), well-paced paragraphs (<p>), bullet lists (<ul>, <li>), and responsive tables (<table>). DO NOT include markdown code fences (\`\`\`html) or conversational commentary. Output ONLY raw HTML content starting directly with the story.`;
+CRITICAL EDITORIAL & GOOGLE ADSENSE QUALITY STANDARDS:
+1. EXCLUSIVE EDITORIAL VOICE (NO IMPERSONATION): Write strictly under the Prime Media brand. NEVER mention or claim to be Bloomberg, Wall Street Journal, Financial Times, Reuters, or any third-party news desk. Prime Media is an independent digital news and technology analysis platform.
+2. ELIMINATE "LOW-VALUE CONTENT" (ORIGINAL ANALYSIS & CONTEXT): Provide exhaustive depth, technical architecture, real-world implications, and independent commentary. Deliver concrete facts, historical perspective, timeline of events, and expert analysis that provides distinct, unique value beyond the raw wire summary.
+3. HIGH-VALUE TIER-1 ADVERTISER & CPC TERMINOLOGY: Naturally incorporate high-intent enterprise, tech, and economic concepts (e.g. enterprise ROI, compute latency, cloud architecture, capital efficiency, benchmark metrics, regulatory frameworks).
+4. RICH "PEOPLE ALSO ASK" & SEARCH INTENT FAQS: Include an authoritative "Frequently Asked Questions" section with 3 to 4 high-intent questions and exhaustive answers addressing common user queries.
+5. MANDATORY ARTICLE ARCHITECTURE:
+   - Executive Summary / Key Takeaways: 3-4 bullet points highlighting essential findings.
+   - The Core Event & Background: What occurred, chronological timeline, and underlying catalysts.
+   - Verified Data & Benchmark Matrix (HTML <table>): Structured comparison of key metrics, specifications, or numbers.
+   - Strategic & Industry Implications: Direct consequences for developers, enterprises, and consumers.
+   - Frequently Asked Questions (PAA): 3-4 structured questions and clear, authoritative answers.
+   - Strategic Outlook & Next Milestones: Forward-looking analysis on what to expect next.
+6. FORMATTING: Use clean HTML headings (<h2>, <h3>), well-paced paragraphs (<p>), structured bullet lists (<ul>, <li>), and responsive tables (<table>). DO NOT output markdown code blocks (\`\`\`html) or introductory conversational filler. Begin directly with the story content.`;
 
     const postData = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]
