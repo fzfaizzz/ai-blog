@@ -2452,4 +2452,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }, 2500);
+
+  // 🍪 GDPR & AdSense Compliant Cookie Consent Banner
+  initCookieConsentBanner();
 });
+
+function initCookieConsentBanner() {
+  if (localStorage.getItem('pm_cookie_consent')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pmCookieConsentBanner';
+  banner.setAttribute('role', 'region');
+  banner.setAttribute('aria-label', 'Cookie Consent Notice');
+  banner.style.cssText = 'position: fixed; bottom: 0; left: 0; right: 0; background: #0F172A; color: #F8FAFC; padding: 0.9rem 1.25rem; box-shadow: 0 -4px 20px rgba(0,0,0,0.18); z-index: 99999; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.88rem; line-height: 1.4;';
+  banner.innerHTML = '<div style="flex: 1 1 300px; display: flex; align-items: center; gap: 0.6rem;"><span style="font-size: 1.2rem;">🍪</span><span>We use essential cookies and telemetry in accordance with our <a href="/privacy.html" style="color: #60A5FA; text-decoration: underline; font-weight: 500;">Privacy Policy</a> to ensure optimal performance and editorial integrity.</span></div><div style="display: flex; gap: 0.75rem; align-items: center;"><button id="pmAcceptCookieBtn" style="background: #2563EB; color: #FFFFFF; border: none; padding: 0.5rem 1.2rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: background 0.2s;">Accept All</button></div>';
+  document.body.appendChild(banner);
+
+  const acceptBtn = document.getElementById('pmAcceptCookieBtn');
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', () => {
+      localStorage.setItem('pm_cookie_consent', 'accepted');
+      banner.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(100%)';
+      setTimeout(() => banner.remove(), 350);
+    });
+  }
+}
